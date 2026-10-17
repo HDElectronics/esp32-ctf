@@ -18,11 +18,11 @@ import struct
 import subprocess
 import sys
 import tempfile
-import time
 
-import serial
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from common.console import Console, default_port  # noqa: E402
 
-DEFAULT_PORT = os.environ.get("CTF_PORT", "/dev/ttyACM0")
+DEFAULT_PORT = default_port()
 PART_TABLE_OFFSET = 0x8000
 PART_TABLE_SIZE = 0xC00
 FLAG_RE = re.compile(rb"ESP\{[0-9A-Fa-f]{12}\}")
@@ -117,44 +117,28 @@ def nvs_entries(nvs_bin):
 
 
 class Board:
-    """Minimal console client: resets the board, waits for the prompt, runs commands."""
+    """Console client (solvers/common/console.py). Opening does not reboot the
+    board; reset() reboots it on purpose and keeps the boot log (MAC banner)."""
 
     def __init__(self, port):
-        self.s = serial.Serial(port, 115200, timeout=0.1)
+        self.s = Console(port, timeout=0.1)
         self.boot_log = ""
 
     def reset(self, timeout=20):
-        self.s.dtr = False
-        self.s.rts = True
-        time.sleep(0.1)
-        self.s.rts = False
-        self.boot_log = self.read_until(r"ctf> ", timeout)
+        self.boot_log = self.s.reset_board(timeout=timeout)
         if "ctf> " not in self.boot_log:
             sys.exit("no console prompt after reset")
-        time.sleep(0.5)
-        self.boot_log += self.drain()
         return self.boot_log
 
     def drain(self):
-        buf = b""
-        while True:
-            chunk = self.s.read(4096)
-            if not chunk:
-                return buf.decode(errors="replace")
-            buf += chunk
+        return self.s.drain()
 
     def read_until(self, pattern, timeout):
-        buf = ""
-        end = time.time() + timeout
-        while time.time() < end:
-            buf += self.s.read(4096).decode(errors="replace")
-            if re.search(pattern, buf):
-                break
-        return buf
+        return self.s.read_until_re(pattern, timeout)
 
     def cmd(self, line, timeout=5):
         self.s.reset_input_buffer()
-        self.s.write((line + "\r").encode())
+        self.s.send(line)
         out = self.read_until(r"ctf> $", timeout)
         print(">>> " + line + "\n" + re.sub(r"ctf> $", "", out).strip())
         return out

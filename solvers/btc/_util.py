@@ -15,9 +15,10 @@ import subprocess
 import sys
 import time
 
-import serial
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from common.console import Console, default_port  # noqa: E402
 
-PORT = os.environ.get("CTF_PORT", "/dev/ttyACM0")
+PORT = default_port()
 NAME_PREFIX = "ESP32-CTF-"
 SPP_NAME = "CTF Console"
 PROMPT = b"spp> "
@@ -180,27 +181,8 @@ def open_console(addr: str) -> Spp:
 # ---- serial console submit ----------------------------------------------
 
 def console_submit(flag: str) -> str:
-    rx = re.compile(r"(Correct!.*|Already solved.*|Wrong flag.*)\r?\n")
-    for _ in range(2):
-        s = serial.Serial()
-        s.port, s.baudrate, s.timeout, s.dtr, s.rts = PORT, 115200, 0.2, False, False
-        s.open()
-        try:
-            s.reset_input_buffer()
-            s.write(b"\r\n")
-            time.sleep(0.2)
-            s.reset_input_buffer()
-            s.write(f"submit {flag}\r\n".encode())
-            buf = ""
-            end = time.time() + 5
-            while time.time() < end:
-                buf += s.read(256).decode(errors="replace")
-                m = rx.search(buf)
-                if m:
-                    return m.group(1).strip()
-        finally:
-            s.close()
-    return f"no submit result: {buf!r}"
+    with Console(PORT) as s:
+        return s.submit(flag)
 
 
 def finish(challenge: str, flag: str) -> None:

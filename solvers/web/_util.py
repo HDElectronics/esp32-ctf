@@ -15,14 +15,16 @@ import time
 import requests
 import serial
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from common.console import Console, default_port  # noqa: E402
+
 FLAG_RE = re.compile(r"ESP\{[0-9A-F]{12}\}")
-PROMPT = b"ctf> "
 
 
 def args(description: str, default_via: str = "console") -> argparse.Namespace:
     p = argparse.ArgumentParser(description=description)
     p.add_argument("--host", default="192.168.4.1", help="board address (default %(default)s)")
-    p.add_argument("--serial", default=os.environ.get("CTF_PORT", "/dev/ttyACM0"),
+    p.add_argument("--serial", "--port", dest="serial", default=default_port(),
                    help="board serial console (default %(default)s)")
     p.add_argument("--via", choices=["console", "web", "none"], default=default_via,
                    help="where to submit the flag (default %(default)s)")
@@ -38,59 +40,21 @@ def url(a, path: str) -> str:
 _conn = {}
 
 
-def _open(port: str) -> serial.Serial:
-    """Open the console once per process without pulsing the board's EN line.
-
-    The DevKit auto-reset circuit pulls EN low while RTS is asserted and DTR is
-    not. Linux asserts both on open; clearing them one by one (dtr=False, then
-    rts=False) passes through exactly that state and reboots the board
-    (reset reason "power-on"). Leaving both asserted keeps EN high, and the
-    driver drops both together on close."""
-    if port in _conn and _conn[port].is_open:
-        return _conn[port]
-    s = serial.Serial()
-    s.port = port
-    s.baudrate = 115200
-    s.timeout = 0.05
-    s.dtr = True
-    s.rts = True
-    s.open()
-    _conn[port] = s
-    return s
-
-
-def _read_until(s, marker: bytes, timeout: float) -> bytes:
-    buf = b""
-    end = time.monotonic() + timeout
-    while time.monotonic() < end:
-        chunk = s.read(4096)
-        if chunk:
-            buf += chunk
-            if marker in buf:
-                break
-    return buf
+def _open(port: str) -> Console:
+    """One console connection per process (solvers/common/console.py: no reset)."""
+    if port not in _conn or not _conn[port].is_open:
+        _conn[port] = Console(port)
+    return _conn[port]
 
 
 def console(port: str, line: str, timeout: float = 5.0) -> str:
     """Run one console command and return its output (log lines included)."""
     s = _open(port)
     try:
-        s.reset_input_buffer()
-        s.write(b"\x03")  # drop any half-typed line
-        s.flush()
-        _read_until(s, PROMPT, 1.0)
-        s.reset_input_buffer()
-        s.write(line.encode() + b"\r")
-        s.flush()
-        out = _read_until(s, PROMPT, timeout).decode(errors="replace").replace("\r", "")
+        return s.cmd(line, timeout)
     except serial.SerialException:
         s.close()
         raise
-    if out.startswith(line):
-        out = out[len(line):]
-    if out.endswith(PROMPT.decode()):
-        out = out[: -len(PROMPT)]
-    return out.strip("\n")
 
 
 def wifi_info(port: str) -> dict:
@@ -120,11 +84,7 @@ def wifi_info(port: str) -> dict:
 # ---------------- submission ----------------
 
 def submit_console(port: str, flag: str) -> str:
-    out = console(port, "submit " + flag)
-    for line in out.splitlines():
-        if line.startswith(("Correct!", "Already solved", "Wrong flag")):
-            return line
-    return out
+    return _open(port).submit(flag)
 
 
 def submit_web(a, flag: str) -> str:

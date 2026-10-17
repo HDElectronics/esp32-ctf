@@ -1,7 +1,7 @@
 """Shared helpers for the BLE reference solvers (see README.md).
 
 Environment:
-  CTF_PORT      serial console of the board (default /dev/ttyACM0)
+  CTF_PORT      serial console of the board (default /dev/ttyACM0; or --port)
   CTF_BLE_NAME  exact advertised name to pick (default: first "ESP32-CTF-*")
 """
 import argparse
@@ -10,12 +10,12 @@ import os
 import re
 import subprocess
 import sys
-import time
 
-import serial
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from common.console import Console, add_port_arg, default_port  # noqa: E402
 from bleak import BleakClient, BleakScanner
 
-PORT = os.environ.get("CTF_PORT", "/dev/ttyACM0")
+PORT = default_port()
 NAME = os.environ.get("CTF_BLE_NAME")
 NAME_PREFIX = "ESP32-CTF-"
 COMPANY_ID = 0x02E5
@@ -39,6 +39,7 @@ def args(description: str, default_via: str = "console") -> argparse.Namespace:
     p = argparse.ArgumentParser(description=description)
     p.add_argument("--via", choices=["console", "ble", "none"], default=default_via,
                    help="where to submit the recovered flag (default %(default)s)")
+    add_port_arg(p)
     return p.parse_known_args()[0]
 
 
@@ -95,64 +96,37 @@ async def udesc(client: BleakClient, char_uuid: str) -> str:
     return ""
 
 
-# ---- serial console ------------------------------------------------------
+# ---- serial console (solvers/common/console.py) ---------------------------
 
-def open_serial(timeout: float = 0.2) -> serial.Serial:
-    """Open the console without toggling EN/IO0 (DTR/RTS released)."""
-    s = serial.Serial()
-    s.port = PORT
-    s.baudrate = 115200
-    s.timeout = timeout
-    s.dtr = False
-    s.rts = False
-    s.open()
-    return s
+def open_serial() -> Console:
+    """Open the console without rebooting the board."""
+    return Console(PORT)
 
 
 def console(cmd: str, until: str, timeout: float = 5.0) -> str:
-    """Send one console line, return output up to and including a line matching `until`."""
+    """Send one console line, return output up to and including a match of `until`."""
     with open_serial() as s:
-        s.reset_input_buffer()
-        s.write(b"\r\n")
-        time.sleep(0.2)
-        s.reset_input_buffer()
-        s.write(cmd.encode() + b"\r\n")
-        buf = ""
-        rx = re.compile(until)
-        end = time.time() + timeout
-        while time.time() < end:
-            buf += s.read(256).decode(errors="replace")
-            if rx.search(buf):
-                return buf
+        s.sync()
+        s.send(cmd)
+        buf = s.read_until_re(until, timeout)
+        if re.search(until, buf):
+            return buf
         raise TimeoutError(f"no {until!r} after {cmd!r}; got {buf!r}")
 
 
 def reset_and_capture(pattern: str, timeout: float = 15.0) -> re.Match:
-    """Reset the board via RTS (EN) and wait for a boot line matching pattern."""
-    rx = re.compile(pattern)
+    """Reboot the board on purpose and wait for a boot line matching pattern."""
     with open_serial() as s:
-        s.reset_input_buffer()
-        s.rts = True   # EN low
-        time.sleep(0.2)
-        s.rts = False  # EN high: boot
-        buf = ""
-        end = time.time() + timeout
-        while time.time() < end:
-            buf += s.read(256).decode(errors="replace")
-            m = rx.search(buf)
-            if m:
-                return m
+        s.reset_board(wait_prompt=False)
+        m = re.search(pattern, s.read_until_re(pattern, timeout))
+        if m:
+            return m
     raise TimeoutError(f"boot output never matched {pattern!r}")
 
 
 def console_submit(flag: str) -> str:
-    rx = r"(Correct!.*|Already solved.*|Wrong flag.*)\r?\n"
-    try:
-        out = console(f"submit {flag}", rx)
-    except TimeoutError as e:  # e.g. a log line garbled the echo: try once more
-        print(f"console: {e}; retrying")
-        out = console(f"submit {flag}", rx)
-    return re.search(r"(Correct!.*|Already solved.*|Wrong flag.*)", out).group(1).strip()
+    with open_serial() as s:
+        return s.submit(flag)
 
 
 async def ble_submit(client: BleakClient, flag: str) -> str:
