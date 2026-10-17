@@ -30,6 +30,13 @@ Logic analyzer: a cheap 8-channel 24 MHz FX2-based analyzer works with
 sigrok (`sigrok-cli -d fx2lafw`) and PulseView. 1 MHz sample rate is plenty
 for this track.
 
+On Debian/Ubuntu, `apt install sigrok-cli pulseview sigrok-firmware-fx2lafw`
+already installs the USB permission rules in `/usr/lib/udev/rules.d/`. Don't
+download rule files from sigrok.org with `wget`: the site serves an error
+page to scripts, and a file of the same name in `/etc/udev/rules.d/` hides the
+working one. If `sigrok-cli --scan` lists only the demo device, unplug and
+replug the analyzer, then check for such files.
+
 ## Challenges
 
 ### HW-01 Jumper it (100) · Kit: jumper wire

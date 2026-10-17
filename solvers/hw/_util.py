@@ -83,21 +83,31 @@ def load_logic_csv(path):
     Returns (names, rows) where rows are lists of ints per channel, one row per
     sample (the time column, if present, is dropped).
     """
-    names, rows, time_col = None, [], None
+    names, rows, time_col, comment_names = None, [], None, None
     with open(path) as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith(";"):
+            if not line:
+                continue
+            if line.startswith(";"):
+                # libsigrok 0.5.x: "; Channels (2/8): D0, D1" names the columns;
+                # its header row is just "logic".
+                m = re.match(r";\s*Channels\s*\(\d+/\d+\):\s*(.+)", line)
+                if m:
+                    comment_names = [c.strip() for c in m.group(1).split(",")]
                 continue
             cells = [c.strip() for c in line.split(",")]
             if names is None:
                 if all(re.fullmatch(r"[01]", c) for c in cells):
-                    names = ["D%d" % i for i in range(len(cells))]
+                    names = comment_names or ["D%d" % i for i in range(len(cells))]
                 else:
                     names = cells
                     time_col = next((i for i, c in enumerate(cells) if c.lower().startswith("time")), None)
                     if time_col is not None:
                         names = [c for i, c in enumerate(cells) if i != time_col]
+                    if comment_names and len(comment_names) == len(names) and \
+                            all(n.lower() == "logic" for n in names):
+                        names = comment_names
                     continue
             vals = [c for i, c in enumerate(cells) if i != time_col]
             rows.append([int(float(v)) for v in vals])
