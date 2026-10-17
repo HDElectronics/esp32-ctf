@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API docs</title></head>
+<body>
+<h1>Base station API</h1>
+<h2>GET /api/secret</h2>
+<p>Restricted endpoint. Only the official client may call it: every request
+must identify itself as <code>ESP32-CTF-Agent</code> (User-Agent) and carry the
+board key in the <code>X-CTF-Key</code> header.</p>
+<p>Board key: <code>{{APIKEY}}</code></p>
+<p>Anything else gets <code>403 Forbidden</code>.</p>
+<hr>
+<p><a href="/">home</a></p>
+</body>
+</html>

@@ -33,3 +33,9 @@ CONFIG_ESP_WIFI_RX_IRAM_OPT=n
 # HW track dev self-test (`hwdev` command, prints derived values). Keep off
 # for release builds.
 # CONFIG_CTF_HW_DEV=y
+
+# --- WEB track (net mode) ---
+# lwIP socket slots: main httpd (listen + ctrl + 8 clients), WEB-08 beacon
+# httpd (listen + ctrl + 2), WEB-09 knock (3 UDP + door listen + 1 client)
+# = 19, above the default 10.
+CONFIG_LWIP_MAX_SOCKETS=20

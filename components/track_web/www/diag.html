@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnostics</title></head>
+<body>
+<h1>Diagnostics</h1>
+<form method="get" action="/diag">
+<p><label>log file <input name="file" value="boot.log"></label>
+<button type="submit">view</button></p>
+</form>
+<p>Available: boot.log, net.log, ping.log</p>
+{{BODY}}
+<hr>
+<p><a href="/">home</a></p>
+</body>
+</html>

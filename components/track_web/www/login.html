@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login</title></head>
+<body>
+<h1>Login</h1>
+<form method="post" action="/login">
+<p><label>user <input name="user" value="guest"></label></p>
+<p><label>password <input name="password" type="password"></label> (not needed for guest)</p>
+<p><button type="submit">log in</button></p>
+</form>
+{{BODY}}
+<p>Signed-in users can open the <a href="/vault">vault</a>. Session tokens are
+HS256 JWTs (<code>session</code> cookie or <code>Authorization: Bearer</code>).
+Token secrets are picked from the <a href="/wordlist.txt">approved word list</a>.</p>
+<hr>
+<p><a href="/">home</a></p>
+</body>
+</html>

@@ -1,0 +1,25 @@
+menu "CTF web track"
+
+config CTF_WEB_DEV_STA
+    bool "Web track dev station mode (APSTA, joins a test network)"
+    default n
+    help
+        Development only. In net mode the board runs Wi-Fi APSTA: the hidden
+        SoftAP as usual, plus a station that joins the network below so the
+        web solvers can reach every service from a LAN host without joining
+        the board's AP. The SoftAP follows the station's channel. The STA IP
+        is printed on the console as `web dev sta ip: x.x.x.x` and `wifi`
+        also shows the active AP SSID. Release builds keep this off.
+        Put the three options in a git-ignored sdkconfig.*.local file.
+
+config CTF_WEB_DEV_STA_SSID
+    string "Dev station: network SSID (2.4 GHz)"
+    depends on CTF_WEB_DEV_STA
+    default ""
+
+config CTF_WEB_DEV_STA_PASS
+    string "Dev station: network password"
+    depends on CTF_WEB_DEV_STA
+    default ""
+
+endmenu
