@@ -1,0 +1,10 @@
+build/
+build-host/
+sdkconfig
+sdkconfig.old
+managed_components/
+dist/
+.cache/
+__pycache__/
+*.pyc
+.venv/
