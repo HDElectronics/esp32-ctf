@@ -31,7 +31,7 @@ reset`), track registration hooks, boot sequence per mode, SER-01 boot banner.
 **Verify:** build; on hardware: banner + SER-01 flag visible, `status`, `mode net`
 reboots into net mode and back.
 
-## 4. [ ] Serial + crypto tracks — Medium — deps: 3
+## 4. [x] Serial + crypto tracks — Medium — deps: 3
 `track_serial` SER-02..04, `track_crypto` CRY-01..03 per SPEC.
 **Verify:** build; solvers in `solvers/serial/`, `solvers/crypto/` (CRY ones also
 unit-testable on host against reference logic); hardware run.

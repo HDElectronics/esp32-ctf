@@ -36,3 +36,7 @@
 - `solvers/<track>/` — reference solver per challenge (planned)
 - `docs/players/` — player guides (planned, task 11)
 - `web/flasher/` — ESP Web Tools page + manifest (planned, task 11)
+- `components/track_serial/` — SER-02..04 (UART2 beacon, timing login, escape hook) + CRY-01 shard 1
+- `components/track_crypto/` — CRY-01..03 console commands (`cipher`, `oracle`, `msgs`); Kconfig `CONFIG_CTF_CRYPTO_DEV`
+- `solvers/serial/` — SER solvers + `_util.py` console helpers (pyserial)
+- `solvers/crypto/` — CRY solvers
