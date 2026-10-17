@@ -41,7 +41,7 @@ unit-testable on host against reference logic); hardware run.
 **Verify:** build; solvers/notes in `solvers/hw/`; hardware run (logic analyzer
 for HW-03..05 if available, otherwise scope the bit timing in code review).
 
-## 6. [ ] RE track — Careful — deps: 3
+## 6. [x] RE track — Careful — deps: 3
 `track_re` RE-01..04: first-boot provisioning (notes partition, NVS vault,
 SPIFFS blob), crackme transform + `unlock` command.
 **Verify:** build; solvers in `solvers/re/` that work from a flash dump file

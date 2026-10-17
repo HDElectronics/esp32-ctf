@@ -40,3 +40,5 @@
 - `components/track_crypto/` — CRY-01..03 console commands (`cipher`, `oracle`, `msgs`); Kconfig `CONFIG_CTF_CRYPTO_DEV`
 - `solvers/serial/` — SER solvers + `_util.py` console helpers (pyserial)
 - `solvers/crypto/` — CRY solvers
+- `components/track_re/` — RE-01..04 boot-time provisioning (notes partition, NVS vault k/chk, SPIFFS blob.bin) + `unlock` command; mounts SPIFFS
+- `solvers/re/` — RE solvers (esptool dump + nvs_tool.py), `_util.py`, README with Ghidra loading guide
