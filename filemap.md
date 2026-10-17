@@ -54,3 +54,5 @@
 - `components/track_web/www/` — embedded page templates + robots.txt
 - `solvers/web/` — web solvers (`--host`), `_util.py` (DTR/RTS-safe serial open), README
 - `sdkconfig.dev.local` — (git-ignored, user-created) dev STA Wi-Fi credentials overlay
+- `solvers/common/console.py` — shared no-reset board serial Console (all tracks; `--port` / `$CTF_PORT`)
+- `solvers/README.md` — solver setup: venv from /usr/bin/python3, port option, organizer-only (spoilers)
