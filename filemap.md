@@ -44,3 +44,5 @@
 - `solvers/re/` — RE solvers (esptool dump + nvs_tool.py), `_util.py`, README with Ghidra loading guide
 - `components/track_hw/` — HW-01..06 (jumper check, Morse LED, LEDC PWM, bit-banged I2C/SPI, touch keypad), `keypad` cmd; Kconfig `CONFIG_CTF_HW_DEV` (`hwdev` cmd)
 - `solvers/hw/` — HW solvers/decoders, `_util.py`, README with manual kit steps
+- `components/track_ble/` — BT bring-up (BTDM + Bluedroid), advertising/BLE-07 rotation, GATT challenge + CTF control services, BLE-01..11, CRY-01 shard 2, `ble` cmd; `track_ble_bt_ready()`
+- `solvers/ble/` — bleak solvers ble01..ble11, `_util.py`, README.md (GATT table, UUIDs)

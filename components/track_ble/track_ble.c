@@ -36,8 +36,8 @@ static const char *TAG = "track_ble";
 #define APP_ID           0x42
 #define LOCAL_MTU        517
 #define COMPANY_ID       0x02E5 /* Espressif */
-#define PIN_TRIES        5      /* BLE-10: wrong tries before a lockout */
-#define PIN_LOCKOUT_US   (3 * 1000 * 1000)
+#define PIN_TRIES        10     /* BLE-10: wrong tries before a lockout */
+#define PIN_LOCKOUT_US   (1 * 1000 * 1000)
 #define PIN_ERR_LOCKOUT  0x80   /* ATT application error: locked out */
 #define PIN_ERR_FORMAT   0x81   /* ATT application error: not 4 ASCII digits */
 #define SEQ_LEN          5      /* BLE-11 */
@@ -354,7 +354,7 @@ static void build_tables(void)
     a_decl(&c[C10_DECL], &s_prop_rwn);
     a_val(&c[C10_VAL], ESP_GATT_RSP_BY_APP, UUID_BLE10, R | W, 32, NULL);
     a_cccd(&c[C10_CCC]);
-    a_desc(&c[C10_DESC], "[BLE-10] Vault Keypad: 4-digit PIN, 5 wrong tries lock it for 3 s");
+    a_desc(&c[C10_DESC], "[BLE-10] Vault Keypad: 4-digit PIN, 10 wrong tries lock it for 1 s");
 
     a_decl(&c[C11A_DECL], &s_prop_rwnr);
     a_val(&c[C11A_VAL], ESP_GATT_RSP_BY_APP, UUID_BLE11_IN, R | W, 32, NULL);

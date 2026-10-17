@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """BLE-10 Rate-limited PIN: brute-force the 4-digit PIN (ASCII) on the vault
-keypad. Every 5th wrong try starts a 3 s lockout during which writes fail with
+keypad. Every 10th wrong try starts a 1 s lockout during which writes fail with
 ATT error 0x80, so we pause after each batch of 5 instead of hammering. The flag
 is notified (and readable) once the right PIN is in."""
 import argparse
@@ -11,7 +11,7 @@ import time
 import _util as u
 
 KEYPAD = u.uuid(0x010A)
-TRIES, LOCKOUT = 5, 3.0
+TRIES, LOCKOUT = 10, 1.0
 
 
 async def main():

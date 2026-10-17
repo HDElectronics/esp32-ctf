@@ -151,7 +151,7 @@ Difficulty: E easy, M medium, H hard. Kit: extra hardware needed.
 | BLE-07 | Advertising payload | M | Flag split into 3 parts in manufacturer data; advert rotates parts every 2 s. |
 | BLE-08 | Big MTU | M | Value is 200+ bytes; flag at the end, needs MTU exchange or long read. |
 | BLE-09 | Passkey pairing | M | Characteristic needs encrypted + authenticated link; static per-board passkey printed on the console at boot. |
-| BLE-10 | Rate-limited PIN | H | 4-digit per-board PIN written to a characteristic; 5 wrong tries → 3 s lockout. Brute force fits in minutes with scripting. |
+| BLE-10 | Rate-limited PIN | H | 4-digit per-board PIN written to a characteristic; 10 wrong tries → 1 s lockout (≈0.13 s per try, full sweep ≈ 20 min worst case). Brute force needs scripting. |
 | BLE-11 | Write-without-response sequence | H | Send 5 specific write-without-response values in order, each within 500 ms of the last. |
 
 Also in radio mode: CTF control service (submit + score), see above.

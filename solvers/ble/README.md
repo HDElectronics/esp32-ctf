@@ -57,7 +57,7 @@ One connection at a time; advertising restarts on disconnect.
 | `0106` | [BLE-06] Firmware Revision | read | boring value; descriptor `0166` holds the flag |
 | `0108` | [BLE-08] Telemetry Dump | read | 235 bytes, flag at the end; long reads with offset |
 | `0109` | [BLE-09] Secure Locker | read (encrypted + MITM) | flag; static per-board passkey, board is display-only, bonding allowed |
-| `010a` | [BLE-10] Vault Keypad: 4-digit PIN, 5 wrong tries lock it for 3 s | read, write, notify | write 4 ASCII digits. Wrong: accepted (counted). 5th wrong starts a 3 s lockout: writes fail with ATT error 0x80 (0x81 = not 4 digits). Correct: flag notified, read returns it (until disconnect); otherwise read = `LOCKED n tries left` / `LOCKOUT n ms`. Try counter and lockout are global |
+| `010a` | [BLE-10] Vault Keypad: 4-digit PIN, 10 wrong tries lock it for 1 s | read, write, notify | write 4 ASCII digits. Wrong: accepted (counted). 10th wrong starts a 1 s lockout: writes fail with ATT error 0x80 (0x81 = not 4 digits). Correct: flag notified, read returns it (until disconnect); otherwise read = `LOCKED n tries left` / `LOCKOUT n ms`. Try counter and lockout are global |
 | `010b` | [BLE-11] Sequencer Input | read, write-without-response | read = the 5 bytes to send; only 1-byte write commands count, each < 500 ms after the previous; a write request is refused (0x03) and resets |
 | `011b` | [BLE-11] Sequencer Output | notify | flag notified when the sequence completes |
 | `01c2` | Cipher Shard | read | `cipher shard 2/4: XY` (CRY-01) |

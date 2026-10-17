@@ -47,7 +47,7 @@ SPIFFS blob), crackme transform + `unlock` command.
 **Verify:** build; solvers in `solvers/re/` that work from a flash dump file
 (`esptool.py read_flash`); hardware run.
 
-## 7. [ ] BLE track + control service — Careful — deps: 3
+## 7. [x] BLE track + control service — Careful — deps: 3
 `track_ble`: BT controller + Bluedroid init (dual mode, shared with task 8),
 GATT server for BLE-01..11, advertising rotation, pairing/passkey, CTF control
 service (submit + score notify).
