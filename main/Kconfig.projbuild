@@ -1,0 +1,12 @@
+menu "ESP32 CTF"
+
+config CTF_SIZE_PROBE
+    bool "Link BT/Wi-Fi/HTTP/mDNS stubs to measure image size"
+    default n
+    help
+        Development only. Adds calls into Bluedroid (BLE GATTS + Classic SPP),
+        Wi-Fi, esp_http_server and mdns so the linker keeps those stacks and
+        `idf.py size` reflects the final firmware footprint. The calls are
+        never executed. Leave disabled.
+
+endmenu

@@ -3,11 +3,21 @@
 - `CLAUDE.md` — agent rules and commands
 - `docs/SPEC.md` — goals, architecture, flag scheme, full challenge catalogue
 - `docs/PLAN.md` — ordered tasks and status
-- `main/` — boot sequence (planned, task 3)
-- `components/ctf_core/` — portable flag/registry/scoring engine (planned, task 2)
-- `components/ctf_platform/` — IDF glue: NVS, MAC, mode, console (planned, task 3)
-- `components/track_*/` — one component per challenge track (planned, tasks 4–10)
-- `test/host/` — host build + unit tests for ctf_core (planned, task 1–2)
+- `CMakeLists.txt` — top-level ESP-IDF project (esp32_ctf)
+- `sdkconfig.defaults` — target/flash/partition/console/Bluedroid dual-mode/coex defaults
+- `partitions.csv` — 4 MB layout: nvs, phy_init, factory 2560K, notes, storage (SPIFFS)
+- `dependencies.lock` — managed component lock (espressif/mdns)
+- `main/` — boot sequence (scaffold now, task 3)
+- `main/main.c` — app_main: hello + free heap; optional size-probe stubs
+- `main/Kconfig.projbuild` — `CONFIG_CTF_SIZE_PROBE` (dev only, default n)
+- `main/idf_component.yml` — managed deps (espressif/mdns)
+- `components/ctf_core/` — portable flag/registry/scoring engine (scaffold stub, task 2)
+- `components/ctf_platform/` — IDF glue: NVS, MAC, mode, console (scaffold stub, task 3)
+- `components/<name>/{CMakeLists.txt,<name>.c,include/<name>.h}` — per-component stub layout
+- `components/track_*/` — one component per challenge track (scaffold stubs, tasks 4–10)
+- `test/host/` — host build + unit tests for ctf_core
+- `test/host/CMakeLists.txt` — builds components/ctf_core/*.c + test_main.c, registers with ctest
+- `test/host/test_main.c` — minimal CHECK/RUN test runner (placeholder test)
 - `solvers/<track>/` — reference solver per challenge (planned)
 - `docs/players/` — player guides (planned, task 11)
 - `web/flasher/` — ESP Web Tools page + manifest (planned, task 11)

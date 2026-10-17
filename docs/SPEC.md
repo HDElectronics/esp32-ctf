@@ -93,6 +93,14 @@ console saves it and reboots.
 - `reset` (with typed confirmation `reset yes`) wipes progress and RE artefacts
   are re-provisioned on next boot.
 
+### Optional-kit challenges
+
+SER-02, HW-01, HW-03, HW-04, HW-05 need extra hardware (USB-UART adapter, jumper
+wire, logic analyzer). The registry marks them `needs_kit` with a short kit
+label. `status` and the challenge list show the label and "skip if you don't
+have it"; `status` reports both the full max score and the max score without kit.
+Player docs say the same at the top of each affected challenge.
+
 ### Submission and scoreboard (all on the board)
 
 - Console: `submit <flag>`, `status` (score, solved list per track), `hint`, `answer`.

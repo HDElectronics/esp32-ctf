@@ -6,7 +6,7 @@ Stack: ESP-IDF v6.1 (C11), target `esp32` (classic, Bluedroid dual-mode), Python
 
 - Env (every shell): `. ~/esp/esp-idf/export.sh`
 - Build: `idf.py build`
-- Flash + monitor: `idf.py -p /dev/ttyUSB0 flash monitor`
+- Flash + monitor: `idf.py -p /dev/ttyACM0 flash monitor` (dev board on CH9102 bridge; BT adapter: TP-Link UB500 via BlueZ)
 - Host tests (ctf_core): `cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure`
 
 ## Conventions
