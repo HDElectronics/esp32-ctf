@@ -195,6 +195,12 @@ refuses to package one.
       -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.dev.local" build
   ```
 
+  **The dev image stores that Wi-Fi password in flash, and the RE track
+  teaches players to dump flash.** Before a board goes to a player, wipe it
+  and flash the release image:
+  `esptool --chip esp32 -p <PORT> erase-flash`, then
+  `esptool --chip esp32 -p <PORT> write-flash 0x0 dist/esp32-ctf-v0.1.0.bin`.
+
 - `CONFIG_CTF_SIZE_PROBE` (links unused stack stubs to measure image size)
 
 ## For organizers

@@ -17,6 +17,7 @@ Stack: ESP-IDF v6.1 (C11), target `esp32` (classic, Bluedroid dual-mode), Python
 - Every challenge targets the board only. Nothing scans, connects to, or affects other networks or devices.
 - Radio features belong to a mode (`radio` or `net`); do not start Wi-Fi in radio mode or Bluetooth in net mode.
 - Update `filemap.md` when adding or moving files.
+- Dev STA images (`build-dev`, `sdkconfig.dev.local`) embed the user's Wi-Fi password: never print that file, and after testing `erase-flash` + flash the release bin.
 
 ## Docs
 
