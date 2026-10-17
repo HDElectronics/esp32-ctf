@@ -1,5 +1,7 @@
 #pragma once
-/* track_re: challenge track (see docs/SPEC.md). Stub until its task lands. */
+/* track_re: firmware reversing track RE-01..04 (see docs/SPEC.md).
+ * Provisions the notes partition, NVS "vault" and /storage/blob.bin (mounts
+ * SPIFFS `storage` if nobody has yet), and registers `unlock`. */
 #ifdef __cplusplus
 extern "C" {
 #endif
