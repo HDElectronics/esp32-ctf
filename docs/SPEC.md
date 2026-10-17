@@ -162,7 +162,7 @@ Also in radio mode: CTF control service (submit + score), see above.
 |----|------|-----|-----------|
 | BTC-01 | SPP console | E | Discoverable; pair, open RFCOMM SPP; banner shows the flag. |
 | BTC-02 | Hidden menu | M | SPP shell has `help`; an undocumented command (hinted in banner) prints the flag. |
-| BTC-03 | Device class clue | M | First half of flag body in device name suffix, second half encoded in the Class of Device minor bits + EIR manufacturer data. |
+| BTC-03 | Device class clue | M | Flag body split: digits 1–6 in the BR/EDR name suffix `ESP32-CTF-XXXX:hhhhhh`, digit 7 in the Class of Device minor field, digits 8–12 in EIR manufacturer data (company 0xFFFF, 3 bytes, leading 0 nibble marks the CoD slot). |
 
 ### Web (net mode, board's own SoftAP)
 

@@ -53,7 +53,7 @@ GATT server for BLE-01..11, advertising rotation, pairing/passkey, CTF control
 service (submit + score notify).
 **Verify:** build; `solvers/ble/` with `bleak`; hardware run with nRF Connect or bleak.
 
-## 8. [ ] BT Classic track — Medium — deps: 7
+## 8. [x] BT Classic track — Medium — deps: 7
 `track_btc` BTC-01..03: SPP server, shell, device name / CoD / EIR.
 **Verify:** build; `solvers/btc/`; hardware run (bluetoothctl + rfcomm).
 

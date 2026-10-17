@@ -46,3 +46,5 @@
 - `solvers/hw/` — HW solvers/decoders, `_util.py`, README with manual kit steps
 - `components/track_ble/` — BT bring-up (BTDM + Bluedroid), advertising/BLE-07 rotation, GATT challenge + CTF control services, BLE-01..11, CRY-01 shard 2, `ble` cmd; `track_ble_bt_ready()`
 - `solvers/ble/` — bleak solvers ble01..ble11, `_util.py`, README.md (GATT table, UUIDs)
+- `components/track_btc/` — BTC-01..03: SPP console + shell, BR/EDR name/CoD/EIR, CRY-01 shard 3
+- `solvers/btc/` — BTC solvers (D-Bus inquiry, SDP/RFCOMM), `_util.py`, README (BTC-03 encoding; needs /usr/bin/python3 for AF_BLUETOOTH)
