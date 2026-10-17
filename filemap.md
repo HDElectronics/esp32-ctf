@@ -11,13 +11,23 @@
 - `main/main.c` — app_main: hello + free heap; optional size-probe stubs
 - `main/Kconfig.projbuild` — `CONFIG_CTF_SIZE_PROBE` (dev only, default n)
 - `main/idf_component.yml` — managed deps (espressif/mdns)
-- `components/ctf_core/` — portable flag/registry/scoring engine (scaffold stub, task 2)
+- `components/ctf_core/` — portable flag/registry/scoring engine (no IDF headers, no heap)
+- `components/ctf_core/include/ctf_core.h` — public API: catalogue, flags, derive, submit, answer gates, hints, score, backend
+- `components/ctf_core/include/ctf_sha256.h` — SHA-256 / HMAC-SHA256 API (usable by tracks, e.g. JWT)
+- `components/ctf_core/ctf_core.c` — engine state, XOR-split key, derivation, submission, tagged progress record
+- `components/ctf_core/ctf_catalog.c` — static 40-challenge catalogue (SPEC order = progress bit index) + hints
+- `components/ctf_core/ctf_sha256.c` — portable SHA-256 + HMAC-SHA256 implementation
 - `components/ctf_platform/` — IDF glue: NVS, MAC, mode, console (scaffold stub, task 3)
 - `components/<name>/{CMakeLists.txt,<name>.c,include/<name>.h}` — per-component stub layout
 - `components/track_*/` — one component per challenge track (scaffold stubs, tasks 4–10)
 - `test/host/` — host build + unit tests for ctf_core
-- `test/host/CMakeLists.txt` — builds components/ctf_core/*.c + test_main.c, registers with ctest
-- `test/host/test_main.c` — minimal CHECK/RUN test runner (placeholder test)
+- `test/host/CMakeLists.txt` — builds components/ctf_core/*.c + test_*.c, registers with ctest
+- `test/host/test_util.h` — CHECK/RUN macros, in-memory backend, test group declarations
+- `test/host/test_main.c` — runner `main`, in-memory backend with lock-nesting tracking, test MACs
+- `test/host/test_crypto.c` — SHA-256 vectors, RFC 4231 HMAC cases 1-4, 6, 7
+- `test/host/test_catalog.c` — catalogue vs SPEC (IDs, names, levels, kit), points, max score
+- `test/host/test_flags.c` — flag format/determinism/MAC sensitivity, derive, submit normalisation, answer gates
+- `test/host/test_progress.c` — hint cost + score, persistence, tampered record, reset, no backend
 - `solvers/<track>/` — reference solver per challenge (planned)
 - `docs/players/` — player guides (planned, task 11)
 - `web/flasher/` — ESP Web Tools page + manifest (planned, task 11)

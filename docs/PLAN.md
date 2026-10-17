@@ -3,7 +3,7 @@
 Status legend: [ ] todo · [~] in progress · [x] accepted.
 Each task references docs/SPEC.md. Workers update `filemap.md` when adding files.
 
-## 1. [ ] Scaffold — Medium — deps: none
+## 1. [x] Scaffold — Medium — deps: none
 ESP-IDF v6.1 project for target `esp32`: top-level CMakeLists, `main/`, empty
 component dirs per SPEC Architecture (each builds as an empty component),
 `sdkconfig.defaults` (Bluedroid dual-mode BLE + Classic + SPP, Wi-Fi/BT coexistence,
@@ -15,7 +15,7 @@ minimal test runner (one placeholder passing test). Root `.gitignore`.
 and pass; app size fits the factory partition with Bluedroid + Wi-Fi linked in
 (add a stub that references both stacks if needed to measure).
 
-## 2. [ ] Core engine — Careful — deps: 1
+## 2. [x] Core engine — Careful — deps: 1
 `components/ctf_core`, portable C, no IDF headers: SHA-256 + HMAC-SHA256,
 flag derivation and derived values (SPEC Flags), challenge registry (id, track,
 level, points, hint, optional answer validator), submission normalisation and
@@ -68,7 +68,9 @@ WEB-08 mDNS service + second port, WEB-09 UDP knock → TCP 31337.
 
 ## 11. [ ] Player docs + release — Medium — deps: 4–10
 `docs/players/` per track + tool setup, README, release script producing merged
-`.bin`, `web/flasher/` ESP Web Tools manifest and page.
+`.bin`, `web/flasher/` ESP Web Tools manifest and page. README and landing page
+both carry the "Toolbox" section from SPEC "Player toolbox" (TUIs first, install
+hints); verify each tool name and install command is current before writing it.
 **Verify:** release script output flashes cleanly with `esptool.py write_flash 0x0`.
 
 ## 12. [ ] Hardware acceptance — orchestrator + user — deps: all

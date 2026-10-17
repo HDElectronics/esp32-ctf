@@ -217,6 +217,28 @@ Net mode also serves `/score` and `/submit`.
 | CRY-02 | ECB penguin | H | `oracle <hex>` returns AES-128-ECB(prefix_input || flag); byte-at-a-time recovery. |
 | CRY-03 | Reused nonce | M | `msgs` prints two AES-CTR ciphertexts with the same nonce, one known plaintext; XOR recovers the flag. |
 
+## Player toolbox (README + landing page)
+
+The README and the flasher landing page both have a "Toolbox" section that
+recommends terminal tools per track, with TUIs first and a one-line install
+hint each (`apt`, `pipx`, `cargo`, `go install`). Only tools used against the
+player's own board. Mark BlueZ's deprecated utilities (`hcitool`, `gatttool`,
+`rfcomm`, `sdptool`) as "legacy, may be missing on new distros".
+
+| Track | TUI | CLI |
+|-------|-----|-----|
+| General | `tmux` | `pwntools` (serial + TCP tubes for scripting), `jq` |
+| BLE | `bluetui`, `bluetuith` | `bluetoothctl` (gatt menu), `btmon` (HCI trace), Python `bleak`, `ble-serial` |
+| BT Classic | `bluetuith` | `bluetoothctl`, `picocom`/`tio` on an RFCOMM tty, Python `socket.AF_BLUETOOTH` |
+| Wi-Fi / web | `nmtui` (join hidden SSID), `posting` (HTTP), `mitmproxy` | `nmcli`, `curl`, `xh`/`httpie`, `websocat`, `jwt-cli`, `hashcat -m 16500`, `avahi-browse`, `nmap` (the board's IP only), `ncat`/`socat`, `knock` |
+| Serial | `tio`, `minicom` | `picocom`, `pyserial-miniterm`, `idf.py monitor` |
+| Hardware | — (`PulseView` GUI for viewing traces) | `sigrok-cli -P i2c / spi / uart`, phone slow-motion video for Morse |
+| Firmware RE | `hexyl` (hex view), `radare2`/`rizin` visual mode (Xtensa supported) | `esptool read-flash`, `parttool.py`, `nvs_tool.py` (ESP-IDF), `esp32_image_parser`, `binwalk`, `strings`; Ghidra 11+ (GUI, native Xtensa) |
+| Crypto | — | `xortool`, `openssl enc`, Python `pycryptodome`; CyberChef (web) |
+| Captures | `termshark` | `tshark`, `btmon -w` → Wireshark |
+
+Per-challenge player docs name the 1–2 tools that fit that challenge best.
+
 ## Key flows
 
 1. Flash → open serial at 115200 → banner, `help`, `status` (radio mode default).

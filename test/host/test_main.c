@@ -1,35 +1,69 @@
 /* Minimal host test runner for components/ctf_core (no external deps). */
-#include <stdio.h>
-#include "ctf_core.h"
+#include <string.h>
 
-static int g_failures;
-static int g_checks;
+#include "test_util.h"
 
-#define CHECK(cond)                                                         \
-    do {                                                                    \
-        g_checks++;                                                         \
-        if (!(cond)) {                                                      \
-            g_failures++;                                                   \
-            fprintf(stderr, "%s:%d: CHECK failed: %s\n", __FILE__, __LINE__, \
-                    #cond);                                                 \
-        }                                                                   \
-    } while (0)
+int g_failures;
+int g_checks;
 
-#define RUN(test_fn)                         \
-    do {                                     \
-        int before = g_failures;             \
-        test_fn();                           \
-        printf("%s %s\n", g_failures == before ? "PASS" : "FAIL", #test_fn); \
-    } while (0)
+const uint8_t TEST_MAC_A[6] = {0x24, 0x6f, 0x28, 0x12, 0x34, 0x56};
+const uint8_t TEST_MAC_B[6] = {0x24, 0x6f, 0x28, 0x12, 0x34, 0x57};
 
-static void test_placeholder(void)
+static bool mem_load(void *buf, size_t len, void *ctx)
 {
-    CHECK(ctf_core_placeholder() == 0);
+    mem_store_t *m = ctx;
+    if (!m->has || m->len != len) {
+        return false;
+    }
+    memcpy(buf, m->buf, len);
+    return true;
+}
+
+static bool mem_save(const void *buf, size_t len, void *ctx)
+{
+    mem_store_t *m = ctx;
+    if (len > sizeof(m->buf)) {
+        return false;
+    }
+    memcpy(m->buf, buf, len);
+    m->len = len;
+    m->has = true;
+    m->saves++;
+    return true;
+}
+
+static void mem_lock(void *ctx)
+{
+    mem_store_t *m = ctx;
+    m->locks++;
+    if (++m->depth > m->max_depth) {
+        m->max_depth = m->depth;
+    }
+}
+
+static void mem_unlock(void *ctx)
+{
+    mem_store_t *m = ctx;
+    m->depth--;
+}
+
+void mem_store_clear(mem_store_t *m)
+{
+    memset(m, 0, sizeof(*m));
+}
+
+ctf_backend_t mem_backend(mem_store_t *m)
+{
+    ctf_backend_t be = {mem_load, mem_save, mem_lock, mem_unlock, m};
+    return be;
 }
 
 int main(void)
 {
-    RUN(test_placeholder);
+    run_crypto_tests();
+    run_catalog_tests();
+    run_flag_tests();
+    run_progress_tests();
     printf("%d checks, %d failures\n", g_checks, g_failures);
     return g_failures ? 1 : 0;
 }
