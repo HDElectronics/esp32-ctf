@@ -1,0 +1,12 @@
+menu "CTF hardware track"
+
+    config CTF_HW_DEV
+        bool "HW track dev self-test (prints derived values)"
+        default n
+        help
+            Adds the `hwdev` console command: prints the per-board PWM
+            frequency (and measures it with PCNT), the touch code, touch raw
+            readings and samples the Morse LED. For testing only; release
+            builds must keep this off.
+
+endmenu

@@ -29,3 +29,7 @@ CONFIG_HTTPD_WS_SUPPORT=y
 # throughput, irrelevant for the board's SoftAP challenges.
 CONFIG_ESP_WIFI_IRAM_OPT=n
 CONFIG_ESP_WIFI_RX_IRAM_OPT=n
+
+# HW track dev self-test (`hwdev` command, prints derived values). Keep off
+# for release builds.
+# CONFIG_CTF_HW_DEV=y
