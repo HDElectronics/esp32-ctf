@@ -1,0 +1,11 @@
+menu "CTF crypto track"
+
+config CTF_CRYPTO_DEV
+    bool "Crypto track dev self-test (prints derived CRY-01 key shards at boot)"
+    default n
+    help
+        Development only (SPEC "Cross-track rules", dev self-test). Prints all
+        four CRY-01 key shards at boot so the CRY-01 solver can be tested
+        before the BLE/BTC/web tracks exist. Release builds keep it off.
+
+endmenu

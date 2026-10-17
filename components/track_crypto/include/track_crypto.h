@@ -1,5 +1,5 @@
 #pragma once
-/* track_crypto: challenge track (see docs/SPEC.md). Stub until its task lands. */
+/* track_crypto: challenge track (see docs/SPEC.md). CRY-01..03 console commands. */
 #ifdef __cplusplus
 extern "C" {
 #endif
