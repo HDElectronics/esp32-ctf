@@ -48,3 +48,9 @@
 - `solvers/ble/` — bleak solvers ble01..ble11, `_util.py`, README.md (GATT table, UUIDs)
 - `components/track_btc/` — BTC-01..03: SPP console + shell, BR/EDR name/CoD/EIR, CRY-01 shard 3
 - `solvers/btc/` — BTC solvers (D-Bus inquiry, SDP/RFCOMM), `_util.py`, README (BTC-03 encoding; needs /usr/bin/python3 for AF_BLUETOOTH)
+- `components/track_web/` — WEB-01..09, /score, /submit, CRY-01 shard 4, `wifi` cmd; Kconfig `CONFIG_CTF_WEB_DEV_STA*` (dev LAN testing)
+- `components/track_web/web_http.c` — port-80 handlers, JWT, /diag confinement, WS, /score, /submit
+- `components/track_web/web_net.c` — WEB-08 mDNS beacon, WEB-09 knock/door
+- `components/track_web/www/` — embedded page templates + robots.txt
+- `solvers/web/` — web solvers (`--host`), `_util.py` (DTR/RTS-safe serial open), README
+- `sdkconfig.dev.local` — (git-ignored, user-created) dev STA Wi-Fi credentials overlay

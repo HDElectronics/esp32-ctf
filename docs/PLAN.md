@@ -57,12 +57,12 @@ service (submit + score notify).
 `track_btc` BTC-01..03: SPP server, shell, device name / CoD / EIR.
 **Verify:** build; `solvers/btc/`; hardware run (bluetoothctl + rfcomm).
 
-## 9. [ ] Web track core — Careful — deps: 3
+## 9. [x] Web track core — Careful — deps: 3
 `track_web` WEB-01..07 + `/score` `/submit`: hidden-SSID SoftAP, HTTP server,
 cookie/header/JWT logic, confined traversal on SPIFFS, WebSocket.
 **Verify:** build; `solvers/web/` with `requests`/`websockets`; hardware run.
 
-## 10. [ ] Web track network extras — Medium — deps: 9
+## 10. [x] Web track network extras (merged into task 9) — Medium — deps: 9
 WEB-08 mDNS service + second port, WEB-09 UDP knock → TCP 31337.
 **Verify:** build; solvers; hardware run.
 
