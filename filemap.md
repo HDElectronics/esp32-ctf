@@ -42,3 +42,5 @@
 - `solvers/crypto/` — CRY solvers
 - `components/track_re/` — RE-01..04 boot-time provisioning (notes partition, NVS vault k/chk, SPIFFS blob.bin) + `unlock` command; mounts SPIFFS
 - `solvers/re/` — RE solvers (esptool dump + nvs_tool.py), `_util.py`, README with Ghidra loading guide
+- `components/track_hw/` — HW-01..06 (jumper check, Morse LED, LEDC PWM, bit-banged I2C/SPI, touch keypad), `keypad` cmd; Kconfig `CONFIG_CTF_HW_DEV` (`hwdev` cmd)
+- `solvers/hw/` — HW solvers/decoders, `_util.py`, README with manual kit steps

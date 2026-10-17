@@ -36,7 +36,7 @@ reboots into net mode and back.
 **Verify:** build; solvers in `solvers/serial/`, `solvers/crypto/` (CRY ones also
 unit-testable on host against reference logic); hardware run.
 
-## 5. [ ] Hardware track — Medium — deps: 3
+## 5. [x] Hardware track — Medium — deps: 3
 `track_hw` HW-01..06 per SPEC pin map.
 **Verify:** build; solvers/notes in `solvers/hw/`; hardware run (logic analyzer
 for HW-03..05 if available, otherwise scope the bit timing in code review).
