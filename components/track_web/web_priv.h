@@ -24,6 +24,11 @@ typedef struct {
 
 extern web_secrets_t g_web;
 
+#define WEB_SECRET_FILE  "/storage/secret/flag.txt" /* WEB-06, stored masked */
+
+/* WEB-06: XORs buf with the per-board mask of the secret file (mask/unmask). */
+void web_secret_mask(uint8_t *buf, size_t n);
+
 /* WEB-05 wordlist entry i (0..WEB_WORDS-1), same on every board. */
 void web_word(unsigned i, char out[WEB_WORD_MAX]);
 

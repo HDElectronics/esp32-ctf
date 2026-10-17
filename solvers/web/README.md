@@ -19,6 +19,8 @@ the way a player would, then submits it (`--via console`: serial `submit`;
 - Dev testing without joining the AP: build with `CONFIG_CTF_WEB_DEV_STA`
   (see `components/track_web/Kconfig`); the board also joins a test network
   and prints `web dev sta ip: x.x.x.x`. Pass that address as `--host`.
+- The console helpers open the port with DTR and RTS left asserted: clearing
+  them one at a time (DTR first) briefly pulls EN low and reboots the board.
 - `--serial` (default `$CTF_PORT` or `/dev/ttyACM0`): console used by WEB-01
   and WEB-09 for the `wifi` clue and by `--via console`.
 
@@ -43,7 +45,9 @@ the way a player would, then submits it (`--via console`: serial `submit`;
 - WEB-05 wordlist: same on every board (two CV syllables + optional ending,
   generated in code); the secret index is `WEB-05:secret` mod 1000.
 - WEB-06: `/storage/diag/{boot,net,ping}.log` and `/storage/secret/flag.txt`
-  are written at boot (only when changed). The path is the naive concatenation
+  are written at boot (only when changed). The secret file is stored XOR'd with
+  a per-board mask (`WEB-06:mask`), so a flash dump does not show the flag;
+  `/diag` unmasks that one path when serving it. The path is the naive concatenation
   `/storage/diag/<file>`, normalised; anything resolving outside `/storage` is 403.
 - WEB-09: ports `WEB-09:ports` in 20000..40000. Wrong port resets the sequence
   (the first port restarts it). The door listens only while a window is open

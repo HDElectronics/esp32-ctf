@@ -586,6 +586,9 @@ static esp_err_t h_diag(httpd_req_t *req)
     char data[1536];
     size_t n = fread(data, 1, sizeof data, f);
     fclose(f);
+    if (strcmp(norm, WEB_SECRET_FILE) == 0) {
+        web_secret_mask((uint8_t *)data, n); /* stored masked, see track_web.c */
+    }
     strcpy(s_body, "<h2>");
     html_cat(s_body, sizeof s_body, file, strlen(file));
     strncat(s_body, "</h2><pre>", sizeof s_body - strlen(s_body) - 1);

@@ -35,15 +35,27 @@ def url(a, path: str) -> str:
 
 # ---------------- serial console ----------------
 
+_conn = {}
+
+
 def _open(port: str) -> serial.Serial:
-    """Open the console without toggling the auto-reset lines (no reboot)."""
+    """Open the console once per process without pulsing the board's EN line.
+
+    The DevKit auto-reset circuit pulls EN low while RTS is asserted and DTR is
+    not. Linux asserts both on open; clearing them one by one (dtr=False, then
+    rts=False) passes through exactly that state and reboots the board
+    (reset reason "power-on"). Leaving both asserted keeps EN high, and the
+    driver drops both together on close."""
+    if port in _conn and _conn[port].is_open:
+        return _conn[port]
     s = serial.Serial()
     s.port = port
     s.baudrate = 115200
     s.timeout = 0.05
-    s.dtr = False
-    s.rts = False
+    s.dtr = True
+    s.rts = True
     s.open()
+    _conn[port] = s
     return s
 
 
@@ -71,8 +83,9 @@ def console(port: str, line: str, timeout: float = 5.0) -> str:
         s.write(line.encode() + b"\r")
         s.flush()
         out = _read_until(s, PROMPT, timeout).decode(errors="replace").replace("\r", "")
-    finally:
+    except serial.SerialException:
         s.close()
+        raise
     if out.startswith(line):
         out = out[len(line):]
     if out.endswith(PROMPT.decode()):

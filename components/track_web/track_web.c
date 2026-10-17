@@ -16,6 +16,7 @@
 #include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_spiffs.h"
+#include "esp_system.h"
 #include "esp_wifi.h"
 #include "sdkconfig.h"
 
@@ -93,6 +94,20 @@ static void derive_secrets(void)
     }
 }
 
+/* WEB-06: XOR mask for the secret file, ctf_derive("WEB-06:mask"). Involutive. */
+void web_secret_mask(uint8_t *buf, size_t n)
+{
+    static uint8_t mask[64];
+    static bool ready;
+    if (!ready) {
+        ctf_derive("WEB-06:mask", mask, sizeof mask);
+        ready = true;
+    }
+    for (size_t i = 0; i < n; i++) {
+        buf[i] ^= mask[i % sizeof mask];
+    }
+}
+
 /* ---- WEB-06 files on the shared SPIFFS mount (SPEC "Cross-track rules") ---- */
 
 static bool mount_storage(void)
@@ -114,10 +129,11 @@ static bool mount_storage(void)
     return true;
 }
 
+#define WRITE_TEXT(path, text) write_if_changed(path, text, strlen(text))
+
 /* Writes path only when its content differs (saves flash wear across boots). */
-static void write_if_changed(const char *path, const char *content)
+static void write_if_changed(const char *path, const void *content, size_t n)
 {
-    size_t n = strlen(content);
     char buf[512];
     FILE *f = fopen(path, "rb");
     if (f) {
@@ -141,31 +157,33 @@ static void provision_files(void)
     if (!mount_storage()) {
         return;
     }
-    write_if_changed("/storage/diag/boot.log",
+    WRITE_TEXT("/storage/diag/boot.log",
                      "[    0.412] fs: mounted /storage (spiffs)\n"
                      "[    0.418] fs: diag logs -> /storage/diag/\n"
                      "[    0.421] fs: secret/flag.txt provisioned (restricted, not listed)\n"
                      "[    0.503] wifi: softap up, ssid hidden, wpa2-psk\n"
                      "[    0.611] httpd: listening on :80\n"
                      "[    0.615] diag: viewer serves files from diag/ only\n");
-    write_if_changed("/storage/diag/net.log",
+    WRITE_TEXT("/storage/diag/net.log",
                      "dhcps: pool 192.168.4.2 - 192.168.4.5, lease 120 min\n"
                      "dhcps: offer 192.168.4.2 -> 02:00:00:00:00:01\n"
                      "httpd: GET / 200\n"
                      "httpd: GET /favicon.ico 404\n");
-    write_if_changed("/storage/diag/ping.log",
+    WRITE_TEXT("/storage/diag/ping.log",
                      "PING 192.168.4.1 (192.168.4.1): 56 data bytes\n"
                      "64 bytes from 192.168.4.1: icmp_seq=0 ttl=255 time=1.9 ms\n"
                      "64 bytes from 192.168.4.1: icmp_seq=1 ttl=255 time=2.3 ms\n"
                      "64 bytes from 192.168.4.1: icmp_seq=2 ttl=255 time=2.0 ms\n"
                      "--- 192.168.4.1 ping statistics ---\n"
                      "3 packets transmitted, 3 received, 0% packet loss\n");
-    /* WEB-06 target, written on purpose (SPEC "Web": traversal reads
-     * /storage/secret/flag.txt). Rewritten if the board changes. */
+    /* WEB-06 target (SPEC "Web": traversal reads /storage/secret/flag.txt).
+     * A real file, but stored masked so a flash dump does not show the flag;
+     * /diag unmasks this one path when it serves it. */
     char flag[18], line[40];
     ctf_flag("WEB-06", flag);
-    snprintf(line, sizeof line, "WEB-06 %s\n", flag);
-    write_if_changed("/storage/secret/flag.txt", line);
+    int n = snprintf(line, sizeof line, "WEB-06 %s\n", flag);
+    web_secret_mask((uint8_t *)line, (size_t)n);
+    write_if_changed(WEB_SECRET_FILE, line, (size_t)n);
 }
 
 /* ---- Wi-Fi (WEB-01) ---- */
@@ -294,8 +312,23 @@ static int cmd_wifi(int argc, char **argv)
     return 0;
 }
 
+static const char *reset_reason_name(esp_reset_reason_t r)
+{
+    static const char *const N[] = {
+        [ESP_RST_UNKNOWN] = "unknown",   [ESP_RST_POWERON] = "power-on",
+        [ESP_RST_EXT] = "external pin",  [ESP_RST_SW] = "software (esp_restart)",
+        [ESP_RST_PANIC] = "panic",       [ESP_RST_INT_WDT] = "interrupt watchdog",
+        [ESP_RST_TASK_WDT] = "task watchdog", [ESP_RST_WDT] = "other watchdog",
+        [ESP_RST_DEEPSLEEP] = "deep sleep", [ESP_RST_BROWNOUT] = "brownout",
+        [ESP_RST_SDIO] = "sdio",
+    };
+    return (unsigned)r < sizeof N / sizeof N[0] && N[r] ? N[r] : "other";
+}
+
 void track_web_start(void)
 {
+    esp_reset_reason_t rr = esp_reset_reason();
+    ESP_LOGI(TAG, "reset reason: %s (%d)", reset_reason_name(rr), (int)rr);
     derive_secrets();
     provision_files();
 
