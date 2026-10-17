@@ -331,14 +331,17 @@ static void hw0405_start(void)
 
 #define PAD_COUNT        4
 #define CODE_LEN         6
-#define TOUCH_GAP_US     (3 * 1000 * 1000)
+#define TOUCH_GAP_US     (10 * 1000 * 1000)
 #define TOUCH_THRESH_NUM 2 /* active below 2/3 of the untouched reading */
 #define TOUCH_THRESH_DEN 3
+#define TOUCH_RELEASE_US (250 * 1000) /* above release level this long = released */
+#define TOUCH_POLL_MS    20
 
 static const int s_pad_chan[PAD_COUNT] = {0, 4, 7, 9}; /* A..D = T0 T4 T7 T9 */
 static touch_sensor_handle_t s_touch;
 static touch_channel_handle_t s_pad[PAD_COUNT];
 static uint32_t s_baseline[PAD_COUNT];
+static uint32_t s_thresh[PAD_COUNT];
 static QueueHandle_t s_touch_q;
 
 typedef struct {
@@ -369,20 +372,64 @@ static bool touch_on_active(touch_sensor_handle_t sens, const touch_active_event
     return false;
 }
 
+/* Debounce: a pad counts once when it first goes active; it is re-armed only
+ * after its smooth reading stays above 90% of baseline for TOUCH_RELEASE_US. While
+ * any pad is held, the task polls the readings every TOUCH_POLL_MS. */
+static void touch_poll_release(bool held[PAD_COUNT], int64_t above_since[PAD_COUNT])
+{
+    int64_t now = esp_timer_get_time();
+    for (int p = 0; p < PAD_COUNT; p++) {
+        if (!held[p]) {
+            continue;
+        }
+        uint32_t raw = 0;
+        if (touch_channel_read_data(s_pad[p], TOUCH_CHAN_DATA_TYPE_SMOOTH, &raw) != ESP_OK ||
+            raw < s_baseline[p] * 9 / 10) { /* hysteresis: release only near baseline */
+            above_since[p] = 0; /* still touched (or chatter): restart release timer */
+            continue;
+        }
+        if (above_since[p] == 0) {
+            above_since[p] = now;
+        } else if (now - above_since[p] >= TOUCH_RELEASE_US) {
+            held[p] = false;
+        }
+    }
+}
+
 static void touch_task(void *arg)
 {
     (void)arg;
     int progress = 0;
+    int shown = 0; /* presses since the last 10 s pause, for the * feedback */
     int64_t last = 0;
+    bool held[PAD_COUNT] = {false};
+    int64_t above_since[PAD_COUNT] = {0};
     touch_evt_t e;
     for (;;) {
-        if (xQueueReceive(s_touch_q, &e, portMAX_DELAY) != pdTRUE) {
+        bool any_held = false;
+        for (int p = 0; p < PAD_COUNT; p++) {
+            any_held |= held[p];
+        }
+        TickType_t wait = any_held ? pdMS_TO_TICKS(TOUCH_POLL_MS) : portMAX_DELAY;
+        BaseType_t got = xQueueReceive(s_touch_q, &e, wait);
+        touch_poll_release(held, above_since);
+        if (got != pdTRUE) {
             continue;
         }
-        if (progress > 0 && e.t_us - last > TOUCH_GAP_US) {
+        if (held[e.pad]) {
+            above_since[e.pad] = 0; /* re-fire during the same hold */
+            continue;
+        }
+        held[e.pad] = true;
+        above_since[e.pad] = 0;
+
+        if (last != 0 && e.t_us - last > TOUCH_GAP_US) {
             progress = 0;
+            shown = 0;
         }
         last = e.t_us;
+        shown = shown % CODE_LEN + 1;
+        printf("keypad: %.*s\n", shown, "******");
         uint32_t v = touch_code_value();
 #if CONFIG_CTF_HW_DEV
         ESP_LOGI(TAG, "touch pad %c (progress %d)", 'A' + e.pad, progress);
@@ -441,7 +488,8 @@ static esp_err_t touch_init(void)
     touch_sensor_disable(s_touch);
     for (int i = 0; i < PAD_COUNT; i++) {
         touch_channel_read_data(s_pad[i], TOUCH_CHAN_DATA_TYPE_SMOOTH, &s_baseline[i]);
-        ccfg.abs_active_thresh[0] = s_baseline[i] * TOUCH_THRESH_NUM / TOUCH_THRESH_DEN;
+        s_thresh[i] = s_baseline[i] * TOUCH_THRESH_NUM / TOUCH_THRESH_DEN;
+        ccfg.abs_active_thresh[0] = s_thresh[i];
         if ((err = touch_sensor_reconfig_channel(s_pad[i], &ccfg)) != ESP_OK) {
             return err;
         }
@@ -463,7 +511,7 @@ static int cmd_keypad(int argc, char **argv)
     (void)argv;
     printf("Keypad pads: A=GPIO4 (T0)  B=GPIO13 (T4)  C=GPIO27 (T7)  D=GPIO32 (T9)\n"
            "Combo #%u. Read it in base 4 (6 digits), A=0 B=1 C=2 D=3.\n"
-           "Touch the pads in that order, at most 3 s between touches.\n",
+           "Touch the pads in that order, at most 10 s between touches.\n",
            (unsigned)touch_code_value());
     return 0;
 }

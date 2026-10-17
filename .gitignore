@@ -12,3 +12,4 @@ build-probe/
 sdkconfig.*.local
 build-release/
 web/flasher/dist-site/
+build-*/

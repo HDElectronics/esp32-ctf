@@ -81,7 +81,11 @@ board boots.
 
 1. `python3 hw06_keypad.py` prints the `keypad` clue and the decoded sequence
    (clue number in base 4, 6 digits, A=0 B=1 C=2 D=3).
-2. Touch the bare pins in that order, one at a time, at most 3 s apart.
+2. Touch the bare pins in that order, one at a time, at most 10 s apart.
+   Lift the finger between touches: a pad counts once per press and re-arms
+   after 150 ms released, so a repeated digit (A A) needs two separate taps.
+   Each counted press prints `keypad: *..*` (presses since the last 10 s pause,
+   wrapping after 6; it never shows which pad or whether it was right).
    The board prints `HW-06 flag: ...`; the script submits it.
    If nothing happens, check `hwdev touch` on a dev build: the smooth value
    of a touched pad must drop below the printed threshold (2/3 of baseline).

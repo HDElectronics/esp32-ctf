@@ -80,5 +80,5 @@ check RAM headroom in both modes (`heap_caps` log at boot).
 Parallelism after 3: tasks 4, 5, 6, 7, 9 can run in parallel (separate components).
 
 ### Task 12 status
-- Done on hardware: SER-01,03,04 · CRY-01..03 · RE-01..04 · BLE-01..11 · BTC-01..03 · HW-02,03 (dev build) · WEB-01..09 (dev STA over LAN, 2026-10-18).
-- Pending (user): SER-02 (USB-UART), HW-01 (jumper), HW-04/05 (logic analyzer), HW-06 (finger + `hwdev touch` threshold check), second board for flag uniqueness.
+- Done on hardware: SER-01,03,04 · CRY-01..03 · RE-01..04 · BLE-01..11 · BTC-01..03 · HW-02,03 (dev build) · WEB-01..09 (dev STA over LAN, 2026-10-18) · HW-06 (human taps, 2026-10-18).
+- Pending (user): SER-02 (USB-UART), HW-01 (jumper), HW-04/05 (logic analyzer), second board for flag uniqueness.

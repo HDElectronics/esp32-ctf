@@ -34,7 +34,7 @@ def main():
     if not m:
         sys.exit("no clue")
     seq = sequence(int(m.group(1)))
-    print("Touch the pads in this order (<= 3 s apart):", " ".join(seq))
+    print("Touch the pads in this order (<= 10 s apart, lift between taps):", " ".join(seq))
     out = con.read_until(r"HW-06 flag: " + FLAG_RE.pattern, timeout=args.wait)
     f = re.search(r"HW-06 flag: (" + FLAG_RE.pattern + ")", out)
     if not f:
