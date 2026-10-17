@@ -56,3 +56,7 @@
 - `sdkconfig.dev.local` — (git-ignored, user-created) dev STA Wi-Fi credentials overlay
 - `solvers/common/console.py` — shared no-reset board serial Console (all tracks; `--port` / `$CTF_PORT`)
 - `solvers/README.md` — solver setup: venv from /usr/bin/python3, port option, organizer-only (spoilers)
+- `README.md` — player/organizer overview, quick start, toolbox, build, dev options
+- `docs/players/` — spoiler-free player guides: index + one per track
+- `scripts/release.sh` — clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/
+- `web/flasher/` — flasher landing page (esp-web-tools 10.4.0) + manifest

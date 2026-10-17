@@ -66,15 +66,19 @@ cookie/header/JWT logic, confined traversal on SPIFFS, WebSocket.
 WEB-08 mDNS service + second port, WEB-09 UDP knock → TCP 31337.
 **Verify:** build; solvers; hardware run.
 
-## 11. [ ] Player docs + release — Medium — deps: 4–10
+## 11. [x] Player docs + release — Medium — deps: 4–10
 `docs/players/` per track + tool setup, README, release script producing merged
 `.bin`, `web/flasher/` ESP Web Tools manifest and page. README and landing page
 both carry the "Toolbox" section from SPEC "Player toolbox" (TUIs first, install
 hints); verify each tool name and install command is current before writing it.
 **Verify:** release script output flashes cleanly with `esptool.py write_flash 0x0`.
 
-## 12. [ ] Hardware acceptance — orchestrator + user — deps: all
+## 12. [~] Hardware acceptance — orchestrator + user — deps: all
 Run every solver against a real board; check two boards give different flags;
 check RAM headroom in both modes (`heap_caps` log at boot).
 
 Parallelism after 3: tasks 4, 5, 6, 7, 9 can run in parallel (separate components).
+
+### Task 12 status
+- Done on hardware: SER-01,03,04 · CRY-01..03 · RE-01..04 · BLE-01..11 · BTC-01..03 · HW-02,03 (dev build).
+- Pending (user): WEB-01..09 over LAN (needs `sdkconfig.dev.local`), SER-02 (USB-UART), HW-01 (jumper), HW-04/05 (logic analyzer), HW-06 (finger + `hwdev touch` threshold check), second board for flag uniqueness.
