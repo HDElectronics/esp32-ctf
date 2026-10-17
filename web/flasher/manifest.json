@@ -1,0 +1,13 @@
+{
+  "name": "ESP32 Multi-Track CTF",
+  "version": "0.1.0",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "esp32-ctf-v0.1.0.bin", "offset": 0 }
+      ]
+    }
+  ]
+}
