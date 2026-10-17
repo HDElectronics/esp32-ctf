@@ -1,5 +1,5 @@
 #pragma once
-/* track_serial: challenge track (see docs/SPEC.md). Stub until its task lands. */
+/* track_serial: challenge track (see docs/SPEC.md). SER-02..04 + CRY-01 shard 1. */
 #ifdef __cplusplus
 extern "C" {
 #endif
