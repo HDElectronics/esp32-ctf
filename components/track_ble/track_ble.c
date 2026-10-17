@@ -1,6 +1,9 @@
 #include "track_ble.h"
+#include "esp_log.h"
 
-int track_ble_placeholder(void)
+static const char *TAG = "track_ble";
+
+void track_ble_start(void)
 {
-    return 0;
+    ESP_LOGI(TAG, "track ble: not implemented yet");
 }

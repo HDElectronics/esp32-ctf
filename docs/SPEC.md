@@ -206,14 +206,14 @@ Net mode also serves `/score` and `/submit`.
 |----|------|-----|-----------|
 | RE-01 | Strings in flash | E | At first boot, flag written in plain text into the raw `notes` partition. `esptool.py read_flash` + `strings`. |
 | RE-02 | NVS secrets | M | Flag stored in NVS namespace `vault` key `k`, stored XOR'd with a single byte; parse the NVS partition. |
-| RE-03 | Crackme | H | `unlock <key>` console command; key check is a small custom transform in the app image. Reverse it from the dumped `factory` partition in Ghidra (Xtensa). Correct key returns the flag. |
+| RE-03 | Crackme | H | `unlock <key>` console command: `transform(key) == target`. `transform` is a small invertible byte routine in the app image (reverse it in Ghidra, Xtensa); the per-board `target` bytes are provisioned in NVS `vault`/`chk`. Invert transform on target → key → flag. |
 | RE-04 | XOR'd asset | H | SPIFFS file `blob.bin` = flag XOR'd with a keystream derived in code (simple LFSR seeded from MAC). |
 
 ### Crypto (always, console)
 
 | ID | Name | Lvl | Mechanism |
 |----|------|-----|-----------|
-| CRY-01 | Classic cipher | E | Vigenère ciphertext of flag body on console `cipher`; key word split into fragments shown in other tracks' banners. |
+| CRY-01 | Classic cipher | E | Vigenère ciphertext of flag body on console `cipher`; key = 4 shards, see "Cross-track rules". |
 | CRY-02 | ECB penguin | H | `oracle <hex>` returns AES-128-ECB(prefix_input || flag); byte-at-a-time recovery. |
 | CRY-03 | Reused nonce | M | `msgs` prints two AES-CTR ciphertexts with the same nonce, one known plaintext; XOR recovers the flag. |
 
@@ -238,6 +238,21 @@ player's own board. Mark BlueZ's deprecated utilities (`hcitool`, `gatttool`,
 | Captures | `termshark` | `tshark`, `btmon -w` → Wireshark |
 
 Per-challenge player docs name the 1–2 tools that fit that challenge best.
+
+## Cross-track rules
+
+- **CRY-01 shards:** key = shard1‖shard2‖shard3‖shard4, shard *i* = two letters
+  `'A' + b % 26` from `ctf_derive("CRY-01:shard<i>", b, 2)`. Each track computes
+  its own shard independently and shows it as `cipher shard <i>/4: XY`:
+  1 → serial track boot output, 2 → BLE (a readable characteristic in the CTF
+  service), 3 → BTC SPP banner, 4 → web landing page footer. Vigenère shifts
+  letters A–Z only; digits pass through and do not advance the key.
+- **SPIFFS:** partition `storage` mounted at `/storage` by whichever track needs
+  it first: `if (!esp_spiffs_mounted("storage")) esp_vfs_spiffs_register(...)`
+  with `format_if_mount_failed = true`. Files are written at boot by the owning
+  track, never from a build-time SPIFFS image. Web assets are embedded in the app.
+- **Dev self-test:** a track may add `CONFIG_CTF_<TRACK>_DEV` (default n) in its
+  own Kconfig to print derived values for testing. Release builds keep it off.
 
 ## Key flows
 

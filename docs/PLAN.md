@@ -24,7 +24,7 @@ check, scoring, hint cost, progress record with HMAC tag, storage backend interf
 MAC sensitivity, submit accepts wrapped/bare/any case and rejects others,
 double-solve and hint-cost scoring, tampered progress record rejected.
 
-## 3. [ ] Platform + console + boot — Medium — deps: 2
+## 3. [x] Platform + console + boot — Medium — deps: 2
 `components/ctf_platform` + `main/`: NVS backend, MAC read, mode load/save,
 `esp_console` REPL with core commands (`help status submit answer hint mode
 reset`), track registration hooks, boot sequence per mode, SER-01 boot banner.

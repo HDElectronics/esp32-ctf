@@ -1,6 +1,9 @@
 #include "track_crypto.h"
+#include "esp_log.h"
 
-int track_crypto_placeholder(void)
+static const char *TAG = "track_crypto";
+
+void track_crypto_start(void)
 {
-    return 0;
+    ESP_LOGI(TAG, "track crypto: not implemented yet");
 }

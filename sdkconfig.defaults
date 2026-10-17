@@ -23,3 +23,9 @@ CONFIG_ESP_COEX_SW_COEXIST_ENABLE=y
 
 # HTTP server WebSocket support (WEB track)
 CONFIG_HTTPD_WS_SUPPORT=y
+
+# IRAM headroom (classic ESP32 IRAM is 128 KB; with BT + Wi-Fi linked it was
+# 97.6% full). Move Wi-Fi TX/RX hot paths to flash: slightly lower Wi-Fi
+# throughput, irrelevant for the board's SoftAP challenges.
+CONFIG_ESP_WIFI_IRAM_OPT=n
+CONFIG_ESP_WIFI_RX_IRAM_OPT=n

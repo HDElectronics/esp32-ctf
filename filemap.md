@@ -4,11 +4,11 @@
 - `docs/SPEC.md` — goals, architecture, flag scheme, full challenge catalogue
 - `docs/PLAN.md` — ordered tasks and status
 - `CMakeLists.txt` — top-level ESP-IDF project (esp32_ctf)
-- `sdkconfig.defaults` — target/flash/partition/console/Bluedroid dual-mode/coex defaults
+- `sdkconfig.defaults` — target/flash/partition/console/Bluedroid dual-mode/coex defaults; Wi-Fi IRAM opts off (IRAM headroom)
 - `partitions.csv` — 4 MB layout: nvs, phy_init, factory 2560K, notes, storage (SPIFFS)
 - `dependencies.lock` — managed component lock (espressif/mdns)
-- `main/` — boot sequence (scaffold now, task 3)
-- `main/main.c` — app_main: hello + free heap; optional size-probe stubs
+- `main/` — boot sequence
+- `main/main.c` — app_main: platform init, SER-01 boot banner, always-on + mode tracks, console start; optional size-probe stubs
 - `main/Kconfig.projbuild` — `CONFIG_CTF_SIZE_PROBE` (dev only, default n)
 - `main/idf_component.yml` — managed deps (espressif/mdns)
 - `components/ctf_core/` — portable flag/registry/scoring engine (no IDF headers, no heap)
@@ -17,9 +17,14 @@
 - `components/ctf_core/ctf_core.c` — engine state, XOR-split key, derivation, submission, tagged progress record
 - `components/ctf_core/ctf_catalog.c` — static 40-challenge catalogue (SPEC order = progress bit index) + hints
 - `components/ctf_core/ctf_sha256.c` — portable SHA-256 + HMAC-SHA256 implementation
-- `components/ctf_platform/` — IDF glue: NVS, MAC, mode, console (scaffold stub, task 3)
+- `components/ctf_platform/` — IDF glue: NVS, MAC, mode, console
+- `components/ctf_platform/include/ctf_platform.h` — public API: init, MAC, mode get/set+reboot, console byte hook, console start
+- `components/ctf_platform/ctf_platform.c` — NVS init + ctf_core backend (ctf/progress), mutex, MAC, mode (ctf/mode), esp_console init
+- `components/ctf_platform/ctf_console.c` — UART0 line editor task (raw-byte hook, echo, backspace, `ctf> ` prompt) → esp_console_run
+- `components/ctf_platform/ctf_commands.c` — core commands: status, list, submit, answer, hint, mode, reset
+- `components/ctf_platform/ctf_platform_priv.h` — internal: ctf_commands_register
 - `components/<name>/{CMakeLists.txt,<name>.c,include/<name>.h}` — per-component stub layout
-- `components/track_*/` — one component per challenge track (scaffold stubs, tasks 4–10)
+- `components/track_*/` — one component per challenge track; `track_<name>_start()` called from app_main (stubs until tasks 4–10)
 - `test/host/` — host build + unit tests for ctf_core
 - `test/host/CMakeLists.txt` — builds components/ctf_core/*.c + test_*.c, registers with ctest
 - `test/host/test_util.h` — CHECK/RUN macros, in-memory backend, test group declarations

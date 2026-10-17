@@ -1,10 +1,12 @@
 #pragma once
-/* track_serial: placeholder (scaffold). See docs/SPEC.md Architecture. */
+/* track_serial: challenge track (see docs/SPEC.md). Stub until its task lands. */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int track_serial_placeholder(void);
+/* Called from app_main after ctf_platform_init(), before ctf_console_start().
+ * May register console commands and start tasks. */
+void track_serial_start(void);
 
 #ifdef __cplusplus
 }

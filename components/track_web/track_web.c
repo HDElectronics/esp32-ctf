@@ -1,6 +1,9 @@
 #include "track_web.h"
+#include "esp_log.h"
 
-int track_web_placeholder(void)
+static const char *TAG = "track_web";
+
+void track_web_start(void)
 {
-    return 0;
+    ESP_LOGI(TAG, "track web: not implemented yet");
 }

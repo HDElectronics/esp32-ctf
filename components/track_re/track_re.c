@@ -1,6 +1,9 @@
 #include "track_re.h"
+#include "esp_log.h"
 
-int track_re_placeholder(void)
+static const char *TAG = "track_re";
+
+void track_re_start(void)
 {
-    return 0;
+    ESP_LOGI(TAG, "track re: not implemented yet");
 }

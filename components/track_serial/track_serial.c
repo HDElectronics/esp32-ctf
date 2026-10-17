@@ -1,6 +1,9 @@
 #include "track_serial.h"
+#include "esp_log.h"
 
-int track_serial_placeholder(void)
+static const char *TAG = "track_serial";
+
+void track_serial_start(void)
 {
-    return 0;
+    ESP_LOGI(TAG, "track serial: not implemented yet");
 }

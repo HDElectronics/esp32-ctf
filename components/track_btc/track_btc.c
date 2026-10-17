@@ -1,6 +1,9 @@
 #include "track_btc.h"
+#include "esp_log.h"
 
-int track_btc_placeholder(void)
+static const char *TAG = "track_btc";
+
+void track_btc_start(void)
 {
-    return 0;
+    ESP_LOGI(TAG, "track btc: not implemented yet");
 }
