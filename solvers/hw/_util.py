@@ -1,84 +1,59 @@
 """Shared helpers for the HW solvers: serial console + flag submission.
 
 Needs pyserial (`pip install pyserial`, or use the ESP-IDF python env).
+Port: --port, else $CTF_PORT, else /dev/ttyACM0.
 """
+import os
 import re
 import sys
-import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from common import console as _common  # noqa: E402
 
 FLAG_RE = re.compile(r"ESP\{[0-9A-Fa-f]{12}\}")
-DEFAULT_PORT = "/dev/ttyACM0"
+DEFAULT_PORT = _common.default_port()
 
 
-class Console:
-    """Line-oriented access to the board's `ctf> ` console."""
+class Console(_common.Console):
+    """The board console (solvers/common/console.py) with the HW solvers' API:
+    regex read_until, cmd(wait=...), submit() -> bool. Opening never reboots the
+    board; reset=True reboots it on purpose (HW-01 boot check)."""
 
     def __init__(self, port=DEFAULT_PORT, baud=115200, reset=False):
-        import serial  # imported here so offline decoders run without pyserial
-
-        self.ser = serial.Serial()
-        self.ser.port = port
-        self.ser.baudrate = baud
-        self.ser.timeout = 0.1
-        # Keep EN/IO0 released on boards with the usual DTR/RTS auto-reset.
-        self.ser.dtr = False
-        self.ser.rts = False
-        self.ser.open()
+        super().__init__(port, baud, timeout=0.1)
         if reset:
             self.reset()
         else:
             self.sync()
 
-    def sync(self):
-        """Wait for a usable prompt. Opening the port can reboot some boards
-        (DTR/RTS glitch), so if a boot log shows up wait for it to finish."""
-        seen = self.read_until(r"rst:|ets ", timeout=0.7)
-        if re.search(r"rst:|ets ", seen):
-            self.read_until(r"ctf> ", timeout=15)
-            time.sleep(1.0)
-        self.ser.reset_input_buffer()
-        self.ser.write(b"\r\n")
-        self.read_until(r"ctf> ", timeout=2)
-        time.sleep(0.2)
-        self.ser.reset_input_buffer()
-
     def reset(self):
-        """Pulse EN via RTS (board reboots, boot log follows)."""
-        self.ser.rts = True
-        time.sleep(0.1)
-        self.ser.rts = False
+        """Reboot the board (EN pulse); the boot log follows on the port."""
+        self.reset_board(wait_prompt=False)
 
     def read_until(self, pattern, timeout=5.0):
         """Read until regex `pattern` matches the accumulated text; returns it."""
-        rx = re.compile(pattern) if isinstance(pattern, str) else pattern
-        buf = ""
-        end = time.time() + timeout
-        while time.time() < end:
-            data = self.ser.read(256)
-            if data:
-                buf += data.decode("utf-8", "replace")
-                if rx.search(buf):
-                    return buf
-        return buf
+        return self.read_until_re(pattern, timeout)
+
+    def sync(self):
+        self.ser.reset_input_buffer()
+        self.ser.write(b"\x03")
+        self.ser.flush()
+        self.read_until_re(r"ctf> ", 1.0)
+        self.ser.reset_input_buffer()
 
     def cmd(self, line, wait=r"ctf> ", timeout=5.0):
         """Send a console command and return its output up to the next prompt."""
         self.ser.reset_input_buffer()
-        self.ser.write((line + "\r\n").encode())
-        out = self.read_until(wait, timeout)
-        # Drop the echoed command line and the trailing prompt.
-        out = out.replace("\r", "")
+        self.send(line)
+        out = self.read_until_re(wait, timeout).replace("\r", "")
         if out.startswith(line):
             out = out[len(line):]
         return out.rsplit("ctf> ", 1)[0].strip("\n")
 
     def submit(self, flag):
-        out = self.cmd("submit " + flag)
-        print(out)
-        return ("Correct!" in out) or ("Already solved" in out)
-
-    def close(self):
-        self.ser.close()
+        res = _common.Console.submit(self, flag)
+        print(res)
+        return res.startswith(("Correct!", "Already solved"))
 
 
 def submit_and_exit(flag, port=DEFAULT_PORT):
