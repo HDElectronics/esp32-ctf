@@ -33,6 +33,7 @@
 - `test/host/test_catalog.c` — catalogue vs SPEC (IDs, names, levels, kit, 3 hint tiers), values, max score, hint prices
 - `test/host/test_flags.c` — flag format/determinism/MAC sensitivity, derive, submit normalisation, answer gates
 - `test/host/test_progress.c` — wallet + tier buying, record v2 layout/persistence, v1/orphan-tier3 handling, tampered record, reset, no backend
+- `test/host/check_hints.py` — lints the 3 hint tiers in `ctf_catalog.c`: 40 entries, non-empty, ASCII-only, per-tier length limits, no flag/placeholder, distinct tiers
 - `components/track_serial/` — SER-02..04 (UART2 beacon, timing login, escape hook) + CRY-01 shard 1
 - `components/track_crypto/` — CRY-01..03 console commands (`cipher`, `oracle`, `msgs`); Kconfig `CONFIG_CTF_CRYPTO_DEV`
 - `solvers/serial/` — SER solvers + `_util.py` console helpers (pyserial)
