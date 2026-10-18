@@ -215,4 +215,4 @@ refuses to package one.
   flashing gives a completely fresh board.
 - Flags are derived from each board's MAC, so two boards never share flags.
 
-License: TBD
+License: [MIT](LICENSE). Built on ESP-IDF (Apache-2.0) and the espressif/mdns component (Apache-2.0).
