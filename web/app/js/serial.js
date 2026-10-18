@@ -65,6 +65,17 @@ export class SerialTransport {
     try { await writer.write(bytes); } finally { writer.releaseLock(); }
   }
 
+  // Synchronous best effort for pagehide: start cancelling the reader and
+  // closing the port without waiting (the page may be gone before either ends).
+  closeNow() {
+    this.reading = false;
+    const r = this.reader;
+    try {
+      const done = r ? r.cancel().catch(() => {}) : Promise.resolve();
+      done.then(() => this.loop).then(() => this.port.close()).catch(() => {});
+    } catch { /* port already gone */ }
+  }
+
   async close() {
     this.reading = false;
     if (this.reader) {

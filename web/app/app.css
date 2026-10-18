@@ -190,6 +190,20 @@ button:focus-visible, input:focus-visible, a:focus-visible, [tabindex]:focus-vis
   cursor: pointer; font-size: 14px; font-weight: 600;
 }
 
+.notice-info {
+  padding: 14px 16px; border-radius: 8px; background: var(--step-active); border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.notice-info p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+.notice-info .mono { font-size: 13px; }
+.btn-info {
+  align-self: flex-start; min-height: 40px; padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--ink-soft);
+  cursor: pointer; font-size: 14px; font-weight: 600;
+}
+.btn-info:hover { border-color: var(--muted); }
+.btn-info[aria-disabled='true'] { cursor: progress; opacity: 0.75; }
+
 .tools { display: flex; flex-wrap: wrap; gap: 6px; }
 .tool {
   font-family: var(--font-mono); font-size: 12.5px; padding: 4px 9px; border-radius: 6px;
