@@ -1,6 +1,7 @@
 #include "ctf_platform.h"
 #include "ctf_platform_priv.h"
 
+#include <stdio.h>
 #include <string.h>
 #include "ctf_core.h"
 #include "esp_console.h"
@@ -107,6 +108,11 @@ void ctf_platform_mac(uint8_t mac[6])
     memcpy(mac, s_mac, 6);
 }
 
+void ctf_platform_board_name(char out[CTF_BOARD_NAME_LEN])
+{
+    snprintf(out, CTF_BOARD_NAME_LEN, "ESP32-CTF-%02X%02X", s_mac[4], s_mac[5]);
+}
+
 ctf_mode_t ctf_platform_mode(void)
 {
     return s_mode;
@@ -117,13 +123,18 @@ const char *ctf_platform_mode_name(ctf_mode_t mode)
     return mode == CTF_MODE_NET ? "net" : "radio";
 }
 
-void ctf_platform_set_mode_and_reboot(ctf_mode_t mode)
+void ctf_platform_save_mode(ctf_mode_t mode)
 {
     if (s_nvs_ok) {
         if (nvs_set_u8(s_nvs, NVS_KEY_MODE, (uint8_t)mode) != ESP_OK || nvs_commit(s_nvs) != ESP_OK) {
             ESP_LOGE(TAG, "failed to save mode");
         }
     }
+}
+
+void ctf_platform_set_mode_and_reboot(ctf_mode_t mode)
+{
+    ctf_platform_save_mode(mode);
     printf("Switching to %s mode, rebooting...\n", ctf_platform_mode_name(mode));
     fflush(stdout);
     vTaskDelay(pdMS_TO_TICKS(100));

@@ -678,9 +678,11 @@ static esp_err_t h_score(httpd_req_t *req)
         }
     }
     size_t o = (size_t)snprintf(s_body, sizeof s_body,
-                                "<p>Score: <b>%d / %d</b> (%d without optional-kit challenges)</p>"
+                                "<p>Points: <b>%d</b> (started with %d, +%d solved, -%d hints)</p>"
+                                "<p>Challenges are worth %d points (%d without optional-kit challenges).</p>"
                                 "<table><tr><th>Track</th><th>Solved</th></tr>",
-                                ctf_score(), ctf_max_score(true), ctf_max_score(false));
+                                ctf_points(), CTF_START_POINTS, ctf_earned(), ctf_spent(),
+                                ctf_max_score(true), ctf_max_score(false));
     for (int t = 0; t < 7 && o < sizeof s_body; t++) {
         o += (size_t)snprintf(s_body + o, sizeof s_body - o,
                               "<tr><td>%s</td><td>%d / %d</td></tr>", TRACKS[t], solved[t], total[t]);
@@ -708,7 +710,7 @@ static esp_err_t h_submit_post(httpd_req_t *req)
     switch (ctf_submit(flag, &c)) {
     case CTF_SUBMIT_NEW:
         snprintf(s_body, sizeof s_body, "<p class=\"result\">Correct! %s %s +%d</p>", c->id, c->name,
-                 ctf_points(c->id) - (ctf_hint_used(c->id) ? ctf_points(c->id) / 4 : 0));
+                 ctf_value(c->id));
         break;
     case CTF_SUBMIT_ALREADY:
         snprintf(s_body, sizeof s_body, "<p class=\"result\">Already solved: %s %s</p>", c->id, c->name);

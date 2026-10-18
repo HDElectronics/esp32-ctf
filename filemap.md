@@ -12,26 +12,27 @@
 - `main/Kconfig.projbuild` — `CONFIG_CTF_SIZE_PROBE` (dev only, default n)
 - `main/idf_component.yml` — managed deps (espressif/mdns)
 - `components/ctf_core/` — portable flag/registry/scoring engine (no IDF headers, no heap)
-- `components/ctf_core/include/ctf_core.h` — public API: catalogue, flags, derive, submit, answer gates, hints, score, backend
+- `components/ctf_core/include/ctf_core.h` — public API: catalogue, flags, derive, submit, answer gates, points wallet, hint tiers (price/tier/buy), backend
 - `components/ctf_core/include/ctf_sha256.h` — SHA-256 / HMAC-SHA256 API (usable by tracks, e.g. JWT)
-- `components/ctf_core/ctf_core.c` — engine state, XOR-split key, derivation, submission, tagged progress record
-- `components/ctf_core/ctf_catalog.c` — static 40-challenge catalogue (SPEC order = progress bit index) + hints
+- `components/ctf_core/ctf_core.c` — engine state, XOR-split key, derivation, submission, wallet + hint tiers, tagged progress record v2
+- `components/ctf_core/ctf_catalog.c` — static 40-challenge catalogue (SPEC order = progress bit index) + 3 hint tiers each
 - `components/ctf_core/ctf_sha256.c` — portable SHA-256 + HMAC-SHA256 implementation
 - `components/ctf_platform/` — IDF glue: NVS, MAC, mode, console
-- `components/ctf_platform/include/ctf_platform.h` — public API: init, MAC, mode get/set+reboot, console byte hook, console start
+- `components/ctf_platform/include/ctf_platform.h` — public API: `CTF_FW_VERSION`, init, MAC, board name, mode get/set+reboot, console byte hook, console start
 - `components/ctf_platform/ctf_platform.c` — NVS init + ctf_core backend (ctf/progress), mutex, MAC, mode (ctf/mode), esp_console init
-- `components/ctf_platform/ctf_console.c` — UART0 line editor task (raw-byte hook, echo, backspace, `ctf> ` prompt) → esp_console_run
-- `components/ctf_platform/ctf_commands.c` — core commands: status, list, submit, answer, hint, mode, reset
-- `components/ctf_platform/ctf_platform_priv.h` — internal: ctf_commands_register
+- `components/ctf_platform/ctf_console.c` — UART0 line editor task (raw-byte hook, echo, backspace, `ctf> ` prompt) → esp_console_run; SOH lines → ctf_api_run
+- `components/ctf_platform/ctf_commands.c` — core commands: status, list, submit, answer, hint (tiers), mode, reset
+- `components/ctf_platform/ctf_api.c` — machine channel `api info|list|submit|hint|answer|mode`: JSON writer, one STX/ETX frame per line in a single write
+- `components/ctf_platform/ctf_platform_priv.h` — internal: ctf_commands_register, ctf_platform_save_mode, ctf_api_run
 - `components/track_*/` — one component per challenge track; `track_<name>_start()` called from app_main
 - `test/host/` — host build + unit tests for ctf_core
 - `test/host/CMakeLists.txt` — builds components/ctf_core/*.c + test_*.c, registers with ctest
 - `test/host/test_util.h` — CHECK/RUN macros, in-memory backend, test group declarations
 - `test/host/test_main.c` — runner `main`, in-memory backend with lock-nesting tracking, test MACs
 - `test/host/test_crypto.c` — SHA-256 vectors, RFC 4231 HMAC cases 1-4, 6, 7
-- `test/host/test_catalog.c` — catalogue vs SPEC (IDs, names, levels, kit), points, max score
+- `test/host/test_catalog.c` — catalogue vs SPEC (IDs, names, levels, kit, 3 hint tiers), values, max score, hint prices
 - `test/host/test_flags.c` — flag format/determinism/MAC sensitivity, derive, submit normalisation, answer gates
-- `test/host/test_progress.c` — hint cost + score, persistence, tampered record, reset, no backend
+- `test/host/test_progress.c` — wallet + tier buying, record v2 layout/persistence, v1/orphan-tier3 handling, tampered record, reset, no backend
 - `components/track_serial/` — SER-02..04 (UART2 beacon, timing login, escape hook) + CRY-01 shard 1
 - `components/track_crypto/` — CRY-01..03 console commands (`cipher`, `oracle`, `msgs`); Kconfig `CONFIG_CTF_CRYPTO_DEV`
 - `solvers/serial/` — SER solvers + `_util.py` console helpers (pyserial)
@@ -51,6 +52,7 @@
 - `solvers/web/` — web solvers (`--host`), `_util.py` (DTR/RTS-safe serial open), README
 - `sdkconfig.dev.local` — (git-ignored, user-created) dev STA Wi-Fi credentials overlay
 - `solvers/common/console.py` — shared no-reset board serial Console (all tracks; `--port` / `$CTF_PORT`)
+- `solvers/common/api_check.py` — machine-channel protocol check (frames, no echo, wallet, hint tiers, `status`/`hint` output, `api mode` reboot; `--fresh` wipes progress)
 - `solvers/README.md` — solver setup: venv from /usr/bin/python3, port option, organizer-only (spoilers)
 - `README.md` — short visual overview: banner, quick start, tracks, modes, hardware, toolbox pointers, organizer links
 - `docs/toolbox.md` — full per-track tool table + install hints (moved from README)
