@@ -12,7 +12,7 @@ Once paired, you ask the device what it offers. Each device keeps a list of **se
 
 **RFCOMM** is the part of Classic that behaves like a serial cable over radio. The **Serial Port Profile (SPP)** builds on it: open the channel and you get a two-way stream of bytes, exactly like a USB serial console. Anything you would do with a wired console, you can do over SPP: read what it prints, type commands, script it.
 
-One detail helps later: the board uses the same address for BLE and Classic, so BlueZ shows a single device for both. If you see old data after a re-flash, remove the device and scan again.
+One detail helps later: BLE and Classic use different addresses on this board, so your scan lists it twice. The Classic entry is the one named `ESP32-CTF-XXXX:hhhhhh`. If you see old data after a re-flash, remove the device and scan again.
 
 ## Words you'll meet
 

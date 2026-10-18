@@ -13,6 +13,11 @@
 3. Connect and list its services. The board accepts one connection at a time
    and advertises again when you disconnect.
 
+The board also shows up a second time under its Bluetooth Classic address
+(name `ESP32-CTF-XXXX:hhhhhh`, BTC track). For BLE, pick the entry named just
+`ESP32-CTF-XXXX`; `ble` on the serial console prints its address. Connecting
+to the Classic entry fails with `org.bluez.Error.BREDR.ProfileUnavailable`.
+
 Linux tip: BlueZ caches a device's GATT database. If things look stale after
 re-flashing, `bluetoothctl remove <address>` and scan again.
 

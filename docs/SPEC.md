@@ -162,6 +162,13 @@ Difficulty: E easy, M medium, H hard. Kit: extra hardware needed.
 
 Also in radio mode: CTF control service (submit + score), see above.
 
+BLE advertises from a static random address (BT MAC with the top two bits
+set; bit 0 flipped if they already were), not the public BT address that
+Classic uses. On a shared address BlueZ merges both transports into one
+device and `Device1.Connect()` opens a Classic link, which fails with
+`BREDR.ProfileUnavailable` (seen with bluetui, bleak and bluetoothctl). The
+console's `ble` command prints the LE address.
+
 ### BT Classic (radio mode)
 
 | ID | Name | Lvl | Mechanism |

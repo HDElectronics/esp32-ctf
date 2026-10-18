@@ -10,9 +10,9 @@
    `ESP32-CTF-XXXX…`.
    - Linux: `bluetoothctl`, then `scan bredr` (or `bluetuith`)
    - Your laptop's Bluetooth settings also see it.
-3. The board uses the same address for BLE and Classic, so BlueZ shows a single
-   device for both. If you see stale data, `bluetoothctl remove <address>`
-   and scan again.
+3. BLE and Classic use different addresses, so BlueZ lists two devices. The
+   Classic one is named `ESP32-CTF-XXXX:hhhhhh`. If you see stale data,
+   `bluetoothctl remove <address>` and scan again.
 
 You need a host with a working Bluetooth Classic adapter (most laptop adapters
 and USB dongles do both BLE and Classic). On Linux, use the distro's

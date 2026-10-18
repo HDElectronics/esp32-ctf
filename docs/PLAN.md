@@ -104,3 +104,4 @@ Rebuild the app per SPEC "Player app — offline guide and scoreboard": no Web S
 README (app section + screenshot), players docs (points/hints), development.md,
 console screenshot re-render, landing page link, release.sh, tag + GitHub release.
 - 2026-10-18: user played the offline app against board 1: SER-01 flag from tio accepted in the page.
+- 2026-10-18: playtest found BLE connect failing (BREDR.ProfileUnavailable, bluetui/bleak) since the BTC track shares the public address; BLE now uses a static random address.

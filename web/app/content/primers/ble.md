@@ -49,6 +49,8 @@ Then `connect <address>`, `menu gatt` and `list-attributes`. If things look stal
 
 **bluetui** (a friendlier terminal view): `cargo install bluetui`, then run `bluetui`.
 
+The board shows up twice in a scan: `ESP32-CTF-XXXX` is the BLE side, `ESP32-CTF-XXXX:hhhhhh` is Bluetooth Classic (the BTC track). Connect to the first one. If you get `BREDR.ProfileUnavailable`, you picked the Classic entry.
+
 **bleak** (Python, for scripting): `pip install bleak`, then a first scan:
 
 ```python

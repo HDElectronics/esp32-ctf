@@ -7,6 +7,7 @@ Environment:
   CTF_PORT      serial console of the board (default /dev/ttyACM0)
   CTF_BTC_ADDR  board BR/EDR address, skips the inquiry for BTC-01/02
 """
+import argparse
 import asyncio
 import os
 import re
@@ -180,6 +181,12 @@ def open_console(addr: str) -> Spp:
 
 # ---- serial console submit ----------------------------------------------
 
+def _via() -> str:
+    p = argparse.ArgumentParser(add_help=False)
+    p.add_argument("--via", choices=["console", "none"], default="console")
+    return p.parse_known_args()[0].via
+
+
 def console_submit(flag: str) -> str:
     with Console(PORT) as s:
         return s.submit(flag)
@@ -189,6 +196,8 @@ def finish(challenge: str, flag: str) -> None:
     if not FLAG_RE.fullmatch(flag or ""):
         sys.exit(f"{challenge}: FAILED, got {flag!r}")
     print(f"{challenge} flag: {flag}")
+    if _via() == "none":
+        return
     res = console_submit(flag)
     print(f"submit via console: {res}")
     if not (res.startswith("Correct!") or res.startswith("Already solved")):

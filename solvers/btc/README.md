@@ -2,7 +2,9 @@
 
 One solver per challenge (BTC-01..03). Each finds the board with a BR/EDR
 inquiry, recovers the flag the way a player would, submits it on the serial
-console (`submit`) and accepts "Correct!" or "Already solved".
+console (`submit`) and accepts "Correct!" or "Already solved". Pass
+`--via none` to print the flag without submitting. With several boards in
+range, set `CTF_BTC_ADDR` so the inquiry does not pick another board.
 
 ## Setup
 
@@ -28,8 +30,8 @@ console (`submit`) and accepts "Correct!" or "Already solved".
 
 ## Board side
 
-- BR/EDR address = base MAC + 2 (same as the BLE public address, so BlueZ
-  shows one device for both transports).
+- BR/EDR address = base MAC + 2. BLE advertises from a separate static random
+  address, so BlueZ lists two devices.
 - SPP server "CTF Console", RFCOMM channel 1 (from SDP), requires an
   authenticated (paired) link. One session at a time.
 - Banner: BTC-01 flag, the BTC-02 clue (old `diag` verb), `cipher shard 3/4: XY`,

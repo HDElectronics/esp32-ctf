@@ -189,6 +189,7 @@ static void a_val(esp_gatts_attr_db_t *e, uint8_t rsp, uint16_t id, uint16_t per
 /* ---- per-board values -------------------------------------------------- */
 
 static char s_name[20];             /* ESP32-CTF-XXXX */
+static uint8_t s_le_addr[6];        /* static random LE address, see le_addr_init() */
 static char s_flag01[18], s_flag03[18], s_flag04[18], s_flag05[18], s_flag06[18];
 static char s_flag07[18], s_flag09[18], s_flag10[18], s_flag11[18];
 static char s_val02[64];            /* reverse(base64(hex(flag))) */
@@ -438,10 +439,31 @@ static esp_ble_adv_params_t s_adv_params = {
     .adv_int_min = 0x20, /* 20 ms */
     .adv_int_max = 0x40, /* 40 ms */
     .adv_type = ADV_TYPE_IND,
-    .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+    .own_addr_type = BLE_ADDR_TYPE_RANDOM,
     .channel_map = ADV_CHNL_ALL,
     .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
 };
+
+/* BLE gets its own static random address, derived from the BT MAC. On the
+ * shared public address BlueZ merges BLE and Classic (BTC track) into one
+ * device and Device1.Connect() opens a Classic link, failing with
+ * BREDR.ProfileUnavailable. Static random needs the top two bits set; flip
+ * bit 0 when they already were so the address never equals the public one. */
+static void le_addr_init(void)
+{
+    const uint8_t *bt = esp_bt_dev_get_address();
+    uint8_t mac[6];
+    if (bt) {
+        memcpy(mac, bt, 6);
+    } else {
+        ctf_platform_mac(mac);
+    }
+    memcpy(s_le_addr, mac, 6);
+    s_le_addr[0] |= 0xC0;
+    if (s_le_addr[0] == mac[0]) {
+        s_le_addr[0] ^= 0x01;
+    }
+}
 
 /* Advert: flags + complete name + manufacturer data "<n>:<part n of 3>".
  * 3 + 16 + 12 = 31 bytes. The service UUID goes in the scan response. */
@@ -768,6 +790,11 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
             adv_start();
         }
         break;
+    case ESP_GAP_BLE_SET_STATIC_RAND_ADDR_EVT:
+        if (param->set_rand_addr_cmpl.status != ESP_BT_STATUS_SUCCESS) {
+            ESP_LOGW(TAG, "set random address failed: %d", param->set_rand_addr_cmpl.status);
+        }
+        break;
     case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
         if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
             ESP_LOGW(TAG, "advertising start failed: %d", param->adv_start_cmpl.status);
@@ -807,6 +834,8 @@ static void gatts_cb(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
             return;
         }
         s_gif = gatts_if;
+        le_addr_init();
+        esp_ble_gap_set_rand_addr(s_le_addr);
         esp_ble_gap_set_device_name(s_name);
         adv_update();
         scan_rsp_config();
@@ -931,12 +960,10 @@ static int cmd_ble(int argc, char **argv)
         printf("Bluetooth is not running.\n");
         return 1;
     }
-    const uint8_t *a = esp_bt_dev_get_address();
+    const uint8_t *a = s_le_addr;
     printf("BLE name: %s\n", s_name);
-    if (a) {
-        printf("BLE address: %02X:%02X:%02X:%02X:%02X:%02X\n", a[0], a[1], a[2], a[3], a[4],
-               a[5]);
-    }
+    printf("BLE address: %02X:%02X:%02X:%02X:%02X:%02X (random static)\n", a[0], a[1], a[2],
+           a[3], a[4], a[5]);
     printf("Connected: %s\n", s_connected ? "yes" : "no");
     return 0;
 }
