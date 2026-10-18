@@ -134,7 +134,7 @@
     ]
   },
   "HW-03": {
-    "brief": "A pin is toggling at a frequency unique to your board. The answer is a number (answer HW-03 <value>).",
+    "brief": "A pin is toggling at a frequency unique to your board. The answer is a number: check it in the player app's answer box or with answer HW-03 <value> on the console.",
     "tools": [
       "PulseView",
       "sigrok-cli"

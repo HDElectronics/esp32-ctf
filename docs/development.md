@@ -6,7 +6,8 @@ runs the CTF. Moved here from the README. Spoilers live in
 
 ## Building from source
 
-Requires ESP-IDF v6.1 (target `esp32`).
+Requires ESP-IDF v6.1 (target `esp32`). The firmware version is 0.2.0
+(`PROJECT_VER` in the top-level `CMakeLists.txt`; it also names the release image).
 
 ```sh
 . ~/esp/esp-idf/export.sh
@@ -19,7 +20,7 @@ merged `.bin`, ESP Web Tools manifest and a ready-to-host flasher site):
 
 ```sh
 scripts/release.sh
-# -> dist/esp32-ctf-v0.1.0.bin, dist/manifest.json, web/flasher/dist-site/
+# -> dist/esp32-ctf-v0.2.0.bin, dist/manifest.json, web/flasher/dist-site/
 ```
 
 Host unit tests for the portable engine:
@@ -28,21 +29,35 @@ Host unit tests for the portable engine:
 cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure
 ```
 
-Player app (`web/app/`): its content is generated from the firmware sources
-and the player guides; regenerate after changing the catalogue, hints, key or
-HW-03 gate, then run its Node tests (see `web/app/README.md`):
+Player app (`web/app/`, an offline guide and scoreboard that never opens the
+board's port): `web/app/content/board-data.json` (flag key, catalogue, hint
+texts and prices, HW-03 gate) is generated from the firmware sources and
+`web/app/content/challenges.json` (briefs, tools) from `docs/players/*.md`.
+Regenerate after changing the catalogue, hints, key, HW-03 gate or a player
+guide, then run its Node tests (see `web/app/README.md`):
 
 ```sh
-python3 scripts/build-app-content.py        # --check: fail if stale
+python3 scripts/build-app-content.py          # regenerate both JSON files
+python3 scripts/build-app-content.py --check  # fail if they are stale
 node --test web/app/tests/*.test.mjs
 ```
+
+`scripts/release.sh` runs the `--check` and refuses to package stale content.
+Run it locally with `python3 -m http.server -d web 8000`, then
+<http://localhost:8000/app/>. The firmware also has a machine channel on the
+console (`api …` lines framed with SOH/STX/ETX, SPEC "Machine channel"); it
+stays in the firmware for tools, but the app does not use it.
 
 Browser flashing: `scripts/release.sh` also builds a self-hostable ESP Web Tools
 flasher page in `web/flasher/dist-site/` (desktop Chrome or Edge; Web Serial).
 
 README images: `scripts/render-images.sh` renders `docs/img/src/*.html` with
 headless Chrome into `docs/img/*.png` (light and dark). `docs/img/src/i2c.html`
-is generated from a sigrok capture by `docs/img/src/make_i2c.py`.
+is generated from a sigrok capture by `docs/img/src/make_i2c.py`; the console
+text in `docs/img/src/console.html` is a real board session with the MAC
+replaced by the example `24:0A:C4:12:34:56`. `scripts/render-images.sh app`
+serves the repo on port 8012 and screenshots the real player app, seeded by
+`docs/img/src/app-seed.html` (`docs/img/app.png`).
 
 ### Dev options
 
@@ -72,7 +87,7 @@ refuses to package one.
   teaches players to dump flash.** Before a board goes to a player, wipe it
   and flash the release image:
   `esptool --chip esp32 -p <PORT> erase-flash`, then
-  `esptool --chip esp32 -p <PORT> write-flash 0x0 dist/esp32-ctf-v0.1.0.bin`.
+  `esptool --chip esp32 -p <PORT> write-flash 0x0 dist/esp32-ctf-v0.2.0.bin`.
 
 - `CONFIG_CTF_SIZE_PROBE` (links unused stack stubs to measure image size)
 
@@ -81,7 +96,7 @@ refuses to package one.
 - `solvers/` holds one reference solver per challenge. They are full
   spoilers: do not hand them to players.
 - `docs/SPEC.md` describes every challenge's mechanism, also a spoiler.
-- `reset yes` on the console wipes all progress and used hints and reboots;
+- `reset yes` on the console wipes all progress and bought hints and reboots;
   the firmware-reversing artefacts are re-provisioned on the next boot.
   Flashing the merged image also wipes progress (it covers the NVS
   partition); a full chip erase (`esptool --chip esp32 erase-flash`) before

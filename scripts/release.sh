@@ -15,7 +15,7 @@
 # the root, so those links are rewritten to app/ and ../ here.
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build-release"
 DIST="$ROOT/dist"
@@ -34,6 +34,12 @@ if ! command -v idf.py >/dev/null 2>&1; then
 fi
 
 cd "$ROOT"
+
+# The player app's content must match the firmware sources and player guides.
+if ! python3 "$ROOT/scripts/build-app-content.py" --check; then
+    echo "error: web/app/content is stale; run scripts/build-app-content.py" >&2
+    exit 1
+fi
 
 # Clean build. SDKCONFIG points inside the build dir so a developer's root
 # `sdkconfig` (which may have dev options) is never used; defaults come only
