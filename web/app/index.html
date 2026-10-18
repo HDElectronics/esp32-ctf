@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32 CTF: connect your board</title>
+<meta name="description" content="Play the ESP32 Multi-Track CTF in the browser: connect your board over USB, read the challenges, buy hints with your points and submit flags.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#17141f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='5' fill='%2313111b'/%3E%3Crect x='5' y='3' width='18' height='22' rx='2' fill='none' stroke='%23b4f04a' stroke-width='2'/%3E%3Crect x='9' y='7' width='10' height='8' rx='1' fill='%23b4f04a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/css/xterm.css" integrity="sha384-n2n7twoohnW+d3myBKaUgl7DSiwidw6MkQy9oesGzkPpMjejKRR3XlnD+5yCdtBD" crossorigin="anonymous">
+<link rel="stylesheet" href="app.css">
+<script type="importmap">
+{
+  "imports": {
+    "@xterm/xterm": "https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/lib/xterm.mjs",
+    "@xterm/addon-fit": "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/lib/addon-fit.mjs"
+  },
+  "integrity": {
+    "https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/lib/xterm.mjs": "sha384-8Xik+BkzF4UFDtZa8HkUiQ0FE/Xl+03xMuv69uQB3ichDzm8dWs4kPRihQxSZDiY",
+    "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/lib/addon-fit.mjs": "sha384-0/1EW6dUPoaun7dgdlOtb5Wk8x5UQRW6hYM3ihuCCnaA2Xd4HwMFcn378RpxmoAc"
+  }
+}
+</script>
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<!-- Connect screen -->
+<div id="connect-screen" class="screen">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="3" width="18" height="22" rx="2" fill="none" stroke="#b4f04a" stroke-width="2"></rect><rect x="9" y="7" width="10" height="8" rx="1" fill="#b4f04a"></rect><path d="M2 8h3M2 13h3M2 18h3M23 8h3M23 13h3M23 18h3" stroke="#b4f04a" stroke-width="2"></path></svg>
+      <span class="brand-name">ESP32 CTF</span>
+    </div>
+  </header>
+
+  <main class="connect-main">
+    <div class="connect-col">
+      <div class="stack-8" style="gap: 10px">
+        <h1 class="connect-title">Connect your board</h1>
+        <p class="connect-lede">This page talks to your ESP32 over its USB cable. The board checks your flags and keeps your points.</p>
+      </div>
+
+      <ol class="steps">
+        <li class="step">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <span class="step-title">Flash the CTF firmware</span>
+            <span class="step-desc">Once per board. Skip it if the board already shows the ESP32 CTF banner. <a id="flasher-link" href="../flasher/">Flash in the browser</a></span>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <span class="step-title">Plug it into this computer</span>
+            <span class="step-desc">Use a USB data cable. If the board doesn't show up in the next step, the cable may only carry power.</span>
+          </div>
+        </li>
+        <li class="step is-active">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <div class="stack-8" style="gap: 4px">
+              <span class="step-title">Choose the board's port</span>
+              <span class="step-desc">Your browser lists serial ports. The board usually appears as <span class="mono">USB Single Serial</span> or <span class="mono">CP2102</span>.</span>
+            </div>
+            <button type="button" id="connect-btn" class="btn-connect">Connect board</button>
+            <p id="connect-status" class="status-line" role="status" hidden></p>
+            <div id="connect-ok" class="connect-ok" hidden>
+              <p class="status-line" role="status" id="connect-ok-text"></p>
+              <button type="button" id="start-btn" class="btn-connect">Start playing</button>
+            </div>
+          </div>
+        </li>
+      </ol>
+
+      <p class="fallback-note">Works in desktop Chrome and Edge. In Firefox, Safari or on a phone, use a serial terminal at 115200 baud and the <a href="https://github.com/HDElectronics/esp32-ctf/tree/master/docs/players">player guides</a> instead.</p>
+    </div>
+  </main>
+</div>
+
+<!-- Play screen -->
+<div id="play-screen" class="screen" hidden>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="3" width="18" height="22" rx="2" fill="none" stroke="#b4f04a" stroke-width="2"></rect><rect x="9" y="7" width="10" height="8" rx="1" fill="#b4f04a"></rect><path d="M2 8h3M2 13h3M2 18h3M23 8h3M23 13h3M23 18h3" stroke="#b4f04a" stroke-width="2"></path></svg>
+        <span class="brand-name">ESP32 CTF</span>
+      </div>
+
+      <div class="bar-tools">
+        <div class="points">
+          <span class="points-num" id="points">0</span>
+          <span class="points-word">points</span>
+        </div>
+        <div role="group" aria-label="Board mode" class="segmented">
+          <button type="button" class="seg" id="mode-radio" data-mode="radio" aria-pressed="false">Radio</button>
+          <button type="button" class="seg" id="mode-net" data-mode="net" aria-pressed="false">Net</button>
+        </div>
+        <div class="pill" id="pill">
+          <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#b4f04a"></circle></svg>
+          <span id="pill-text">Connected</span>
+        </div>
+        <button type="button" class="btn-text" id="disconnect-btn">Disconnect</button>
+        <button type="button" class="btn-quiet" id="console-btn" aria-expanded="false" aria-controls="drawer">Console</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs-row">
+    <div role="tablist" aria-label="Tracks" class="tablist" id="tabs"></div>
+    <span class="solved-total" id="solved-total"></span>
+  </div>
+
+  <div class="play-main">
+    <ul class="list" id="list" role="list" aria-label="Challenges"></ul>
+
+    <aside class="panel" id="panel" aria-labelledby="ch-name">
+      <div class="panel-view" id="challenge-view">
+        <div class="stack-8">
+          <span class="ch-id" id="ch-id"></span>
+          <h1 class="ch-name" id="ch-name" tabindex="-1"></h1>
+          <div class="chips" id="ch-chips"></div>
+        </div>
+
+        <p class="brief" id="ch-brief"></p>
+
+        <div class="notice-warn" id="ch-mode" hidden>
+          <p id="ch-mode-text"></p>
+          <button type="button" class="btn-warn" id="ch-mode-btn"></button>
+        </div>
+
+        <div class="stack-8">
+          <span class="label">Tools that fit</span>
+          <div class="tools" id="ch-tools"></div>
+          <a href="#" class="primer-link" id="primer-link"></a>
+        </div>
+
+        <div class="stack-8">
+          <span class="label">Hints, paid from your points</span>
+          <div class="stack-8" id="hints"></div>
+        </div>
+
+        <form class="flag-form" id="flag-form" novalidate>
+          <label for="flag" class="label">Flag</label>
+          <div class="flag-field">
+            <span aria-hidden="true" class="flag-affix pre">ESP{</span>
+            <input id="flag" name="flag" placeholder="12 hex characters" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="flag-help">
+            <span aria-hidden="true" class="flag-affix post">}</span>
+          </div>
+          <span id="flag-help" class="help">Paste the whole flag or just the part inside the braces. The board checks it.</span>
+          <button type="submit" class="btn-primary" id="submit-btn">Submit flag</button>
+          <p id="result" class="result" role="status" hidden></p>
+        </form>
+      </div>
+
+      <div class="panel-view" id="primer-view" hidden>
+        <button type="button" class="btn-back" id="primer-back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="2"></path></svg>Back to challenges</button>
+        <div class="md" id="primer-body"></div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="drawer" id="drawer" aria-label="Serial console" hidden>
+    <div class="drawer-inner">
+      <span class="label">Serial console, 115200 baud. The serial challenges are played here.</span>
+      <div class="term-host" id="term"></div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="overlay-card" id="overlay-card" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="overlay-title" aria-describedby="overlay-sub">
+    <p class="overlay-title" id="overlay-title" role="status">Restarting the board…</p>
+    <p class="overlay-sub" id="overlay-sub"></p>
+    <div id="overlay-actions" class="stack-8" style="margin-top: 12px" hidden>
+      <button type="button" class="btn-primary" id="overlay-disconnect">Disconnect</button>
+      <button type="button" class="btn-quiet" id="overlay-close">Keep playing</button>
+    </div>
+  </div>
+</div>
+
+<noscript><p style="padding: 24px">This app needs JavaScript. You can also play with a serial terminal at 115200 baud and the player guides.</p></noscript>
+</body>
+</html>
