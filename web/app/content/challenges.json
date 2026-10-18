@@ -120,7 +120,7 @@
     ]
   },
   "HW-01": {
-    "brief": "The board checks something about its own pins when it starts. Skip this one if you don't have a jumper wire.",
+    "brief": "The board checks something about its own pins when it starts.",
     "tools": [
       "a jumper wire",
       "tio"
@@ -134,21 +134,21 @@
     ]
   },
   "HW-03": {
-    "brief": "A pin is toggling at a frequency unique to your board. The answer is a number (answer HW-03 <value>). Skip this one if you don't have a logic analyzer.",
+    "brief": "A pin is toggling at a frequency unique to your board. The answer is a number (answer HW-03 <value>).",
     "tools": [
       "PulseView",
       "sigrok-cli"
     ]
   },
   "HW-04": {
-    "brief": "The board talks on an I2C bus to a device that isn't there. Skip this one if you don't have a logic analyzer.",
+    "brief": "The board talks on an I2C bus to a device that isn't there.",
     "tools": [
       "sigrok-cli -P i2c",
       "PulseView"
     ]
   },
   "HW-05": {
-    "brief": "Something is being sent over SPI every few seconds. Skip this one if you don't have a logic analyzer.",
+    "brief": "Something is being sent over SPI every few seconds.",
     "tools": [
       "sigrok-cli -P spi",
       "PulseView"
@@ -197,7 +197,7 @@
     ]
   },
   "SER-02": {
-    "brief": "The board has a second serial port that nobody connected. Skip this one if you have neither a 3.3 V USB-UART adapter nor a logic analyzer (an analyzer on GPIO17 plus GND, with sigrok's UART decoder, works too). UART2 pins: board TX = GPIO17, board RX = GPIO16; connect GND too.",
+    "brief": "The board has a second serial port that nobody connected.",
     "tools": [
       "tio",
       "picocom",

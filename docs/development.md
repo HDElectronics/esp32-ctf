@@ -28,6 +28,15 @@ Host unit tests for the portable engine:
 cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure
 ```
 
+Player app (`web/app/`): its content is generated from the firmware sources
+and the player guides; regenerate after changing the catalogue, hints, key or
+HW-03 gate, then run its Node tests (see `web/app/README.md`):
+
+```sh
+python3 scripts/build-app-content.py        # --check: fail if stale
+node --test web/app/tests/*.test.mjs
+```
+
 Browser flashing: `scripts/release.sh` also builds a self-hostable ESP Web Tools
 flasher page in `web/flasher/dist-site/` (desktop Chrome or Edge; Web Serial).
 

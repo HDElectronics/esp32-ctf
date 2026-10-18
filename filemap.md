@@ -64,20 +64,18 @@
 - `docs/players/` — spoiler-free player guides: index + one per track
 - `scripts/release.sh` — clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/ (flasher at root + player app in app/, cross-links rewritten)
 - `web/flasher/` — flasher landing page (esp-web-tools 10.4.0) + manifest; hero links to the player app
-- `web/app/` — player app (static, no build): Web Serial client, demo board (`?demo`), xterm.js 6.0.0 console; README for local serving
-- `web/app/index.html`, `web/app/app.css` — Connect + Play screens per `docs/design/player-app/`, design tokens
-- `web/app/js/main.js` — app state, rendering, hints/flag/mode actions, polling, primer view
-- `web/app/js/link.js` — STX/ETX frame parser + one-at-a-time SOH request queue (SPEC "Machine channel")
-- `web/app/js/serial.js` — Web Serial transport (115200, DTR+RTS asserted, read loop)
-- `web/app/js/tabs.js` — BroadcastChannel coordinator: one connected app tab at a time, hand-off between tabs
-- `web/app/js/demo.js` — in-memory fake board speaking the same protocol (placeholder hints, flag body DEMO00000000)
-- `web/app/js/terminal.js` — console drawer (xterm.js + fit addon, plain-text fallback)
+- `web/app/` — player app (static, no build): offline guide and scoreboard, never opens the board's port; README for local serving
+- `web/app/index.html`, `web/app/app.css` — Setup (MAC entry) + Play screens per `docs/design/player-app/`, design tokens
+- `web/app/js/main.js` — app state, rendering, hints/flag/answer actions, Progress menu (export/import/reset), primer view, deep-link params
+- `web/app/js/engine.js` — WebCrypto HMAC flag bodies / derived values (same as ctf_core), flag normalisation, MAC parsing, HW-03 answer check
+- `web/app/js/store.js` — points wallet + hint tiers per board MAC in localStorage (memory fallback), export/import validation
 - `web/app/js/markdown.js` — tiny escaping Markdown renderer for primers
+- `web/app/content/board-data.json` — generated from firmware sources: flag key, catalogue, hint texts + prices, start points, answer gates (do not edit)
 - `web/app/content/challenges.json` — generated briefs + tools per challenge (do not edit; see build-app-content.py)
 - `web/app/content/primers/<track>.md` — per-track primers (ble, btc, web, serial, hw, re, crypto)
-- `scripts/build-app-content.py` — docs/players/*.md → web/app/content/challenges.json (`--check` for staleness)
+- `scripts/build-app-content.py` — ctf_core.c/.h + ctf_catalog.c + track_hw.c → board-data.json; docs/players/*.md → challenges.json (`--check` for staleness)
 - `LICENSE` — MIT
 - `docs/design/player-app/` — approved player-app mockups (Design Component HTML), v0.2.0 reference
 - `web/app/content/primers/` — spoiler-free 3-minute track primers (`<track>.md`) rendered in the player app, + README with style rules
-- `web/app/tests/link.test.mjs` — Node test: frame parser vs stray STX in boot noise
-- `web/app/tests/tabs.test.mjs` — Node test: tab coordinator (announce, who, release/released) over a fake BroadcastChannel
+- `web/app/tests/engine.test.mjs` — Node test: engine vs node:crypto HMAC, flag/MAC parsing, HW-03 gate; real boards from the ignored `.cache/real-boards.local.json` (skipped when absent)
+- `web/app/tests/store.test.mjs` — Node test: wallet (prices, tier order, points), per-MAC storage, memory fallback, export/import over a fake localStorage
