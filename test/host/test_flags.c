@@ -219,8 +219,12 @@ static void test_answer_gate(void)
     memset(out, 'x', sizeof(out));
 
     CHECK(!ctf_answer("HW-03", "4242", out)); /* no validator yet */
+    CHECK(!ctf_has_answer("HW-03"));
+    CHECK(!ctf_has_answer("HW-99"));
     CHECK(!ctf_set_answer("HW-99", gate_fn, &g));
     CHECK(ctf_set_answer("HW-03", gate_fn, &g));
+    CHECK(ctf_has_answer("HW-03"));
+    CHECK(!ctf_has_answer("HW-04"));
     CHECK(!ctf_answer("HW-03", "4241", out));
     CHECK(out[0] == 'x'); /* untouched on failure */
     CHECK(g.calls == 1);
@@ -236,6 +240,7 @@ static void test_answer_gate(void)
     CHECK(st.depth == 0 && st.max_depth == 1);
 
     CHECK(ctf_set_answer("HW-03", NULL, NULL));
+    CHECK(!ctf_has_answer("HW-03"));
     CHECK(!ctf_answer("HW-03", "4242", out));
 }
 

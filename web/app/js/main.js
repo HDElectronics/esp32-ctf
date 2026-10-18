@@ -43,6 +43,9 @@ const S = {
   hintError: null,       // { id, tier, text }
   result: null,          // { text, ok }
   submitting: false,
+  answer: null,          // { id, ok, flag?, text? }
+  answering: false,
+  copied: false,
   consoleOpen: params.get('console') === '1',
   primer: null,          // track key while the primer view is open
   restarting: false,
@@ -223,6 +226,7 @@ async function teardown() {
   S.shownFree.clear();
   S.hintError = null;
   S.result = null;
+  S.answer = null;
   S.restarting = false;
   hideOverlay();
   if (link) { try { await link.close(); } catch { /* port already gone */ } }
@@ -343,6 +347,7 @@ function renderPanel() {
   $('primer-link').dataset.track = tk;
 
   renderHints(c);
+  renderAnswer(c);
 
   const r = $('result');
   r.hidden = !S.result;
@@ -394,12 +399,32 @@ function renderHints(c) {
   }).join('');
 }
 
+function renderAnswer(c) {
+  const form = $('answer-form');
+  form.hidden = c.answer !== true;
+  if (form.hidden) return;
+  $('answer-btn').setAttribute('aria-disabled', String(S.answering));
+  const a = S.answer && S.answer.id === c.id ? S.answer : null;
+  const box = $('answer-result');
+  if (!a) { box.innerHTML = ''; return; }
+  if (!a.ok) { box.innerHTML = `<p class="result bad">${esc(a.text)}</p>`; return; }
+  box.innerHTML = '<div class="result ok answer-ok"><p>Correct. Here is the flag for this challenge:</p>' +
+    `<span class="answer-flag">${esc(a.flag)}</span>` +
+    '<div class="answer-actions">' +
+    `<button type="button" class="btn-quiet" data-answer-act="copy" data-key="answer-copy">${S.copied ? 'Copied' : 'Copy'}</button>` +
+    '<button type="button" class="hint-btn" data-answer-act="submit" data-key="answer-submit">Submit this flag</button>' +
+    '</div></div>';
+}
+
 /* ---------- Actions ---------- */
 
 function pickChallenge(id) {
   if (id === S.selId) return;
   S.selId = id;
   S.result = null;
+  S.answer = null;
+  S.copied = false;
+  $('answer').value = '';
   S.hintError = null;
   S.hintTried.clear();
   closePrimer(false);
@@ -493,6 +518,51 @@ async function submitFlag(e) {
   } finally {
     S.submitting = false;
     renderPlay();
+  }
+}
+
+async function submitAnswer(e) {
+  e.preventDefault();
+  if (S.answering || !S.link) return;
+  const c = selected();
+  const value = $('answer').value.trim();
+  S.copied = false;
+  if (!value) {
+    S.answer = { id: c.id, ok: false, text: 'Type your answer first.' };
+    renderPlay();
+    return;
+  }
+  S.answering = true;
+  renderPlay();
+  try {
+    const r = await S.link.request(`api answer ${c.id} ${value}`);
+    if (!r.ok) S.answer = { id: c.id, ok: false, text: `The board could not check that answer (${r.error || 'unknown error'}). Try again.` };
+    else if (r.correct && r.flag) S.answer = { id: c.id, ok: true, flag: String(r.flag) };
+    else S.answer = { id: c.id, ok: false, text: "That's not it. Nothing was deducted." };
+  } catch {
+    S.answer = { id: c.id, ok: false, text: 'The board did not answer. Check the USB cable, then try again.' };
+  } finally {
+    S.answering = false;
+    renderPlay();
+  }
+}
+
+async function onAnswerAction(act) {
+  const a = S.answer;
+  if (!a || !a.ok) return;
+  if (act === 'copy') {
+    try {
+      await navigator.clipboard.writeText(a.flag);
+      S.copied = true;
+    } catch {
+      // Clipboard blocked: put the flag in the flag box so it can be copied by hand.
+      $('flag').value = normaliseFlag(a.flag);
+      $('flag').select();
+    }
+    renderPlay();
+  } else if (act === 'submit') {
+    $('flag').value = normaliseFlag(a.flag);
+    $('flag-form').requestSubmit();
   }
 }
 
@@ -619,6 +689,11 @@ function wire() {
   $('primer-link').addEventListener('click', (e) => { e.preventDefault(); openPrimer(e.currentTarget.dataset.track); });
   $('primer-back').addEventListener('click', () => closePrimer(true));
   $('flag-form').addEventListener('submit', submitFlag);
+  $('answer-form').addEventListener('submit', submitAnswer);
+  $('answer-result').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-answer-act]');
+    if (b) onAnswerAction(b.dataset.answerAct);
+  });
   $('flag').addEventListener('input', (e) => {
     const v = e.target.value;
     const n = normaliseFlag(v);
@@ -633,6 +708,7 @@ function wire() {
     startPolling();
   });
   window.addEventListener('resize', updateDrawerHeight);
+  if (window.ResizeObserver) new ResizeObserver(updateDrawerHeight).observe($('drawer'));
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && S.primer && !$('play-screen').hidden) closePrimer(true);
   });

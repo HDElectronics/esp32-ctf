@@ -128,7 +128,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, [tabindex]:focus-vis
 
 /* Main area */
 .play-main {
-  max-width: 1360px; width: 100%; margin: 0 auto; padding: 16px var(--gutter) 32px;
+  max-width: 1360px; width: 100%; margin: 0 auto; padding: 16px var(--gutter) calc(32px + var(--drawer-h));
   display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; flex: 1;
 }
 .list {
@@ -235,6 +235,20 @@ button:focus-visible, input:focus-visible, a:focus-visible, [tabindex]:focus-vis
   font-weight: 700; font-size: 16px; cursor: pointer;
 }
 .btn-primary[aria-disabled='true'], .btn-primary:disabled { cursor: progress; opacity: 0.75; }
+.answer-field input { text-transform: none; letter-spacing: 0.02em; padding: 0 14px; }
+.btn-secondary {
+  min-height: 48px; border: 1px solid var(--accent); border-radius: 8px; background: transparent;
+  color: var(--success-ink); font-weight: 700; font-size: 16px; cursor: pointer;
+}
+.btn-secondary[aria-disabled='true'] { cursor: progress; opacity: 0.75; }
+.answer-ok { display: flex; flex-direction: column; gap: 10px; }
+.answer-ok p { margin: 0; }
+.answer-flag {
+  display: block; font-family: var(--font-mono); font-size: 17px; letter-spacing: 0.06em;
+  color: var(--ink); overflow-wrap: anywhere;
+}
+.answer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.answer-actions .btn-quiet, .answer-actions .hint-btn { min-height: 40px; }
 .result { margin: 0; padding: 10px 14px; border-radius: 8px; font-size: 14px; }
 .result.ok { background: var(--success-bg); color: var(--success-ink); }
 .result.bad { background: var(--error-bg); color: var(--error-ink); }
@@ -264,9 +278,10 @@ button:focus-visible, input:focus-visible, a:focus-visible, [tabindex]:focus-vis
 .md pre code { background: none; border: 0; padding: 0; font-size: inherit; overflow-wrap: normal; }
 .md strong { color: var(--ink); }
 
-/* Console drawer */
+/* Console drawer: fixed to the viewport bottom; main.js measures it into
+   --drawer-h so the page content and the side panel can scroll clear of it. */
 .drawer {
-  position: sticky; bottom: 0; z-index: 5;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
   border-top: 1px solid var(--line); background: var(--console-bg);
 }
 .drawer-inner {
