@@ -73,7 +73,7 @@ both carry the "Toolbox" section from SPEC "Player toolbox" (TUIs first, install
 hints); verify each tool name and install command is current before writing it.
 **Verify:** release script output flashes cleanly with `esptool.py write_flash 0x0`.
 
-## 12. [~] Hardware acceptance — orchestrator + user — deps: all
+## 12. [x] Hardware acceptance — orchestrator + user — deps: all
 Run every solver against a real board; check two boards give different flags;
 check RAM headroom in both modes (`heap_caps` log at boot).
 
@@ -81,4 +81,4 @@ Parallelism after 3: tasks 4, 5, 6, 7, 9 can run in parallel (separate component
 
 ### Task 12 status
 - Done on hardware: SER-01,03,04 · CRY-01..03 · RE-01..04 · BLE-01..11 · BTC-01..03 · HW-02,03 (dev build) · WEB-01..09 (dev STA over LAN, 2026-10-18) · HW-06 (human taps) · HW-03/04/05 + SER-02 (fx2lafw logic analyzer, real capture) · HW-01 (jumper, 2026-10-18).
-- Pending (user): second board for flag uniqueness.
+- Per-board flags verified 2026-10-18: second board (ESP32-D0WD rev 1.0) runs v0.1.0; its SER-01 flag is rejected by board 1 and accepted by board 2.
