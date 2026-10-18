@@ -103,3 +103,4 @@ Rebuild the app per SPEC "Player app — offline guide and scoreboard": no Web S
 ## 17. [x] Docs, screenshots, release v0.2.0 — Medium — deps: 16
 README (app section + screenshot), players docs (points/hints), development.md,
 console screenshot re-render, landing page link, release.sh, tag + GitHub release.
+- 2026-10-18: user played the offline app against board 1: SER-01 flag from tio accepted in the page.
