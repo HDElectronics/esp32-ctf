@@ -85,7 +85,7 @@ Parallelism after 3: tasks 4, 5, 6, 7, 9 can run in parallel (separate component
 
 # v0.2.0: player app (SPEC "v0.2.0")
 
-## 13. [ ] Wallet, hint tiers, machine channel — Careful — deps: none
+## 13. [x] Wallet, hint tiers, machine channel — Careful — deps: none
 ctf_core: points model, record v2, 3 hint texts per challenge (existing hint
 moves to tier 2, tiers 1/3 placeholders), prices. ctf_platform: `status`,
 `hint` tiers, SOH machine channel and `api` commands. Host tests + hardware.
