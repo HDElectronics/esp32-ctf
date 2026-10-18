@@ -29,9 +29,9 @@ The board says a lot when it boots. Did you read all of it?
 Tools: `tio` (with logging), `idf.py monitor`
 
 ### SER-02 Wrong baud (200) · Kit: USB-UART adapter
-The board has a second serial port that nobody connected. Skip this one if you don't have a 3.3 V USB-UART adapter.
+The board has a second serial port that nobody connected. Skip this one if you have neither a 3.3 V USB-UART adapter nor a logic analyzer (an analyzer on GPIO17 plus GND, with sigrok's UART decoder, works too).
 UART2 pins: board TX = GPIO17, board RX = GPIO16; connect GND too (see [hw.md](hw.md#pin-map)).
-Tools: `tio`, `picocom`
+Tools: `tio`, `picocom`; with an analyzer: `sigrok-cli -P uart`, `PulseView`
 
 ### SER-03 Debug login (300)
 A debug login with a per-board password. Guessing by hand is hopeless. Needs scripting.
