@@ -40,6 +40,14 @@ export class FrameParser {
           this.onFrame(text);
         } else if (b === STX) {
           this.frame = []; // a new frame started; drop the broken one
+        } else if (b === 0x0d || b === 0x0a) {
+          // Real frames are one line, so a line break means the STX was a
+          // stray byte (boot noise after a reset). Give the bytes back to
+          // the console instead of swallowing the boot log.
+          this.inFrame = false;
+          if (this.frame.length) this.onText(new TextDecoder().decode(new Uint8Array(this.frame)));
+          this.frame = [];
+          start = i;
         } else if (this.frame.length < FRAME_MAX) {
           this.frame.push(b);
         } else {

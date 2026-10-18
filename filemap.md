@@ -78,3 +78,4 @@
 - `LICENSE` — MIT
 - `docs/design/player-app/` — approved player-app mockups (Design Component HTML), v0.2.0 reference
 - `web/app/content/primers/` — spoiler-free 3-minute track primers (`<track>.md`) rendered in the player app, + README with style rules
+- `web/app/tests/link.test.mjs` — Node test: frame parser vs stray STX in boot noise
