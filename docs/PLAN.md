@@ -90,11 +90,11 @@ ctf_core: points model, record v2, 3 hint texts per challenge (existing hint
 moves to tier 2, tiers 1/3 placeholders), prices. ctf_platform: `status`,
 `hint` tiers, SOH machine channel and `api` commands. Host tests + hardware.
 
-## 14. [ ] Hint and primer content — Careful — deps: 13 (hints), none (primers)
+## 14. [x] Hint and primer content — Careful — deps: 13 (hints), none (primers)
 Write tiers 1–3 for all 40 challenges into `ctf_catalog.c` and the 7 primers
 in `web/app/content/primers/`. Verified against SPEC + solvers for accuracy.
 
-## 15. [ ] Player app — Careful — deps: none (builds against SPEC + demo board)
+## 15. [x] Player app — Careful — deps: none (builds against SPEC + demo board)
 `web/app/` per mockup, Web Serial client, demo board, content build script.
 
 ## 16. [ ] Integration on hardware — orchestrator + user — deps: 13, 14, 15
