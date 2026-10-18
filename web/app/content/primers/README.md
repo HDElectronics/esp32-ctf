@@ -1,0 +1,3 @@
+Track primers: one spoiler-free, three-minute beginner introduction per track (`ble`, `btc`, `web`, `serial`, `hw`, `re`, `crypto`), teaching concepts, never challenge solutions, flags or per-board values.
+Style: 350 to 550 words, sections "How it works", "Words you'll meet", "Get set up", "Where to start"; plain, friendly, sentence case, short paragraphs, no emoji, and only simple Markdown (headings, paragraphs, lists, inline code, fenced code, bold).
+The player app renders these files in-app from the challenge panel's primer link; keep facts in line with `docs/players/` and `docs/toolbox.md`.
