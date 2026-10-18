@@ -100,6 +100,6 @@ in `web/app/content/primers/`. Verified against SPEC + solvers for accuracy.
 ## 16. [x] Offline app — Careful — deps: 15
 Rebuild the app per SPEC "Player app — offline guide and scoreboard": no Web Serial; MAC setup; WebCrypto flag check; localStorage progress; content generated from firmware sources. Verify computed flags against real boards.
 
-## 17. [ ] Docs, screenshots, release v0.2.0 — Medium — deps: 16
+## 17. [x] Docs, screenshots, release v0.2.0 — Medium — deps: 16
 README (app section + screenshot), players docs (points/hints), development.md,
 console screenshot re-render, landing page link, release.sh, tag + GitHub release.
