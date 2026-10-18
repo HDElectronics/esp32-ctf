@@ -209,7 +209,7 @@ function attachLink(transport) {
   transport.onLost = async () => {
     await teardown();
     showScreen('connect');
-    setConnectState('error', 'The board was disconnected. Plug it back in, then connect again.');
+    setConnectState('error', 'Lost the connection to the board. If it is still plugged in, close any other program using its port (a serial terminal, <span class="mono">idf.py monitor</span>, PulseView), then connect again. Otherwise plug it back in.');
   };
 }
 

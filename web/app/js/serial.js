@@ -45,6 +45,7 @@ export class SerialTransport {
         // Framing, parity, break and overrun errors are not fatal: the
         // stream is reopened by the loop. A lost device ends the loop
         // because port.readable becomes null.
+        console.warn('[ctf] serial read error:', e && e.name, e && e.message);
         if (this.reading && e && e.name === 'NetworkError') break;
       } finally {
         try { this.reader.releaseLock(); } catch { /* already released */ }
@@ -52,6 +53,7 @@ export class SerialTransport {
       }
     }
     if (this.reading) {
+      console.warn('[ctf] serial read loop ended; readable =', this.port.readable);
       this.reading = false;
       if (this.onLost) this.onLost();
     }
