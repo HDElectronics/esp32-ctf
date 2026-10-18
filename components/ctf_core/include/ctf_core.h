@@ -1,6 +1,6 @@
 #pragma once
-/* ctf_core: portable flag / registry / scoring engine (SPEC "Flags",
- * "Scoring and hints", "Optional-kit challenges").
+/* ctf_core: portable flag / registry / points-wallet engine (SPEC "Flags",
+ * "Optional-kit challenges", "v0.2.0: points wallet, hint tiers").
  * Must not include IDF/FreeRTOS headers; built on device and in test/host.
  *
  * Thread safety: every function that touches engine state takes the backend's
@@ -18,6 +18,8 @@ extern "C" {
 #define CTF_FLAG_LEN      17   /* "ESP{" + 12 hex + "}" */
 #define CTF_FLAG_BODY_LEN 12
 #define CTF_MAX_CHALLENGES 64  /* progress bitmaps are 64-bit */
+#define CTF_START_POINTS  100  /* every board starts with this many points */
+#define CTF_HINT_TIERS    3    /* 1 nudge (free), 2 hint, 3 walkthrough */
 
 typedef enum { CTF_EASY, CTF_MEDIUM, CTF_HARD } ctf_level_t; /* 100/200/300 pts */
 
@@ -27,7 +29,7 @@ typedef struct {
     const char *name;  /* "Read the flag" */
     ctf_level_t level;
     const char *kit;   /* NULL, or short label e.g. "logic analyzer" */
-    const char *hint;  /* hint text */
+    const char *hint[CTF_HINT_TIERS]; /* hint[t - 1] = text of tier t (1..3) */
 } ctf_challenge_t;
 
 /* Storage + optional lock hooks. load/save are required; lock/unlock may be NULL.
@@ -42,7 +44,7 @@ typedef struct {
     void *ctx;
 } ctf_backend_t;
 
-/* Copies mac and *be, loads progress; a missing/invalid/tampered record
+/* Copies mac and *be, loads progress; a missing/invalid/tampered/v1 record
  * starts fresh and is saved. Answer validators are kept across calls. */
 void ctf_init(const uint8_t mac[6], const ctf_backend_t *be);
 
@@ -77,14 +79,39 @@ bool ctf_set_answer(const char *id, ctf_answer_fn fn, void *ctx);
  * the returned flag. */
 bool ctf_answer(const char *id, const char *value, char flag_out[18]);
 
-/* Marks the hint used (persisted, once) and returns its text; NULL if unknown id. */
-const char *ctf_hint(const char *id);
 bool ctf_is_solved(const char *id);
-bool ctf_hint_used(const char *id);
-int ctf_points(const char *id);         /* base points; 0 if unknown id */
-int ctf_score(void);                    /* sum(solved: points - (hint ? points/4 : 0)) */
-int ctf_max_score(bool include_kit);    /* sum of base points, optionally skipping kit challenges */
-void ctf_reset(void);                   /* clears solved + hint bitmaps, saves */
+int ctf_value(const char *id);          /* challenge value 100/200/300; 0 if unknown id */
+int ctf_max_score(bool include_kit);    /* max earnable: sum of values, optionally skipping kit challenges */
+
+/* Points wallet: points = CTF_START_POINTS + earned - spent (never negative). */
+int ctf_points(void);
+int ctf_earned(void);                   /* sum of solved challenges' values */
+int ctf_spent(void);                    /* sum of the prices of bought hint tiers */
+
+/* Hint tiers. Price: tier 1 = 0, tier 2 = round(0.2 * value), tier 3 =
+ * round(0.5 * value) (100 -> 0/20/50, 200 -> 0/40/100, 300 -> 0/60/150).
+ * Returns -1 for an unknown id or a tier outside 1..3. */
+int ctf_hint_price(const char *id, int tier);
+/* Highest owned tier: 1 (free) if none bought, 2 or 3; 0 if unknown id.
+ * Tiers are owned in order, so tier t is owned iff t <= ctf_hint_tier(id). */
+int ctf_hint_tier(const char *id);
+
+typedef enum {
+    CTF_HINT_OK,     /* tier is free, already owned, or just bought (and saved) */
+    CTF_HINT_LOCKED, /* previous tier not owned yet */
+    CTF_HINT_POINTS, /* not enough points for the price */
+    CTF_HINT_BAD,    /* unknown id or tier outside 1..3 */
+} ctf_hint_result_t;
+
+/* Shows tier `tier` of id's hints, buying it if needed: tier 1 is always OK
+ * and records nothing; an owned tier is OK without charge; otherwise the
+ * previous tier must be owned (else LOCKED) and points >= price (else POINTS),
+ * then the tier is recorded and the record saved. Buying after solving is
+ * allowed. *text_out (if non-NULL) is the tier's text on OK, else NULL.
+ * Check, charge and save happen under one lock (no double spend). */
+ctf_hint_result_t ctf_hint_buy(const char *id, int tier, const char **text_out);
+
+void ctf_reset(void);                   /* clears solved + hint-tier bitmaps, saves */
 
 #ifdef __cplusplus
 }

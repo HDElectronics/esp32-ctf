@@ -4,6 +4,8 @@
  * - Mode (radio / net) stored in NVS "ctf"/"mode"; survives `reset`.
  * - UART0 console: small line editor feeding esp_console_run(), with an
  *   optional raw-byte hook for tracks (SER-03 timing, SER-04 escape sequence).
+ *   A line starting with 0x01 (SOH) is a machine command for the player app
+ *   (SPEC "Machine channel"): not echoed, answered with one STX/ETX JSON frame.
  * Tracks register their own commands with esp_console_cmd_register() after
  * ctf_platform_init() and before ctf_console_start(). */
 #include <stdbool.h>
@@ -13,6 +15,10 @@
 extern "C" {
 #endif
 
+/* Firmware version reported by `api info` (keep PROJECT_VER in the top-level
+ * CMakeLists.txt equal to it). */
+#define CTF_FW_VERSION "0.2.0"
+
 typedef enum { CTF_MODE_RADIO = 0, CTF_MODE_NET = 1 } ctf_mode_t;
 
 /* NVS init, MAC read, engine init (ctf_init), esp_console_init and the core
@@ -21,6 +27,11 @@ void ctf_platform_init(void);
 
 /* Board base MAC (as passed to ctf_init). */
 void ctf_platform_mac(uint8_t mac[6]);
+
+/* Board name "ESP32-CTF-XXXX" (XXXX = last 2 base-MAC bytes, uppercase hex),
+ * the same as the BLE device name. */
+#define CTF_BOARD_NAME_LEN 15 /* incl. NUL */
+void ctf_platform_board_name(char out[CTF_BOARD_NAME_LEN]);
 
 ctf_mode_t ctf_platform_mode(void);
 const char *ctf_platform_mode_name(ctf_mode_t mode); /* "radio" / "net" */

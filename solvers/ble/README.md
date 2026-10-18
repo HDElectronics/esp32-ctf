@@ -68,4 +68,4 @@ One connection at a time; advertising restarts on disconnect.
 |------|------|-------|-----------|
 | `0201` | CTF Submit Flag | write, write-without-response | any challenge's flag (`ESP{…}` or bare body) |
 | `0202` | CTF Submit Result | read, notify | `Correct! <id> +<pts>` / `Already solved` / `Wrong flag` |
-| `0203` | CTF Score | read, notify | `score/max`, refreshed every 1 s (also after console/web submissions) |
+| `0203` | CTF Score | read, notify | `points/max points` (max = 100 + all values), refreshed every 1 s (also after console/web submissions and hint purchases) |

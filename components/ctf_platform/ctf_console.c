@@ -1,8 +1,14 @@
 /* Minimal UART0 line editor feeding esp_console_run().
  * Not linenoise: every raw byte goes through an optional hook first (SER-03
  * timing, SER-04 escape sequence), then a tiny editor (echo, backspace/DEL,
- * Enter; ANSI escape sequences such as arrow keys are swallowed). */
+ * Enter; ANSI escape sequences such as arrow keys are swallowed).
+ *
+ * Machine channel (SPEC "v0.2.0"): a 0x01 (SOH) byte starts a machine line in
+ * its own buffer: no echo, no prompt, and Enter hands it to ctf_api_run()
+ * (one STX/ETX JSON frame). A half-typed human line is kept untouched, so the
+ * player app can poll while someone is typing in its console pane. */
 #include "ctf_platform.h"
+#include "ctf_platform_priv.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -52,6 +58,9 @@ static void console_task(void *arg)
     (void)arg;
     char line[CTF_LINE_MAX];
     size_t len = 0;
+    char mline[CTF_LINE_MAX]; /* machine line (after SOH) */
+    size_t mlen = 0;
+    bool machine = false;
     int esc = 0;          /* 0 none, 1 after ESC, 2 inside CSI */
     bool last_cr = false; /* swallow LF right after CR */
 
@@ -85,6 +94,28 @@ static void console_task(void *arg)
             continue;
         }
         last_cr = (b == '\r');
+
+        if (b == 0x01) { /* SOH: start (or restart) a machine line */
+            machine = true;
+            mlen = 0;
+            continue;
+        }
+        if (machine) {
+            if (b == '\r' || b == '\n') {
+                machine = false;
+                mline[mlen] = '\0';
+                ctf_api_run(mline);
+            } else if (b == 0x08 || b == 0x7F) {
+                mlen -= mlen > 0 ? 1 : 0;
+            } else if (b == 0x1B) {
+                esc = 1;
+            } else if (b == 0x03) { /* Ctrl-C: drop the machine line silently */
+                machine = false;
+            } else if (b >= 0x20 && b < 0x7F && mlen < CTF_LINE_MAX - 1) {
+                mline[mlen++] = (char)b;
+            }
+            continue;
+        }
 
         if (b == '\r' || b == '\n') {
             out("\n", 1);

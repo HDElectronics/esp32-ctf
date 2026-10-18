@@ -310,7 +310,10 @@ colours, copy and behaviour in the inline styles and the `renderVals()` logic).
 - A console line whose first byte is `0x01` (SOH) is a machine command: the
   line editor does not echo it, does not print a prompt after it, and the
   command's output is exactly one line `\x02<json>\x03\r\n` (STX/ETX framed).
-  Human console use is unchanged.
+  Human console use is unchanged. The SOH byte may also arrive in the middle
+  of a half-typed human line: the machine line is collected in its own buffer
+  and the human line is kept, so polling never corrupts what the player types.
+  The frame goes out in one write, so other tasks' output never lands inside it.
 - Commands (after the SOH byte): `api info`, `api list`, `api submit <flag>`,
   `api hint <id> <tier>` (buys if needed, no confirmation), `api answer <id> <value>`,
   `api mode <radio|net>` (replies, then reboots).
@@ -318,7 +321,7 @@ colours, copy and behaviour in the inline styles and the `renderVals()` logic).
   - info: `{"ok":true,"fw":"0.2.0","board":"ESP32-CTF-3014","mode":"radio","points":400,"start":100,"earned":300,"spent":0,"solved":3,"total":40}`
   - list: `{"ok":true,"challenges":[{"id":"BLE-03","track":"BLE","name":"Notify me","pts":100,"kit":"","mode":"radio","solved":false,"tier":1,"prices":[0,20,50]}…]}` (`mode`: radio, net or any; `tier`: highest owned tier, 1 if none bought)
   - submit: `{"ok":true,"result":"new|already|wrong","id":"BLE-03","pts":100,"points":500}` (`id`/`pts` only when matched)
-  - hint: `{"ok":true,"id":"BLE-03","tier":2,"text":"…","points":380}` or `{"ok":false,"error":"locked|points","need":20,"points":5}`
+  - hint: `{"ok":true,"id":"BLE-03","tier":2,"text":"…","points":380}` or `{"ok":false,"error":"locked|points","need":20,"points":5}` (`need` = the requested tier's price)
   - answer: `{"ok":true,"correct":true,"flag":"ESP{…}"}` or `{"ok":true,"correct":false}`
   - any error: `{"ok":false,"error":"<short reason>"}`
 - Async console output (logs, keypad lines, SER-02 never goes here) can

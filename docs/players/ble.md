@@ -25,7 +25,7 @@ Besides the console, the board has a **CTF control** service
 |----------------|------|-----|
 | CTF Submit Flag | `e5320201-c7f0-4e5b-9a1d-3c54460b1e00` | write a flag (any challenge) |
 | CTF Submit Result | `e5320202-c7f0-4e5b-9a1d-3c54460b1e00` | read / notify: result of your last submission |
-| CTF Score | `e5320203-c7f0-4e5b-9a1d-3c54460b1e00` | read / notify: current score |
+| CTF Score | `e5320203-c7f0-4e5b-9a1d-3c54460b1e00` | read / notify: current points |
 
 ## Challenges
 

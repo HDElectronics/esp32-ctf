@@ -490,7 +490,7 @@ static void adv_start(void)
 static void score_update(void)
 {
     char t[16];
-    snprintf(t, sizeof(t), "%d/%d", ctf_score(), ctf_max_score(true));
+    snprintf(t, sizeof(t), "%d/%d", ctf_points(), CTF_START_POINTS + ctf_max_score(true));
     if (strcmp(t, s_score_txt) == 0) {
         return;
     }
@@ -657,8 +657,7 @@ static void submit_bytes(const uint8_t *v, size_t len)
     const ctf_challenge_t *c = NULL;
     switch (ctf_submit(buf, &c)) {
     case CTF_SUBMIT_NEW:
-        snprintf(res, sizeof(res), "Correct! %s +%d", c->id,
-                 ctf_points(c->id) - (ctf_hint_used(c->id) ? ctf_points(c->id) / 4 : 0));
+        snprintf(res, sizeof(res), "Correct! %s +%d", c->id, ctf_value(c->id));
         break;
     case CTF_SUBMIT_ALREADY:
         snprintf(res, sizeof(res), "Already solved");

@@ -81,7 +81,9 @@ static void test_catalog_matches_spec(void)
         CHECK(strcmp(c->name, WANT[i].name) == 0);
         CHECK(c->level == WANT[i].level);
         CHECK(str_eq_or_null(c->kit, WANT[i].kit));
-        CHECK(c->hint != NULL && strlen(c->hint) > 20);
+        for (int t = 0; t < CTF_HINT_TIERS; t++) {
+            CHECK(c->hint[t] != NULL && strlen(c->hint[t]) > 20);
+        }
         /* ID prefix is the track name. */
         size_t tl = strlen(c->track);
         CHECK(strncmp(c->id, c->track, tl) == 0 && c->id[tl] == '-');
@@ -108,11 +110,11 @@ static void test_catalog_unique_ids(void)
 
 static void test_points_and_max_score(void)
 {
-    CHECK(ctf_points("BLE-01") == 100);
-    CHECK(ctf_points("BLE-04") == 200);
-    CHECK(ctf_points("BLE-10") == 300);
-    CHECK(ctf_points("NOPE-1") == 0);
-    CHECK(ctf_points(NULL) == 0);
+    CHECK(ctf_value("BLE-01") == 100);
+    CHECK(ctf_value("BLE-04") == 200);
+    CHECK(ctf_value("BLE-10") == 300);
+    CHECK(ctf_value("NOPE-1") == 0);
+    CHECK(ctf_value(NULL) == 0);
 
     int all = 0, no_kit = 0;
     for (size_t i = 0; i < WANT_LEN; i++) {
@@ -126,6 +128,40 @@ static void test_points_and_max_score(void)
     CHECK(ctf_max_score(false) == no_kit);
     /* SER-02 (200) + HW-01 (100) + HW-03/04/05 (3 x 200). */
     CHECK(all - no_kit == 900);
+    CHECK(all == 7300 && no_kit == 6400);
+}
+
+static void test_hint_prices(void)
+{
+    /* SPEC "v0.2.0": 0 / round(0.2 v) / round(0.5 v). */
+    static const struct {
+        const char *id;
+        int p[3];
+    } want[] = {
+        {"BLE-01", {0, 20, 50}},  /* easy 100 */
+        {"BLE-04", {0, 40, 100}}, /* medium 200 */
+        {"BLE-10", {0, 60, 150}}, /* hard 300 */
+    };
+    for (size_t k = 0; k < sizeof(want) / sizeof(want[0]); k++) {
+        for (int t = 1; t <= 3; t++) {
+            CHECK(ctf_hint_price(want[k].id, t) == want[k].p[t - 1]);
+        }
+    }
+    CHECK(ctf_hint_price("BLE-01", 0) == -1);
+    CHECK(ctf_hint_price("BLE-01", 4) == -1);
+    CHECK(ctf_hint_price("NOPE-1", 2) == -1);
+    CHECK(ctf_hint_price(NULL, 2) == -1);
+    /* Every challenge follows the table for its value. */
+    bool ok = true;
+    for (size_t i = 0; i < ctf_count(); i++) {
+        const char *id = ctf_get(i)->id;
+        int v = ctf_value(id);
+        if (ctf_hint_price(id, 1) != 0 || ctf_hint_price(id, 2) != v / 5 ||
+            ctf_hint_price(id, 3) != v / 2) {
+            ok = false;
+        }
+    }
+    CHECK(ok);
 }
 
 void run_catalog_tests(void)
@@ -133,4 +169,5 @@ void run_catalog_tests(void)
     RUN(test_catalog_matches_spec);
     RUN(test_catalog_unique_ids);
     RUN(test_points_and_max_score);
+    RUN(test_hint_prices);
 }

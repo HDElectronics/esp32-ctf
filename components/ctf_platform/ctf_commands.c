@@ -1,5 +1,5 @@
-/* Core console commands (SPEC "Console commands"): status, list, submit,
- * answer, hint, mode, reset. `help` is esp_console's built-in. */
+/* Core console commands (SPEC "Console commands", "v0.2.0" console changes):
+ * status, list, submit, answer, hint, mode, reset. `help` is esp_console's built-in. */
 #include "ctf_platform.h"
 #include "ctf_platform_priv.h"
 
@@ -61,8 +61,11 @@ static int cmd_status(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
-    printf("Score: %d / %d (max without kit: %d)\n",
-           ctf_score(), ctf_max_score(true), ctf_max_score(false));
+    int earned = ctf_earned(), spent = ctf_spent();
+    printf("Points: %d (started with %d, +%d solved, -%d hints)\n",
+           CTF_START_POINTS + earned - spent, CTF_START_POINTS, earned, spent);
+    printf("Challenges: %d points to earn (%d without optional kit)\n",
+           ctf_max_score(true), ctf_max_score(false));
     printf("Mode: %s\n", ctf_platform_mode_name(ctf_platform_mode()));
     const char *tr[MAX_TRACKS];
     size_t nt = tracks(tr);
@@ -79,17 +82,18 @@ static int cmd_status(int argc, char **argv)
         for (size_t i = 0; i < ctf_count(); i++) {
             const ctf_challenge_t *c = ctf_get(i);
             if (strcmp(c->track, tr[k]) == 0 && ctf_is_solved(c->id)) {
-                printf(" %s%s", c->id, ctf_hint_used(c->id) ? "(h)" : "");
+                printf(" %s", c->id);
             }
         }
         printf("\n");
     }
-    printf("Hints used:");
+    printf("Hints bought:");
     int nh = 0;
     for (size_t i = 0; i < ctf_count(); i++) {
         const ctf_challenge_t *c = ctf_get(i);
-        if (ctf_hint_used(c->id)) {
-            printf(" %s", c->id);
+        int t = ctf_hint_tier(c->id);
+        if (t > 1) {
+            printf("%s %s (%d)", nh ? "," : "", c->id, t);
             nh++;
         }
     }
@@ -110,9 +114,10 @@ static int cmd_list(int argc, char **argv)
             continue;
         }
         any = true;
-        bool s = ctf_is_solved(c->id), h = ctf_hint_used(c->id);
-        printf("%-7s %-26s %3d  %-6s %-4s", c->id, c->name, ctf_points(c->id),
-               s ? "solved" : "-", h ? "hint" : "");
+        bool s = ctf_is_solved(c->id);
+        int t = ctf_hint_tier(c->id);
+        printf("%-7s %-26s %3d  %-6s %-7s", c->id, c->name, ctf_value(c->id),
+               s ? "solved" : "-", t > 1 ? (t == 2 ? "hint 2" : "hint 3") : "");
         print_kit(c);
         printf("\n");
     }
@@ -138,8 +143,7 @@ static int cmd_submit(int argc, char **argv)
     const ctf_challenge_t *c = NULL;
     switch (ctf_submit(argv[1], &c)) {
     case CTF_SUBMIT_NEW:
-        printf("Correct! %s %s +%d\n", c->id, c->name,
-               ctf_points(c->id) - (ctf_hint_used(c->id) ? ctf_points(c->id) / 4 : 0));
+        printf("Correct! %s %s +%d (points: %d)\n", c->id, c->name, ctf_value(c->id), ctf_points());
         return 0;
     case CTF_SUBMIT_ALREADY:
         printf("Already solved: %s %s\n", c->id, c->name);
@@ -180,10 +184,44 @@ static int cmd_answer(int argc, char **argv)
     return 1;
 }
 
+static const char *const TIER_NAME[CTF_HINT_TIERS] = {"Nudge", "Hint", "Walkthrough"};
+
+static void print_tier_text(const ctf_challenge_t *c, int tier, const char *text)
+{
+    printf("%s tier %d (%s):\n%s\n", c->id, tier, TIER_NAME[tier - 1], text);
+}
+
+/* `hint <id>`: the three tiers with state and price. */
+static void list_tiers(const ctf_challenge_t *c)
+{
+    int have = ctf_hint_tier(c->id);
+    printf("%s %s (%d points). Hint tiers:\n", c->id, c->name, ctf_value(c->id));
+    for (int t = 1; t <= CTF_HINT_TIERS; t++) {
+        char price[16], state[40];
+        int p = ctf_hint_price(c->id, t);
+        if (p == 0) {
+            snprintf(price, sizeof(price), "free");
+        } else {
+            snprintf(price, sizeof(price), "%d points", p);
+        }
+        if (t == 1) {
+            snprintf(state, sizeof(state), "[show: hint %s 1]", c->id);
+        } else if (t <= have) {
+            snprintf(state, sizeof(state), "[owned: hint %s %d]", c->id, t);
+        } else if (t == have + 1) {
+            snprintf(state, sizeof(state), "[buy: hint %s %d]", c->id, t);
+        } else {
+            snprintf(state, sizeof(state), "[locked: buy tier %d first]", t - 1);
+        }
+        printf("  %d %-12s %-11s %s\n", t, TIER_NAME[t - 1], price, state);
+    }
+    printf("You have %d points.\n", ctf_points());
+}
+
 static int cmd_hint(int argc, char **argv)
 {
     if (argc < 2) {
-        printf("Usage: hint <id> [yes]\n");
+        printf("Usage: hint <id> [1|2|3] [yes]\n");
         return 1;
     }
     const ctf_challenge_t *c = find_id(argv[1]);
@@ -191,21 +229,57 @@ static int cmd_hint(int argc, char **argv)
         printf("Unknown challenge '%s'.\n", argv[1]);
         return 1;
     }
-    int cost = ctf_points(c->id) / 4;
-    if (ctf_hint_used(c->id)) {
-        printf("Hint for %s (already paid): %s\n", c->id, ctf_hint(c->id));
+    if (argc < 3) {
+        list_tiers(c);
         return 0;
     }
-    bool yes = argc >= 3 && strcasecmp(argv[2], "yes") == 0;
-    if (!yes) {
-        printf("The hint for %s costs %d points (25%% of %d).\n", c->id, cost, ctf_points(c->id));
-        if (ctf_is_solved(c->id)) {
-            printf("You already solved %s: the hint still costs %d points.\n", c->id, cost);
+    const char *a = argv[2];
+    if (!(a[0] >= '1' && a[0] <= '0' + CTF_HINT_TIERS && a[1] == '\0')) {
+        printf("Usage: hint %s [1|2|3] [yes]\n", c->id);
+        return 1;
+    }
+    int tier = a[0] - '0';
+    int have = ctf_hint_tier(c->id);
+    int price = ctf_hint_price(c->id, tier);
+    bool yes = argc >= 4 && strcasecmp(argv[3], "yes") == 0;
+    const char *text = NULL;
+
+    if (tier <= have || yes) {
+        int before = ctf_points();
+        switch (ctf_hint_buy(c->id, tier, &text)) {
+        case CTF_HINT_OK:
+            if (tier > have) {
+                printf("Bought %s tier %d for %d points (%d left).\n", c->id, tier, price,
+                       ctf_points());
+            }
+            print_tier_text(c, tier, text);
+            return 0;
+        case CTF_HINT_LOCKED:
+            printf("Tier %d is locked: buy tier %d first (`hint %s %d`).\n", tier, tier - 1,
+                   c->id, tier - 1);
+            return 1;
+        case CTF_HINT_POINTS:
+            printf("Not enough points: tier %d costs %d, you have %d (need %d more).\n", tier,
+                   price, before, price - before);
+            return 1;
+        default:
+            printf("Usage: hint %s [1|2|3] [yes]\n", c->id);
+            return 1;
         }
-        printf("Type `hint %s yes` to reveal it.\n", c->id);
+    }
+    if (tier > have + 1) {
+        printf("Tier %d is locked: buy tier %d first (`hint %s %d`).\n", tier, tier - 1, c->id,
+               tier - 1);
         return 0;
     }
-    printf("Hint for %s (-%d points): %s\n", c->id, cost, ctf_hint(c->id));
+    int pts = ctf_points();
+    printf("%s tier %d (%s) costs %d points. You have %d.\n", c->id, tier, TIER_NAME[tier - 1],
+           price, pts);
+    if (pts < price) {
+        printf("Not enough points: you need %d more. Solve a challenge first.\n", price - pts);
+        return 0;
+    }
+    printf("Type `hint %s %d yes` to buy it.\n", c->id, tier);
     return 0;
 }
 
@@ -228,7 +302,7 @@ static int cmd_mode(int argc, char **argv)
 static int cmd_reset(int argc, char **argv)
 {
     if (argc < 2 || strcasecmp(argv[1], "yes") != 0) {
-        printf("WARNING: this wipes all progress (solved challenges and used hints).\n"
+        printf("WARNING: this wipes all progress (solved challenges, bought hints, points).\n"
                "Type `reset yes` to confirm.\n");
         return 0;
     }
@@ -243,7 +317,7 @@ static int cmd_reset(int argc, char **argv)
 void ctf_commands_register(void)
 {
     static const esp_console_cmd_t cmds[] = {
-        { .command = "status", .help = "Score, max score (with/without kit), solved per track, mode",
+        { .command = "status", .help = "Points, max (with/without kit), mode, solved per track, hints bought",
           .func = cmd_status },
         { .command = "list", .help = "List challenges (optionally one track: BLE BTC WEB SER HW RE CRY)",
           .hint = "[track]", .func = cmd_list },
@@ -251,8 +325,9 @@ void ctf_commands_register(void)
           .hint = "<flag>", .func = cmd_submit },
         { .command = "answer", .help = "Answer a value challenge; prints its flag when correct",
           .hint = "<id> <value>", .func = cmd_answer },
-        { .command = "hint", .help = "Show a hint's cost; `hint <id> yes` reveals it (-25% of its points)",
-          .hint = "<id> [yes]", .func = cmd_hint },
+        { .command = "hint", .help = "List a challenge's 3 hint tiers; `hint <id> <n>` shows tier n, "
+                                     "`hint <id> <n> yes` buys it",
+          .hint = "<id> [1|2|3] [yes]", .func = cmd_hint },
         { .command = "mode", .help = "Show or switch mode (radio: BLE/BT Classic, net: Wi-Fi/web); reboots",
           .hint = "[radio|net]", .func = cmd_mode },
         { .command = "reset", .help = "Wipe all progress; requires `reset yes`; reboots",

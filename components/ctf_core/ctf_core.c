@@ -1,5 +1,5 @@
-/* ctf_core engine: flag derivation, submission, answer gates, scoring, hints,
- * tagged progress record. Portable C11, no IDF/FreeRTOS headers, no heap. */
+/* ctf_core engine: flag derivation, submission, answer gates, points wallet,
+ * hint tiers, tagged progress record. Portable C11, no IDF/FreeRTOS headers, no heap. */
 #include "ctf_core.h"
 
 #include <string.h>
@@ -16,9 +16,15 @@ static const uint8_t KEY_B[32] = {
     0x98, 0xb3, 0x9d, 0x97, 0xd6, 0x3c, 0x65, 0x54, 0x4d, 0x46, 0xec, 0x87, 0xff, 0xec, 0x60, 0x4c,
 };
 
-/* Progress record: version | solved (u64 LE) | hints (u64 LE) | tag[16]. */
-#define REC_VERSION  1u
-#define REC_BODY_LEN (1u + 8u + 8u)
+/* Progress record v2 (41 bytes):
+ *   [0]      version = 2
+ *   [1..8]   solved bitmap (u64 LE)
+ *   [9..16]  tier-2 bitmap (u64 LE)
+ *   [17..24] tier-3 bitmap (u64 LE)
+ *   [25..40] tag = HMAC-SHA256(derive("progress"), bytes 0..24)[0:16]
+ * Bit i = catalogue index i. Invariant: tier3 bit implies tier2 bit. */
+#define REC_VERSION  2u
+#define REC_BODY_LEN (1u + 8u + 8u + 8u)
 #define REC_TAG_LEN  16u
 #define REC_LEN      (REC_BODY_LEN + REC_TAG_LEN)
 
@@ -27,7 +33,8 @@ static struct {
     uint8_t mac[6];
     ctf_backend_t be;
     uint64_t solved;
-    uint64_t hints;
+    uint64_t tier2;
+    uint64_t tier3;
     struct {
         ctf_answer_fn fn;
         void *ctx;
@@ -181,7 +188,8 @@ static void save_locked(void)
     uint8_t rec[REC_LEN];
     rec[0] = REC_VERSION;
     put_u64(rec + 1, s.solved);
-    put_u64(rec + 9, s.hints);
+    put_u64(rec + 9, s.tier2);
+    put_u64(rec + 17, s.tier3);
     record_tag(rec, rec + REC_BODY_LEN);
     (void)s.be.save(rec, sizeof(rec), s.be.ctx);
 }
@@ -205,7 +213,8 @@ static bool load_locked(void)
         return false;
     }
     s.solved = get_u64(rec + 1) & valid_mask();
-    s.hints = get_u64(rec + 9) & valid_mask();
+    s.tier2 = get_u64(rec + 9) & valid_mask();
+    s.tier3 = get_u64(rec + 17) & s.tier2; /* tier 3 only on top of tier 2 */
     return true;
 }
 
@@ -228,10 +237,12 @@ void ctf_init(const uint8_t mac[6], const ctf_backend_t *be)
         memset(s.mac, 0, sizeof(s.mac));
     }
     s.solved = 0;
-    s.hints = 0;
+    s.tier2 = 0;
+    s.tier3 = 0;
     if (!load_locked()) {
         s.solved = 0;
-        s.hints = 0;
+        s.tier2 = 0;
+        s.tier3 = 0;
         save_locked();
     }
     unlock();
@@ -387,22 +398,6 @@ bool ctf_answer(const char *id, const char *value, char flag_out[18])
     return true;
 }
 
-const char *ctf_hint(const char *id)
-{
-    int i = index_of(id);
-    if (i < 0) {
-        return NULL;
-    }
-    uint64_t bit = (uint64_t)1 << i;
-    lock();
-    if (!(s.hints & bit)) {
-        s.hints |= bit;
-        save_locked();
-    }
-    unlock();
-    return ctf_get((size_t)i)->hint;
-}
-
 bool ctf_is_solved(const char *id)
 {
     int i = index_of(id);
@@ -415,36 +410,10 @@ bool ctf_is_solved(const char *id)
     return r;
 }
 
-bool ctf_hint_used(const char *id)
-{
-    int i = index_of(id);
-    if (i < 0) {
-        return false;
-    }
-    lock();
-    bool r = (s.hints >> i) & 1u;
-    unlock();
-    return r;
-}
-
-int ctf_points(const char *id)
+int ctf_value(const char *id)
 {
     const ctf_challenge_t *c = ctf_find(id);
     return c ? points_of(c->level) : 0;
-}
-
-int ctf_score(void)
-{
-    int total = 0;
-    lock();
-    for (size_t i = 0; i < ctf_count(); i++) {
-        if ((s.solved >> i) & 1u) {
-            int p = points_of(ctf_get(i)->level);
-            total += p - (((s.hints >> i) & 1u) ? p / 4 : 0);
-        }
-    }
-    unlock();
-    return total;
 }
 
 int ctf_max_score(bool include_kit)
@@ -459,11 +428,143 @@ int ctf_max_score(bool include_kit)
     return total;
 }
 
+/* round(0.2 * v) and round(0.5 * v), half up, integer only. */
+static int price_of(ctf_level_t level, int tier)
+{
+    int v = points_of(level);
+    switch (tier) {
+    case 2: return (2 * v + 5) / 10;
+    case 3: return (v + 1) / 2;
+    default: return 0;
+    }
+}
+
+static int earned_locked(void)
+{
+    int total = 0;
+    for (size_t i = 0; i < ctf_count(); i++) {
+        if ((s.solved >> i) & 1u) {
+            total += points_of(ctf_get(i)->level);
+        }
+    }
+    return total;
+}
+
+static int spent_locked(void)
+{
+    int total = 0;
+    for (size_t i = 0; i < ctf_count(); i++) {
+        ctf_level_t lv = ctf_get(i)->level;
+        if ((s.tier2 >> i) & 1u) {
+            total += price_of(lv, 2);
+        }
+        if ((s.tier3 >> i) & 1u) {
+            total += price_of(lv, 3);
+        }
+    }
+    return total;
+}
+
+static int points_locked(void)
+{
+    return CTF_START_POINTS + earned_locked() - spent_locked();
+}
+
+/* Highest owned tier of catalogue index i (caller holds the lock). */
+static int tier_locked(int i)
+{
+    if ((s.tier3 >> i) & 1u) {
+        return 3;
+    }
+    return ((s.tier2 >> i) & 1u) ? 2 : 1;
+}
+
+int ctf_points(void)
+{
+    lock();
+    int r = points_locked();
+    unlock();
+    return r;
+}
+
+int ctf_earned(void)
+{
+    lock();
+    int r = earned_locked();
+    unlock();
+    return r;
+}
+
+int ctf_spent(void)
+{
+    lock();
+    int r = spent_locked();
+    unlock();
+    return r;
+}
+
+int ctf_hint_price(const char *id, int tier)
+{
+    const ctf_challenge_t *c = ctf_find(id);
+    if (!c || tier < 1 || tier > CTF_HINT_TIERS) {
+        return -1;
+    }
+    return price_of(c->level, tier);
+}
+
+int ctf_hint_tier(const char *id)
+{
+    int i = index_of(id);
+    if (i < 0) {
+        return 0;
+    }
+    lock();
+    int r = tier_locked(i);
+    unlock();
+    return r;
+}
+
+ctf_hint_result_t ctf_hint_buy(const char *id, int tier, const char **text_out)
+{
+    if (text_out) {
+        *text_out = NULL;
+    }
+    int i = index_of(id);
+    if (i < 0 || tier < 1 || tier > CTF_HINT_TIERS) {
+        return CTF_HINT_BAD;
+    }
+    const ctf_challenge_t *c = ctf_get((size_t)i);
+    uint64_t bit = (uint64_t)1 << i;
+    ctf_hint_result_t res = CTF_HINT_OK;
+    lock();
+    int have = tier_locked(i);
+    if (tier > have) {
+        if (tier > have + 1) {
+            res = CTF_HINT_LOCKED;
+        } else if (points_locked() < price_of(c->level, tier)) {
+            res = CTF_HINT_POINTS;
+        } else {
+            if (tier == 2) {
+                s.tier2 |= bit;
+            } else {
+                s.tier3 |= bit;
+            }
+            save_locked();
+        }
+    }
+    unlock();
+    if (res == CTF_HINT_OK && text_out) {
+        *text_out = c->hint[tier - 1];
+    }
+    return res;
+}
+
 void ctf_reset(void)
 {
     lock();
     s.solved = 0;
-    s.hints = 0;
+    s.tier2 = 0;
+    s.tier3 = 0;
     save_locked();
     unlock();
 }

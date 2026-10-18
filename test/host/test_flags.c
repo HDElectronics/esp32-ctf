@@ -150,7 +150,7 @@ static void test_submit_forms(void)
     snprintf(buf, sizeof(buf), "  %s\n", flag);
     CHECK(ctf_submit(buf, &m) == CTF_SUBMIT_NEW && m == ctf_find("BLE-06"));
 
-    int solved_score = ctf_score();
+    int solved_score = ctf_points();
 
     /* Rejections: 11 / 13 chars, non-hex, other board's flag, junk. */
     char body[13];
@@ -183,7 +183,7 @@ static void test_submit_forms(void)
     CHECK(ctf_submit(NULL, &m) == CTF_SUBMIT_WRONG && m == NULL);
     CHECK(!ctf_is_solved("BLE-07"));
     CHECK(!ctf_is_solved("WEB-03"));
-    CHECK(ctf_score() == solved_score);
+    CHECK(ctf_points() == solved_score);
 
     /* NEW persisted: re-init from the same store keeps it solved. */
     ctf_init(TEST_MAC_A, &be);
