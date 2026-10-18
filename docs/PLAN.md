@@ -82,3 +82,24 @@ Parallelism after 3: tasks 4, 5, 6, 7, 9 can run in parallel (separate component
 ### Task 12 status
 - Done on hardware: SER-01,03,04 · CRY-01..03 · RE-01..04 · BLE-01..11 · BTC-01..03 · HW-02,03 (dev build) · WEB-01..09 (dev STA over LAN, 2026-10-18) · HW-06 (human taps) · HW-03/04/05 + SER-02 (fx2lafw logic analyzer, real capture) · HW-01 (jumper, 2026-10-18).
 - Per-board flags verified 2026-10-18: second board (ESP32-D0WD rev 1.0) runs v0.1.0; its SER-01 flag is rejected by board 1 and accepted by board 2.
+
+# v0.2.0: player app (SPEC "v0.2.0")
+
+## 13. [ ] Wallet, hint tiers, machine channel — Careful — deps: none
+ctf_core: points model, record v2, 3 hint texts per challenge (existing hint
+moves to tier 2, tiers 1/3 placeholders), prices. ctf_platform: `status`,
+`hint` tiers, SOH machine channel and `api` commands. Host tests + hardware.
+
+## 14. [ ] Hint and primer content — Careful — deps: 13 (hints), none (primers)
+Write tiers 1–3 for all 40 challenges into `ctf_catalog.c` and the 7 primers
+in `web/app/content/primers/`. Verified against SPEC + solvers for accuracy.
+
+## 15. [ ] Player app — Careful — deps: none (builds against SPEC + demo board)
+`web/app/` per mockup, Web Serial client, demo board, content build script.
+
+## 16. [ ] Integration on hardware — orchestrator + user — deps: 13, 14, 15
+App against a real board in Chrome; protocol test script in `solvers/common/`.
+
+## 17. [ ] Docs, screenshots, release v0.2.0 — Medium — deps: 16
+README (app section + screenshot), players docs (points/hints), development.md,
+console screenshot re-render, landing page link, release.sh, tag + GitHub release.

@@ -62,3 +62,4 @@
 - `scripts/release.sh` — clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/
 - `web/flasher/` — flasher landing page (esp-web-tools 10.4.0) + manifest
 - `LICENSE` — MIT
+- `docs/design/player-app/` — approved player-app mockups (Design Component HTML), v0.2.0 reference

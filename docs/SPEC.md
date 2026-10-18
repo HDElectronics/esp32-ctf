@@ -273,3 +273,78 @@ Per-challenge player docs name the 1–2 tools that fit that challenge best.
 - Mode switch, submission from all three interfaces, hints, reset work on hardware.
 - Two different boards produce different flags.
 - Player docs per track + flash instructions; release build + ESP Web Tools manifest.
+
+## v0.2.0: player app, points wallet, hint tiers
+
+Approved design: `docs/design/player-app/play.mockup.html` and
+`connect.mockup.html` (Design Component format; read them as HTML: layout,
+colours, copy and behaviour in the inline styles and the `renderVals()` logic).
+
+### Points wallet (replaces "Scoring and hints")
+
+- Every board starts with **100 points**. Solving a challenge adds its full
+  value (100/200/300). Buying a hint subtracts its price.
+  `points = 100 + Σ solved − Σ hints bought`. Max 7400. One number, shown
+  everywhere as "points".
+- Hint tiers per challenge, unlocked in order: **1 Nudge** (free), **2 Hint**
+  (`round(0.2 × value)`: 20/40/60), **3 Walkthrough** (`round(0.5 × value)`:
+  50/100/150). A tier can only be bought when the previous one is owned and
+  points ≥ price. Bought tiers stay unlocked; buying after solving is allowed.
+- Progress record v2: version 2, solved bitmap, tier-2 bitmap, tier-3 bitmap,
+  tag (same HMAC scheme). A v1 record is discarded (fresh start). Tier 1 is
+  free and not recorded.
+- Hint texts (3 per challenge) live in firmware (`ctf_catalog.c`). Tier 1 is a
+  nudge that names no tool or technique; tier 2 names the technique; tier 3 is
+  a step-by-step walkthrough that stops before the flag. No tier contains a
+  flag or a per-board value.
+
+### Console changes
+
+- `status`: first line `Points: <n> (started with 100, +<earned> solved, -<spent> hints)`.
+- `hint <id>`: lists the 3 tiers with state and price. `hint <id> <n>` shows a
+  tier that is owned or free; for an unowned paid tier it prints the price and
+  asks for `hint <id> <n> yes`. Not enough points → plain message with the gap.
+
+### Machine channel (for the player app)
+
+- A console line whose first byte is `0x01` (SOH) is a machine command: the
+  line editor does not echo it, does not print a prompt after it, and the
+  command's output is exactly one line `\x02<json>\x03\r\n` (STX/ETX framed).
+  Human console use is unchanged.
+- Commands (after the SOH byte): `api info`, `api list`, `api submit <flag>`,
+  `api hint <id> <tier>` (buys if needed, no confirmation), `api answer <id> <value>`,
+  `api mode <radio|net>` (replies, then reboots).
+- JSON shapes:
+  - info: `{"ok":true,"fw":"0.2.0","board":"ESP32-CTF-3014","mode":"radio","points":400,"start":100,"earned":300,"spent":0,"solved":3,"total":40}`
+  - list: `{"ok":true,"challenges":[{"id":"BLE-03","track":"BLE","name":"Notify me","pts":100,"kit":"","mode":"radio","solved":false,"tier":1,"prices":[0,20,50]}…]}` (`mode`: radio, net or any; `tier`: highest owned tier, 1 if none bought)
+  - submit: `{"ok":true,"result":"new|already|wrong","id":"BLE-03","pts":100,"points":500}` (`id`/`pts` only when matched)
+  - hint: `{"ok":true,"id":"BLE-03","tier":2,"text":"…","points":380}` or `{"ok":false,"error":"locked|points","need":20,"points":5}`
+  - answer: `{"ok":true,"correct":true,"flag":"ESP{…}"}` or `{"ok":true,"correct":false}`
+  - any error: `{"ok":false,"error":"<short reason>"}`
+- Async console output (logs, keypad lines, SER-02 never goes here) can
+  interleave between frames; the app keeps everything outside STX/ETX for the
+  console pane and parses only framed lines. The app polls `api info` every
+  5 s to pick up solves made over BLE or the web page.
+
+### Player app (`web/app/`)
+
+- Static site, no build step: HTML + CSS + vanilla ES modules. xterm.js
+  (exact pinned version from jsDelivr) for the console pane. Web Serial at
+  115200 8N1; open without toggling DTR/RTS into a reset (both asserted).
+  Chromium desktop only; other browsers see the Connect screen's fallback text.
+- Screens exactly as the mockup: Connect (3 steps, Connect board) and Play
+  (top bar: points, Radio/Net switch, connection, Console toggle; track tabs
+  with solved counts; challenge list; side panel with brief, tools, primer
+  link, 3 hint rows, `ESP{ … }` flag box; console drawer). Mode switch and the
+  panel's "Switch to … mode" send `api mode`, show "Restarting the board…",
+  wait for the banner and resync. Disconnect button releases the port.
+- Content shipped with the app (spoiler-free): `web/app/content/challenges.json`
+  (id → brief and tools, generated from `docs/players/*.md` by
+  `scripts/build-app-content.py`) and `web/app/content/primers/<track>.md`
+  (7 primers, about 3 minutes each, rendered in-app). Hint texts come only
+  from the board.
+- `?demo` runs the app against a built-in fake board (placeholder hint texts,
+  demo flag body `DEMO00000000`) for screenshots and trying it without
+  hardware. It never contains real hint texts or flags.
+- `scripts/release.sh` copies the app into the hosted site next to the
+  flasher; the landing page links to it ("Play in the browser").

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ESP32 CTF: challenges</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#13111b}
+a{color:#c9b8f5}a:hover{color:#e4dafb}
+button{font:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #b4f04a;outline-offset:2px}
+::placeholder{color:#5f5874}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #13111b; color: #ece9f3; font-family: 'Schibsted Grotesk', system-ui, sans-serif; font-size: 15px; line-height: 1.5; display: flex; flex-direction: column">
+
+  <header style="border-bottom: 1px solid #2f2a40; background: #17141f">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="3" width="18" height="22" rx="2" fill="none" stroke="#b4f04a" stroke-width="2"></rect><rect x="9" y="7" width="10" height="8" rx="1" fill="#b4f04a"></rect><path d="M2 8h3M2 13h3M2 18h3M23 8h3M23 13h3M23 18h3" stroke="#b4f04a" stroke-width="2"></path></svg>
+        <span style="font-weight: 700; font-size: 19px; letter-spacing: -0.01em">ESP32 CTF</span>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+        <div style="display: flex; align-items: baseline; gap: 6px; padding: 0 6px">
+          <span style="font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums">{{points}}</span>
+          <span style="color: #9c95ae; font-size: 14px">points</span>
+        </div>
+        <div role="group" aria-label="Board mode" style="display: inline-flex; padding: 3px; gap: 3px; border-radius: 8px; background: #231f30; border: 1px solid #2f2a40">
+          <button type="button" onClick="{{toRadio}}" aria-pressed="{{radioPressed}}" style="{{radioStyle}}">Radio</button>
+          <button type="button" onClick="{{toNet}}" aria-pressed="{{netPressed}}" style="{{netStyle}}">Net</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: #1b2a17; color: #d6f5b0; font-size: 14px; min-height: 40px; box-sizing: border-box">
+          <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#b4f04a"></circle></svg>
+          <span>Connected to <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px">ESP32-CTF-3014</span></span>
+        </div>
+        <button type="button" onClick="{{toggleConsole}}" aria-expanded="{{consoleExpanded}}" style="min-height: 40px; padding: 8px 14px; border-radius: 8px; border: 1px solid #2f2a40; background: #231f30; color: #ece9f3; cursor: pointer; font-size: 14px">{{consoleBtn}}</button>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1360px; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 20px 24px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+    <div role="tablist" aria-label="Tracks" style="display: flex; flex-wrap: wrap; gap: 6px">
+      <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="8">
+        <button type="button" role="tab" aria-selected="{{tb.selected}}" onClick="{{tb.pick}}" style="{{tb.style}}">{{tb.label}} <span style="color: #9c95ae; font-variant-numeric: tabular-nums">{{tb.count}}</span></button>
+      </sc-for>
+    </div>
+    <span style="color: #9c95ae; font-size: 14px">{{solvedCount}} of 40 solved</span>
+  </div>
+
+  <div style="max-width: 1360px; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 16px 24px 32px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; flex: 1">
+
+    <div role="list" aria-label="Challenges" style="flex: 999 1 520px; min-width: 0; background: #1b1825; border: 1px solid #2f2a40; border-radius: 10px; overflow: hidden">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="11">
+        <div role="listitem">
+          <button type="button" onClick="{{r.pick}}" aria-current="{{r.current}}" style="{{r.style}}">
+            <span style="width: 22px; flex: none; display: flex; justify-content: center">
+              <sc-if value="{{r.solved}}" hint-placeholder-val="{{false}}">
+                <svg width="18" height="18" viewBox="0 0 18 18" role="img" aria-label="Solved"><circle cx="9" cy="9" r="9" fill="#b4f04a"></circle><path d="M5 9.5l2.6 2.5L13 6.5" fill="none" stroke="#13111b" stroke-width="2"></path></svg>
+              </sc-if>
+              <sc-if value="{{r.open}}" hint-placeholder-val="{{true}}">
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="none" stroke="#4a4360" stroke-width="2"></circle></svg>
+              </sc-if>
+            </span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+              <span style="font-weight: 600; font-size: 15px; color: #ece9f3">{{r.name}}</span>
+              <span style="font-size: 13px; color: #9c95ae"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{r.id}}</span>&nbsp;&nbsp;{{r.sub}}</span>
+            </span>
+            <span style="width: 108px; flex: none; display: flex; align-items: center; gap: 8px">
+              <span style="display: inline-flex; gap: 3px" aria-hidden="true">
+                <span style="{{r.pip1}}"></span><span style="{{r.pip2}}"></span><span style="{{r.pip3}}"></span>
+              </span>
+              <span style="font-size: 13px; color: #c3bdd3">{{r.level}}</span>
+            </span>
+            <span style="width: 44px; flex: none; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; color: #ece9f3">{{r.pts}}</span>
+          </button>
+        </div>
+      </sc-for>
+    </div>
+
+    <aside aria-labelledby="ch-name" style="flex: 1 1 380px; max-width: 520px; min-width: 0; position: sticky; top: 16px; background: #1b1825; border: 1px solid #2f2a40; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9c95ae">{{sel.id}}</span>
+        <h1 id="ch-name" style="margin: 0; font-size: 30px; line-height: 1.15; font-weight: 700; letter-spacing: -0.015em; text-wrap: balance">{{sel.name}}</h1>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px">
+          <span style="padding: 3px 10px; border-radius: 999px; background: #231f30; color: #c3bdd3">{{sel.track}}</span>
+          <span style="{{sel.levelChip}}">{{sel.level}}</span>
+          <span style="padding: 3px 10px; border-radius: 999px; background: #231f30; color: #ece9f3; font-weight: 600">{{sel.pts}} points</span>
+          <sc-if value="{{sel.hasKit}}" hint-placeholder-val="{{false}}">
+            <span style="padding: 3px 10px; border-radius: 999px; background: #2b2333; color: #f0c48a">Needs a {{sel.kit}}</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #ddd8e8">{{sel.brief}}</p>
+
+      <sc-if value="{{sel.wrongMode}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 14px 16px; border-radius: 8px; background: #2a2318; border: 1px solid #4a3a1f; display: flex; flex-direction: column; gap: 10px">
+          <p style="margin: 0; font-size: 14px; color: #f3dcb1">This challenge needs the board in {{sel.needMode}} mode. Switching restarts the board; your points stay.</p>
+          <button type="button" onClick="{{sel.switchMode}}" style="align-self: flex-start; min-height: 40px; padding: 8px 14px; border-radius: 8px; border: 1px solid #f0c48a; background: transparent; color: #f3dcb1; cursor: pointer; font-size: 14px; font-weight: 600">Switch to {{sel.needMode}} mode</button>
+        </div>
+      </sc-if>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 14px; color: #9c95ae">Tools that fit</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{sel.tools}}" as="tool" hint-placeholder-count="2">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; padding: 4px 9px; border-radius: 6px; background: #231f30; border: 1px solid #2f2a40; color: #ddd8e8">{{tool}}</span>
+          </sc-for>
+        </div>
+        <a href="#" style="font-size: 14px">New to {{sel.track}}? Read the short primer</a>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 14px; color: #9c95ae">Hints, paid from your points</span>
+        <sc-for list="{{hints}}" as="h" hint-placeholder-count="3">
+          <div style="{{h.box}}">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+              <span style="display: flex; flex-direction: column">
+                <span style="font-weight: 600; font-size: 15px">{{h.title}}</span>
+                <span style="font-size: 13px; color: #9c95ae">{{h.desc}}</span>
+              </span>
+              <sc-if value="{{h.showBtn}}" hint-placeholder-val="{{true}}">
+                <button type="button" onClick="{{h.buy}}" aria-disabled="{{h.ariaDisabled}}" style="{{h.btn}}">{{h.btnLabel}}</button>
+              </sc-if>
+            </div>
+            <sc-if value="{{h.open}}" hint-placeholder-val="{{false}}">
+              <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #ece9f3">{{h.text}}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <form onSubmit="{{submit}}" style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px">
+        <label for="flag" style="font-size: 14px; color: #9c95ae">Flag</label>
+        <div style="display: flex; align-items: stretch; border: 1px solid #4a4360; border-radius: 8px; background: #13111b; overflow: hidden; min-height: 52px">
+          <span aria-hidden="true" style="display: flex; align-items: center; padding: 0 2px 0 14px; font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #b4f04a">ESP{</span>
+          <input id="flag" name="flag" onChange="{{typeFlag}}" maxlength="12" placeholder="12 hex characters" autocomplete="off" spellcheck="false" aria-describedby="flag-help" style="flex: 1; min-width: 0; border: 0; background: transparent; color: #ece9f3; font-family: 'JetBrains Mono', monospace; font-size: 17px; letter-spacing: 0.06em; padding: 0 4px; text-transform: uppercase">
+          <span aria-hidden="true" style="display: flex; align-items: center; padding: 0 14px 0 2px; font-family: 'JetBrains Mono', monospace; font-size: 17px; color: #b4f04a">}</span>
+        </div>
+        <span id="flag-help" style="font-size: 13px; color: #9c95ae">Paste the whole flag or just the part inside the braces. The board checks it.</span>
+        <button type="submit" style="min-height: 48px; border: 0; border-radius: 8px; background: #b4f04a; color: #13111b; font-weight: 700; font-size: 16px; cursor: pointer">Submit flag</button>
+        <sc-if value="{{hasResult}}" hint-placeholder-val="{{false}}">
+          <p role="status" style="{{resultStyle}}">{{result}}</p>
+        </sc-if>
+      </form>
+    </aside>
+  </div>
+
+  <sc-if value="{{consoleOpen}}" hint-placeholder-val="{{false}}">
+    <section aria-label="Serial console" style="border-top: 1px solid #2f2a40; background: #0e0c14">
+      <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px 18px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 14px; color: #9c95ae">Serial console, 115200 baud. The serial challenges are played here.</span>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; color: #c3bdd3; max-height: 220px; overflow: auto">I (2062) track_ble: BLE up as ESP32-CTF-3014
+<span style="color: #b4f04a">ctf&gt;</span> list SER
+SER-01  Boot log          100  solved
+SER-02  Wrong baud        200  -   [needs USB-UART adapter]
+<span style="color: #b4f04a">ctf&gt;</span> <span style="display: inline-block; width: 8px; height: 15px; background: #b4f04a; vertical-align: -2px"></span></div>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { selId: 'BLE-03', tab: 'BLE', mode: 'radio', solved: { 'BLE-01': true, 'BLE-02': true, 'SER-01': true }, bought: {}, flag: '', result: '', ok: false, consoleOpen: false };
+  }
+  rows() {
+    return [
+["BLE-01", "Read the flag", 100, "", "The board's custom service is full of characteristics. Start by simply looking.", ["bluetui", "bluetoothctl"]],
+["BLE-02", "Hex and friends", 100, "", "This value is readable, but not in a form you would want to submit.", ["bluetoothctl", "CyberChef"]],
+["BLE-03", "Notify me", 100, "", "One characteristic refuses to be read. It has other ways of talking.", ["bluetoothctl", "bleak"]],
+["BLE-04", "Indicate and ack", 200, "", "The flag arrives in pieces, and the board wants to know you got each one.", ["bleak", "btmon"]],
+["BLE-05", "Write to unlock", 100, "", "A sealed hatch and a panel next to it. The panel tells you what it wants.", ["bluetoothctl", "nRF Connect"]],
+["BLE-06", "Descriptor hunt", 200, "", "A characteristic so boring nobody looks twice at it.", ["bluetoothctl", "bleak"]],
+["BLE-07", "Advertising payload", 200, "", "You don't always need to connect to learn something.", ["btmon", "bleak"]],
+["BLE-08", "Big MTU", 200, "", "A long telemetry value. Is your client showing you all of it?", ["bleak", "btmon"]],
+["BLE-09", "Passkey pairing", 200, "", "A locker that only opens for a properly paired client.", ["bluetoothctl", "bluetuith"]],
+["BLE-10", "Rate-limited PIN", 300, "", "A four-digit keypad that does not like being rushed. Needs scripting.", ["bleak", "btmon"]],
+["BLE-11", "Write-without-response sequence", 300, "", "A sequencer that wants a short pattern, in order, and quickly. Needs scripting.", ["bleak", "btmon"]],
+["BTC-01", "SPP console", 100, "", "The board offers a serial-style console over Bluetooth Classic. Get a terminal on it.", ["bluetuith", "tio"]],
+["BTC-02", "Hidden menu", 200, "", "The console's help is helpful, but not complete.", ["tio", "socket.AF_BLUETOOTH"]],
+["BTC-03", "Device class clue", 200, "", "The board says more about itself than its name before you ever connect.", ["bluetoothctl", "btmon"]],
+["WEB-01", "Hidden SSID", 100, "", "The board runs its own access point. You won't find it in your network list.", ["nmtui", "nmcli"]],
+["WEB-02", "View source", 100, "", "What a browser shows you is not everything the server sent.", ["curl", "posting"]],
+["WEB-03", "Cookie admin", 100, "", "There is an admin area. You are not an admin. Yet.", ["curl", "mitmproxy"]],
+["WEB-04", "Header check", 100, "", "An API that is picky about who it talks to.", ["xh", "posting"]],
+["WEB-05", "Weak JWT", 200, "", "You can log in as a guest. The session token decides what you are.", ["jwt-cli", "hashcat"]],
+["WEB-06", "Ping tool", 200, "", "A diagnostics page for reading log files. Only log files, surely.", ["curl", "mitmproxy"]],
+["WEB-07", "WebSocket chatter", 200, "", "A chatty WebSocket. Most of it is noise.", ["websocat", "websockets"]],
+["WEB-08", "mDNS discovery", 200, "", "Not every service on the board is linked from its web pages.", ["avahi-browse", "curl"]],
+["WEB-09", "UDP knock", 300, "", "A door that is closed until you knock the right way. The console has something to say about it.", ["knock", "ncat"]],
+["SER-01", "Boot log", 100, "", "The board says a lot when it boots. Did you read all of it?", ["tio", "idf.py monitor"]],
+["SER-02", "Wrong baud", 200, "USB-UART adapter", "The board has a second serial port that nobody connected.", ["tio", "sigrok-cli"]],
+["SER-03", "Debug login", 300, "", "A debug login with a per-board password. Guessing by hand is hopeless. Needs scripting.", ["pwntools", "pyserial"]],
+["SER-04", "Escape sequence", 200, "", "Some consoles hide a back door behind the right keys.", ["picocom", "pwntools"]],
+["HW-01", "Jumper it", 100, "jumper wire", "The board checks something about its own pins when it starts.", ["a jumper wire", "tio"]],
+["HW-02", "Blinky Morse", 100, "", "The onboard LED is trying to tell you something.", ["slow-motion video", "CyberChef"]],
+["HW-03", "PWM frequency", 200, "logic analyzer", "A pin is toggling at a frequency unique to your board. The answer is a number.", ["PulseView", "sigrok-cli"]],
+["HW-04", "I2C chatter", 200, "logic analyzer", "The board talks on an I2C bus to a device that isn't there.", ["sigrok-cli", "PulseView"]],
+["HW-05", "SPI dump", 200, "logic analyzer", "Something is being sent over SPI every few seconds.", ["sigrok-cli", "PulseView"]],
+["HW-06", "Touch pad code", 200, "", "Four bare pins are a keypad. You need the code. Don't touch the pads while the board boots.", ["your fingers", "tio"]],
+["RE-01", "Strings in flash", 100, "", "Not everything in flash is code.", ["esptool", "strings"]],
+["RE-02", "NVS secrets", 200, "", "The firmware keeps a few things in its key-value store, and one of them is not quite in the clear.", ["nvs_tool.py", "xortool"]],
+["RE-03", "Crackme", 300, "", "The console has an unlock command. You don't have the key.", ["Ghidra", "radare2"]],
+["RE-04", "XOR'd asset", 300, "", "There is a binary blob in the board's filesystem. It isn't readable as is.", ["Ghidra", "hexyl"]],
+["CRY-01", "Classic cipher", 100, "", "An old-school cipher, and a key that is scattered across the CTF. You will need to visit other tracks.", ["CyberChef", "Python"]],
+["CRY-02", "ECB penguin", 300, "", "An encryption oracle that will happily encrypt whatever you give it, along with something you want. Needs scripting.", ["pwntools", "pycryptodome"]],
+["CRY-03", "Reused nonce", 200, "", "Two encrypted messages. One of them you can already guess.", ["Python", "xortool"]]
+    ];
+  }
+  renderVals() {
+    const s = this.state;
+    const tracks = { BLE: 'Bluetooth LE', BTC: 'Bluetooth Classic', WEB: 'Wi-Fi and web', SER: 'Serial', HW: 'Hardware pins', RE: 'Firmware', CRY: 'Crypto' };
+    const modeOf = { BLE: 'radio', BTC: 'radio', WEB: 'net' };
+    const lv = { 100: ['Easy', 1, '#5fd0c2'], 200: ['Medium', 2, '#f2b25c'], 300: ['Hard', 3, '#f2777f'] };
+    const all = this.rows();
+    const trackOf = (id) => id.split('-')[0];
+    const price = (pts, tier) => tier === 1 ? 0 : Math.round(pts * (tier === 2 ? 0.2 : 0.5));
+    let earned = 0, spent = 0;
+    for (const r of all) {
+      if (s.solved[r[0]]) earned += r[2];
+      const b = s.bought[r[0]] || 1;
+      if (b >= 2) spent += price(r[2], 2);
+      if (b >= 3) spent += price(r[2], 3);
+    }
+    const points = 100 + earned - spent;
+    const order = ['ALL', 'BLE', 'BTC', 'WEB', 'SER', 'HW', 'RE', 'CRY'];
+    const tabs = order.map((k) => {
+      const list = k === 'ALL' ? all : all.filter((r) => trackOf(r[0]) === k);
+      const done = list.filter((r) => s.solved[r[0]]).length;
+      const sel = s.tab === k;
+      return {
+        label: k === 'ALL' ? 'All' : tracks[k], count: done + '/' + list.length, selected: sel ? 'true' : 'false',
+        pick: () => this.setState({ tab: k }),
+        style: 'min-height:40px;padding:8px 14px;border-radius:999px;cursor:pointer;font-size:14px;border:1px solid ' + (sel ? '#b4f04a' : '#2f2a40') + ';background:' + (sel ? '#232c18' : '#1b1825') + ';color:' + (sel ? '#e6f9cc' : '#ddd8e8')
+      };
+    });
+    const visible = s.tab === 'ALL' ? all : all.filter((r) => trackOf(r[0]) === s.tab);
+    const pip = (on, color) => 'width:6px;height:14px;border-radius:2px;display:inline-block;background:' + (on ? color : '#352f47');
+    const rows = visible.map((r, i) => {
+      const L = lv[r[2]], cur = r[0] === s.selId, sol = !!s.solved[r[0]];
+      return {
+        id: r[0], name: r[1], pts: r[2], level: L[0], solved: sol, open: !sol, current: cur ? 'true' : 'false',
+        sub: s.tab === 'ALL' ? tracks[trackOf(r[0])] : (r[3] ? 'needs a ' + r[3] : ''),
+        pip1: pip(L[1] >= 1, L[2]), pip2: pip(L[1] >= 2, L[2]), pip3: pip(L[1] >= 3, L[2]),
+        pick: () => this.setState({ selId: r[0], result: '' }),
+        style: 'width:100%;border:0;' + (i ? 'border-top:1px solid #262131;' : '') + 'padding:12px 18px;min-height:60px;display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left;color:#ece9f3;background:' + (cur ? '#262036' : 'transparent') + ';box-shadow:' + (cur ? 'inset 0 0 0 1px #4a4360' : 'none')
+      };
+    });
+    const c = all.find((r) => r[0] === s.selId);
+    const L = lv[c[2]], tk = trackOf(c[0]), need = modeOf[tk];
+    const owned = s.bought[c[0]] || 1;
+    const texts = c[0] === 'BLE-03'
+      ? ['Not every characteristic answers a read. Some only talk when you listen.', 'Find the characteristic whose properties include notify, and turn notifications on for it.', 'In bluetoothctl: menu gatt, select-attribute on that characteristic, then notify on. The value arrives within a few seconds.']
+      : ['A small push in the right direction.', 'Names the technique you need.', 'Step by step, stopping just short of the flag.'];
+    const meta = [['Nudge', 'A push in the right direction'], ['Hint', 'Names the technique you need'], ['Walkthrough', 'Step by step, without the flag']];
+    const hints = [1, 2, 3].map((tier) => {
+      const p = price(c[2], tier), open = owned >= tier, next = tier === owned + 1, afford = points >= p;
+      const can = next && afford;
+      let label = tier === 1 ? 'Show' : 'Unlock for ' + p;
+      if (!next) label = 'Unlock hint ' + (tier - 1) + ' first';
+      else if (!afford) label = 'Need ' + p + ' points';
+      return {
+        title: meta[tier - 1][0], desc: open ? (tier === 1 ? 'Free' : 'Unlocked') : meta[tier - 1][1] + (tier === 1 ? ', free' : ', ' + p + ' points'),
+        open: open && (tier > 1 || s.showFree === c[0]), text: texts[tier - 1],
+        showBtn: !open || (tier === 1 && s.showFree !== c[0]),
+        btnLabel: label, ariaDisabled: can || (tier === 1 && open) ? 'false' : 'true',
+        buy: () => {
+          if (tier === 1) { this.setState({ showFree: c[0] }); return; }
+          if (can) this.setState({ bought: Object.assign({}, s.bought, { [c[0]]: tier }) });
+        },
+        box: 'padding:12px 14px;border-radius:8px;display:flex;flex-direction:column;gap:10px;background:' + (open && (tier > 1 || s.showFree === c[0]) ? '#221d2e' : '#1f1b2a') + ';border:1px solid #2f2a40',
+        btn: 'flex:none;min-height:40px;padding:8px 14px;border-radius:8px;font-size:14px;font-weight:600;cursor:' + (can || tier === 1 ? 'pointer' : 'not-allowed') + ';border:1px solid ' + (can || tier === 1 ? '#b4f04a' : '#352f47') + ';background:transparent;color:' + (can || tier === 1 ? '#d6f5b0' : '#7c7591')
+      };
+    });
+    return {
+      points, solvedCount: Object.keys(s.solved).length, tabs, rows, hints,
+      radioPressed: s.mode === 'radio' ? 'true' : 'false', netPressed: s.mode === 'net' ? 'true' : 'false',
+      radioStyle: this.seg(s.mode === 'radio'), netStyle: this.seg(s.mode === 'net'),
+      toRadio: () => this.setState({ mode: 'radio' }), toNet: () => this.setState({ mode: 'net' }),
+      sel: {
+        id: c[0], name: c[1], pts: c[2], brief: c[4], tools: c[5], track: tracks[tk], level: L[0], hasKit: !!c[3], kit: c[3],
+        levelChip: 'padding:3px 10px;border-radius:999px;background:#231f30;color:' + L[2],
+        wrongMode: !!need && need !== s.mode, needMode: need || '', switchMode: () => this.setState({ mode: need })
+      },
+      typeFlag: (e) => this.setState({ flag: e.target.value }),
+      submit: (e) => {
+        e.preventDefault();
+        const v = (s.flag || '').trim().toUpperCase().replace(/^ESP\{/, '').replace(/\}$/, '');
+        if (v === 'DEMO00000000') this.setState({ solved: Object.assign({}, s.solved, { [c[0]]: true }), result: 'Correct. ' + c[1] + ' solved, +' + c[2] + ' points.', ok: true });
+        else if (!/^[0-9A-F]{12}$/.test(v)) this.setState({ result: 'A flag has 12 characters, using only 0 to 9 and A to F.', ok: false });
+        else this.setState({ result: 'Wrong flag. Nothing was deducted; try again.', ok: false });
+      },
+      hasResult: !!s.result, result: s.result,
+      resultStyle: 'margin:0;padding:10px 14px;border-radius:8px;font-size:14px;' + (s.ok ? 'background:#1b2a17;color:#d6f5b0' : 'background:#2e1a20;color:#f6c3c9'),
+      consoleOpen: s.consoleOpen, consoleExpanded: s.consoleOpen ? 'true' : 'false', consoleBtn: s.consoleOpen ? 'Hide console' : 'Console',
+      toggleConsole: () => this.setState({ consoleOpen: !s.consoleOpen })
+    };
+  }
+  seg(on) {
+    return 'min-height:34px;padding:6px 14px;border-radius:6px;border:0;cursor:pointer;font-size:14px;font-weight:' + (on ? '600' : '500') + ';background:' + (on ? '#b4f04a' : 'transparent') + ';color:' + (on ? '#13111b' : '#c3bdd3');
+  }
+}
+</script>
+</body>
+</html>
