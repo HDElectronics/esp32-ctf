@@ -223,14 +223,14 @@
         <span slot="not-allowed" class="warn">Web Serial needs this page to be served over HTTPS (or localhost).</span>
       </esp-web-install-button>
       <a class="play-link" href="../app/">Play in the browser</a>
-      <span class="chipnote">Classic ESP32 · 4 MB flash · v0.2.0</span>
+      <span class="chipnote">Classic ESP32 · 4 MB flash · v0.2.1</span>
     </div>
 
     <div class="notice">
       <p>Browser flashing uses Web Serial, which works in desktop Chrome and Edge (not Firefox, Safari or mobile browsers). Plug the board in over USB, click the button and pick its serial port.</p>
       <p>Or flash from a terminal with <code>esptool</code> (<code>pipx install esptool</code>), with the image from this page:</p>
-      <pre><code>esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.2.0.bin</code></pre>
-      <p class="small">The port may be <code>/dev/ttyACM0</code>, <code>/dev/cu.usbserial-*</code> or <code>COM3</code>. Download: <a href="esp32-ctf-v0.2.0.bin" download>esp32-ctf-v0.2.0.bin</a>. Flashing again wipes your progress.</p>
+      <pre><code>esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.2.1.bin</code></pre>
+      <p class="small">The port may be <code>/dev/ttyACM0</code>, <code>/dev/cu.usbserial-*</code> or <code>COM3</code>. Download: <a href="esp32-ctf-v0.2.1.bin" download>esp32-ctf-v0.2.1.bin</a>. Flashing again wipes your progress.</p>
     </div>
   </div>
 </header>
@@ -326,7 +326,7 @@
         <thead><tr><th scope="col">Track</th><th scope="col">TUI</th><th scope="col">CLI and libraries</th></tr></thead>
         <tbody>
           <tr><td>General</td><td><code>tmux</code></td><td><code>pwntools</code> (serial and TCP tubes for scripting), <code>jq</code></td></tr>
-          <tr><td>BLE</td><td><code>bluetui</code>, <code>bluetuith</code></td><td><code>bluetoothctl</code> (<code>menu gatt</code>), <code>btmon</code> (HCI trace), Python <code>bleak</code>, <code>ble-serial</code></td></tr>
+          <tr><td>BLE</td><td><code>bluetui</code>, <code>bluetuith</code> (scan and pair only, no GATT browser)</td><td><code>bluetoothctl</code> (<code>menu gatt</code>), <code>btmon</code> (HCI trace), Python <code>bleak</code>, <code>ble-serial</code></td></tr>
           <tr><td>BT Classic</td><td><code>bluetuith</code></td><td><code>bluetoothctl</code>, <code>picocom</code> / <code>tio</code> on an RFCOMM tty, Python <code>socket.AF_BLUETOOTH</code></td></tr>
           <tr><td>Wi-Fi / web</td><td><code>nmtui</code> (joins hidden networks), <code>posting</code> (HTTP), <code>mitmproxy</code></td><td><code>nmcli</code>, <code>curl</code>, <code>xh</code> / <code>httpie</code>, <code>websocat</code>, <code>jwt-cli</code>, <code>hashcat -m 16500</code>, <code>avahi-browse</code>, <code>nmap</code> (the board's IP only), <code>ncat</code> / <code>socat</code>, <code>knock</code></td></tr>
           <tr><td>Serial</td><td><code>tio</code>, <code>minicom</code></td><td><code>picocom</code>, <code>pyserial-miniterm</code>, <code>idf.py monitor</code></td></tr>

@@ -15,7 +15,7 @@
 # the root, so those links are rewritten to app/ and ../ here.
 set -euo pipefail
 
-VERSION="0.2.0"
+VERSION="0.2.1"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD="$ROOT/build-release"
 DIST="$ROOT/dist"

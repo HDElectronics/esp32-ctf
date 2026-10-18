@@ -10,7 +10,7 @@ Debian/Ubuntu (`apt`) or language package managers (`pipx`, `pip` in a venv,
 | Track | TUI | CLI and libraries |
 |-------|-----|-------------------|
 | General | `tmux` | `pwntools` (serial and TCP tubes for scripting), `jq` |
-| BLE | `bluetui`, `bluetuith` | `bluetoothctl` (`menu gatt`), `btmon` (HCI trace), Python `bleak`, `ble-serial` |
+| BLE | `bluetui`, `bluetuith` (scan and pair only, no GATT browser) | `bluetoothctl` (`menu gatt`), `btmon` (HCI trace), Python `bleak`, `ble-serial` |
 | BT Classic | `bluetuith` | `bluetoothctl`, `picocom` / `tio` on an RFCOMM tty, Python `socket.AF_BLUETOOTH` |
 | Wi-Fi / web | `nmtui` (joins hidden networks), `posting` (HTTP), `mitmproxy` | `nmcli`, `curl`, `xh` / `httpie`, `websocat`, `jwt-cli`, `hashcat -m 16500`, `avahi-browse`, `nmap` (the board's IP only), `ncat` / `socat`, `knock` |
 | Serial | `tio`, `minicom` | `picocom`, `pyserial-miniterm`, `idf.py monitor` |

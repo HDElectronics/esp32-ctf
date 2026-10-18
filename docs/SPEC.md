@@ -241,7 +241,7 @@ player's own board. Mark BlueZ's deprecated utilities (`hcitool`, `gatttool`,
 | Track | TUI | CLI |
 |-------|-----|-----|
 | General | `tmux` | `pwntools` (serial + TCP tubes for scripting), `jq` |
-| BLE | `bluetui`, `bluetuith` | `bluetoothctl` (gatt menu), `btmon` (HCI trace), Python `bleak`, `ble-serial` |
+| BLE | `bluetui`, `bluetuith` (scan and pair only, no GATT browser) | `bluetoothctl` (gatt menu), `btmon` (HCI trace), Python `bleak`, `ble-serial` |
 | BT Classic | `bluetuith` | `bluetoothctl`, `picocom`/`tio` on an RFCOMM tty, Python `socket.AF_BLUETOOTH` |
 | Wi-Fi / web | `nmtui` (join hidden SSID), `posting` (HTTP), `mitmproxy` | `nmcli`, `curl`, `xh`/`httpie`, `websocat`, `jwt-cli`, `hashcat -m 16500`, `avahi-browse`, `nmap` (the board's IP only), `ncat`/`socat`, `knock` |
 | Serial | `tio`, `minicom` | `picocom`, `pyserial-miniterm`, `idf.py monitor` |

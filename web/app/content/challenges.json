@@ -2,8 +2,8 @@
   "BLE-01": {
     "brief": "The board's custom service is full of characteristics. Start by simply looking.",
     "tools": [
-      "bluetui",
-      "bluetoothctl"
+      "bluetoothctl (menu gatt)",
+      "nRF Connect"
     ]
   },
   "BLE-02": {
@@ -59,6 +59,7 @@
     "brief": "A locker that only opens for a properly paired client.",
     "tools": [
       "bluetoothctl",
+      "bluetui",
       "bluetuith"
     ]
   },

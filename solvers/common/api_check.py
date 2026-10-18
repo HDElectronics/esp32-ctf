@@ -89,7 +89,7 @@ def main():
         info, out, _ = api(c, "api info")
         print("   ", json.dumps(info))
         check(no_echo("api info", out), "no echo / no prompt for a machine line")
-        check(info.get("ok") is True and info.get("fw") == "0.2.0", "ok + fw 0.2.0")
+        check(info.get("ok") is True and info.get("fw") == "0.2.1", "ok + fw 0.2.1")
         check(re.fullmatch(r"ESP32-CTF-[0-9A-F]{4}", info.get("board", "")) is not None, "board name")
         check(info.get("mode") in ("radio", "net"), "mode")
         check(info.get("start") == 100 and info.get("total") == 40, "start 100, total 40")

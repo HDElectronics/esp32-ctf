@@ -47,7 +47,7 @@ scan le
 
 Then `connect <address>`, `menu gatt` and `list-attributes`. If things look stale after a re-flash, `remove <address>` and scan again.
 
-**bluetui** (a friendlier terminal view): `cargo install bluetui`, then run `bluetui`.
+**bluetui** (terminal view for scanning and pairing): `cargo install bluetui`, then run `bluetui`. It can't list services or read characteristics, and it always pairs before it connects, so it asks for a passkey. Browse with `bluetoothctl`; keep bluetui for the pairing challenge.
 
 The board shows up twice in a scan: `ESP32-CTF-XXXX` is the BLE side, `ESP32-CTF-XXXX:hhhhhh` is Bluetooth Classic (the BTC track). Connect to the first one. If you get `BREDR.ProfileUnavailable`, you picked the Classic entry.
 

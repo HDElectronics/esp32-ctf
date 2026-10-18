@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/img/banner-dark.png">
-    <img src="docs/img/banner-light.png" alt="ESP32 Multi-Track CTF, v0.2.0: one board, 40 challenges, 7 tracks (BLE, BT Classic, Wi-Fi, UART, pins, firmware, crypto). Drawing of an ESP32 DevKit seen from above with radio waves off its antenna." width="100%">
+    <img src="docs/img/banner-light.png" alt="ESP32 Multi-Track CTF, v0.2.1: one board, 40 challenges, 7 tracks (BLE, BT Classic, Wi-Fi, UART, pins, firmware, crypto). Drawing of an ESP32 DevKit seen from above with radio waves off its antenna." width="100%">
   </picture>
 </p>
 
@@ -25,14 +25,14 @@ Inspired by [hackgnar/ble_ctf](https://github.com/hackgnar/ble_ctf), broader in 
 
 ## Quick start
 
-1. Download `esp32-ctf-v0.2.0.bin` from the [latest release](https://github.com/HDElectronics/esp32-ctf/releases/latest).
+1. Download `esp32-ctf-v0.2.1.bin` from the [latest release](https://github.com/HDElectronics/esp32-ctf/releases/latest).
 2. Flash it with `esptool` (`pipx install esptool`); flashing again wipes your progress.
 3. Open the console at 115200 8N1, press EN/RST, then type `help`, `status` and `list`.
 
 ```sh
 # merged image (bootloader + partition table + app) at offset 0x0;
 # the port may be /dev/ttyACM0, COM3 or /dev/cu.usbserial-*
-esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.2.0.bin
+esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.2.1.bin
 tio -b 115200 /dev/ttyUSB0
 ```
 

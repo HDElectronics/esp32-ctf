@@ -8,7 +8,9 @@
    run `mode radio` (the board reboots). Radio mode is the default.
 2. Scan for BLE devices. The board advertises as `ESP32-CTF-XXXX`, where
    `XXXX` is the last two bytes of its MAC (shown in the boot banner).
-   - Linux: `bluetoothctl`, then `scan le` (or `bluetui` / `bluetuith`)
+   - Linux: `bluetoothctl`, then `scan le`. `bluetui` and `bluetuith` scan
+     and pair, but they can't browse services, and bluetui always pairs
+     before it connects (it asks for a passkey you don't have yet).
    - Phone: any BLE explorer app (e.g. nRF Connect)
 3. Connect and list its services. The board accepts one connection at a time
    and advertises again when you disconnect.
@@ -36,7 +38,7 @@ Besides the console, the board has a **CTF control** service
 
 ### BLE-01 Read the flag (100)
 The board's custom service is full of characteristics. Start by simply looking.
-Tools: `bluetui`, `bluetoothctl`
+Tools: `bluetoothctl` (`menu gatt`), nRF Connect
 
 ### BLE-02 Hex and friends (100)
 This value is readable, but not in a form you would want to submit.
@@ -68,7 +70,7 @@ Tools: Python `bleak`, `btmon`
 
 ### BLE-09 Passkey pairing (200)
 A locker that only opens for a properly paired client.
-Tools: `bluetoothctl`, `bluetuith`
+Tools: `bluetoothctl`, `bluetui`, `bluetuith`
 
 ### BLE-10 Rate-limited PIN (300)
 A four-digit keypad that does not like being rushed. Needs scripting.

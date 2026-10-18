@@ -17,7 +17,7 @@ extern "C" {
 
 /* Firmware version reported by `api info` (keep PROJECT_VER in the top-level
  * CMakeLists.txt equal to it). */
-#define CTF_FW_VERSION "0.2.0"
+#define CTF_FW_VERSION "0.2.1"
 
 typedef enum { CTF_MODE_RADIO = 0, CTF_MODE_NET = 1 } ctf_mode_t;
 

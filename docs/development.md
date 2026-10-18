@@ -6,7 +6,7 @@ runs the CTF. Moved here from the README. Spoilers live in
 
 ## Building from source
 
-Requires ESP-IDF v6.1 (target `esp32`). The firmware version is 0.2.0
+Requires ESP-IDF v6.1 (target `esp32`). The firmware version is 0.2.1
 (`PROJECT_VER` in the top-level `CMakeLists.txt`; it also names the release image).
 
 ```sh
@@ -20,7 +20,7 @@ merged `.bin`, ESP Web Tools manifest and a ready-to-host flasher site):
 
 ```sh
 scripts/release.sh
-# -> dist/esp32-ctf-v0.2.0.bin, dist/manifest.json, web/flasher/dist-site/
+# -> dist/esp32-ctf-v0.2.1.bin, dist/manifest.json, web/flasher/dist-site/
 ```
 
 Host unit tests for the portable engine:
@@ -87,7 +87,7 @@ refuses to package one.
   teaches players to dump flash.** Before a board goes to a player, wipe it
   and flash the release image:
   `esptool --chip esp32 -p <PORT> erase-flash`, then
-  `esptool --chip esp32 -p <PORT> write-flash 0x0 dist/esp32-ctf-v0.2.0.bin`.
+  `esptool --chip esp32 -p <PORT> write-flash 0x0 dist/esp32-ctf-v0.2.1.bin`.
 
 - `CONFIG_CTF_SIZE_PROBE` (links unused stack stubs to measure image size)
 
