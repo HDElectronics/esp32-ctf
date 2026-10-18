@@ -1,5 +1,9 @@
 # ESP32 Multi-Track CTF — Spec
 
+> **Spoilers.** This file explains how every challenge works. Players should
+> read [`docs/players/`](players/) instead; this spec is for organizers and
+> contributors.
+
 Flash one classic ESP32 DevKit, play a self-contained CTF across radio, network,
 serial, hardware-pin, firmware-reversing and crypto tracks. Inspired by
 hackgnar/ble_ctf, broader in scope.

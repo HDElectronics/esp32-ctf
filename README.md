@@ -21,11 +21,13 @@ Player guides: [docs/players/](docs/players/index.md).
 
 ## Quick start
 
-1. **Flash** the release image, either
-   - from the browser with the web flasher (desktop Chrome or Edge; Web Serial), or
+1. **Flash** the release image. Download `esp32-ctf-v0.1.0.bin` from the
+   [latest release](https://github.com/HDElectronics/esp32-ctf/releases/latest), then either
    - with esptool: `esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.1.0.bin`
      (`pipx install esptool`; the port may be `/dev/ttyACM0`, `COM3`, `/dev/cu.usbserial-*`).
      The merged `.bin` contains bootloader, partition table and app and goes at offset `0x0`.
+   - or from the browser: `scripts/release.sh` also builds a self-hostable ESP Web Tools
+     flasher page in `web/flasher/dist-site/` (desktop Chrome or Edge; Web Serial).
 2. **Open the serial console** at 115200 8N1, e.g. `tio -b 115200 /dev/ttyUSB0`.
    Press the board's EN/RST button to see the boot banner.
 3. Type `help` for the command list, `status` for your score and `list` (or

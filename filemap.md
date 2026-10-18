@@ -23,8 +23,7 @@
 - `components/ctf_platform/ctf_console.c` — UART0 line editor task (raw-byte hook, echo, backspace, `ctf> ` prompt) → esp_console_run
 - `components/ctf_platform/ctf_commands.c` — core commands: status, list, submit, answer, hint, mode, reset
 - `components/ctf_platform/ctf_platform_priv.h` — internal: ctf_commands_register
-- `components/<name>/{CMakeLists.txt,<name>.c,include/<name>.h}` — per-component stub layout
-- `components/track_*/` — one component per challenge track; `track_<name>_start()` called from app_main (stubs until tasks 4–10)
+- `components/track_*/` — one component per challenge track; `track_<name>_start()` called from app_main
 - `test/host/` — host build + unit tests for ctf_core
 - `test/host/CMakeLists.txt` — builds components/ctf_core/*.c + test_*.c, registers with ctest
 - `test/host/test_util.h` — CHECK/RUN macros, in-memory backend, test group declarations
@@ -33,9 +32,6 @@
 - `test/host/test_catalog.c` — catalogue vs SPEC (IDs, names, levels, kit), points, max score
 - `test/host/test_flags.c` — flag format/determinism/MAC sensitivity, derive, submit normalisation, answer gates
 - `test/host/test_progress.c` — hint cost + score, persistence, tampered record, reset, no backend
-- `solvers/<track>/` — reference solver per challenge (planned)
-- `docs/players/` — player guides (planned, task 11)
-- `web/flasher/` — ESP Web Tools page + manifest (planned, task 11)
 - `components/track_serial/` — SER-02..04 (UART2 beacon, timing login, escape hook) + CRY-01 shard 1
 - `components/track_crypto/` — CRY-01..03 console commands (`cipher`, `oracle`, `msgs`); Kconfig `CONFIG_CTF_CRYPTO_DEV`
 - `solvers/serial/` — SER solvers + `_util.py` console helpers (pyserial)
