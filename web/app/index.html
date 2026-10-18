@@ -144,6 +144,16 @@
           <div class="stack-8" id="hints"></div>
         </div>
 
+        <form class="flag-form" id="answer-form" novalidate hidden>
+          <label for="answer" class="label">Answer</label>
+          <div class="flag-field answer-field">
+            <input id="answer" name="answer" placeholder="Your answer" autocomplete="off" spellcheck="false" aria-describedby="answer-help">
+          </div>
+          <span id="answer-help" class="help">This challenge asks for a value first. The board checks it and gives you the flag.</span>
+          <button type="submit" class="btn-secondary" id="answer-btn">Check answer</button>
+          <div id="answer-result" role="status"></div>
+        </form>
+
         <form class="flag-form" id="flag-form" novalidate>
           <label for="flag" class="label">Flag</label>
           <div class="flag-field">

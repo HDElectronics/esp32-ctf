@@ -78,6 +78,8 @@ bool ctf_set_answer(const char *id, ctf_answer_fn fn, void *ctx);
  * id and accepts value. Does not mark the challenge solved: the player submits
  * the returned flag. */
 bool ctf_answer(const char *id, const char *value, char flag_out[18]);
+/* True when a validator is registered for id (false for an unknown id). */
+bool ctf_has_answer(const char *id);
 
 bool ctf_is_solved(const char *id);
 int ctf_value(const char *id);          /* challenge value 100/200/300; 0 if unknown id */

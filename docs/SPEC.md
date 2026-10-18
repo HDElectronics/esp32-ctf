@@ -319,7 +319,7 @@ colours, copy and behaviour in the inline styles and the `renderVals()` logic).
   `api mode <radio|net>` (replies, then reboots).
 - JSON shapes:
   - info: `{"ok":true,"fw":"0.2.0","board":"ESP32-CTF-3014","mode":"radio","points":400,"start":100,"earned":300,"spent":0,"solved":3,"total":40}`
-  - list: `{"ok":true,"challenges":[{"id":"BLE-03","track":"BLE","name":"Notify me","pts":100,"kit":"","mode":"radio","solved":false,"tier":1,"prices":[0,20,50]}…]}` (`mode`: radio, net or any; `tier`: highest owned tier, 1 if none bought)
+  - list: `{"ok":true,"challenges":[{"id":"BLE-03","track":"BLE","name":"Notify me","pts":100,"kit":"","mode":"radio","solved":false,"answer":false,"tier":1,"prices":[0,20,50]}…]}` (`mode`: radio, net or any; `answer`: true when the challenge has an answer gate for `api answer`; `tier`: highest owned tier, 1 if none bought)
   - submit: `{"ok":true,"result":"new|already|wrong","id":"BLE-03","pts":100,"points":500}` (`id`/`pts` only when matched)
   - hint: `{"ok":true,"id":"BLE-03","tier":2,"text":"…","points":380}` or `{"ok":false,"error":"locked|points","need":20,"points":5}` (`need` = the requested tier's price)
   - answer: `{"ok":true,"correct":true,"flag":"ESP{…}"}` or `{"ok":true,"correct":false}`

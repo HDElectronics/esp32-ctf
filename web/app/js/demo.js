@@ -2,7 +2,8 @@
 // protocol as the firmware (SOH machine commands, STX/ETX JSON replies, a
 // tiny echoing console). It holds no real hint texts and no real flags: the
 // only accepted flag body is DEMO00000000, which solves the selected
-// challenge.
+// challenge. HW-03 has a demo answer gate: `api answer HW-03 1234` returns
+// that demo flag.
 
 const CATALOG = [
   ['BLE-01', 'Read the flag', 100, ''], ['BLE-02', 'Hex and friends', 100, ''],
@@ -130,7 +131,7 @@ export class DemoTransport {
     if (verb === 'list') {
       return this.reply({ ok: true, challenges: CATALOG.map(([id, name, pts, kit]) => {
         const track = id.split('-')[0];
-        return { id, track, name, pts, kit, mode: MODE_OF[track] || 'any', solved: this.solved.has(id),
+        return { id, track, name, pts, kit, mode: MODE_OF[track] || 'any', solved: this.solved.has(id), answer: id === 'HW-03',
           tier: this.tier[id] || 1, prices: [0, price(pts, 2), price(pts, 3)] };
       }) });
     }
@@ -156,7 +157,13 @@ export class DemoTransport {
         text: `Demo ${TIER_NAME[tier - 1]} for ${c[0]}. On a real board, this is where the ${TIER_NAME[tier - 1]} text appears.`,
         points: this.points().points });
     }
-    if (verb === 'answer') return this.reply({ ok: true, correct: false });
+    if (verb === 'answer') {
+      const c = find(a);
+      if (!c) return this.reply({ ok: false, error: 'unknown challenge' });
+      const value = line.split(/\s+/).slice(3).join(' ').trim();
+      if (c[0] === 'HW-03' && value === '1234') return this.reply({ ok: true, correct: true, flag: `ESP{${DEMO_BODY}}` });
+      return this.reply({ ok: true, correct: false });
+    }
     if (verb === 'mode') {
       if (a !== 'radio' && a !== 'net') return this.reply({ ok: false, error: 'mode must be radio or net' });
       this.reply({ ok: true, mode: a });

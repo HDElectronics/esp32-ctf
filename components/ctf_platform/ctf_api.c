@@ -205,8 +205,9 @@ static void api_list(jw_t *w)
         jw_str(w, c->kit);
         jw_raw(w, ",\"mode\":");
         jw_str(w, mode_of(c));
-        jw_fmt(w, ",\"solved\":%s,\"tier\":%d,\"prices\":[%d,%d,%d]}",
-               ctf_is_solved(c->id) ? "true" : "false", ctf_hint_tier(c->id),
+        jw_fmt(w, ",\"solved\":%s,\"answer\":%s,\"tier\":%d,\"prices\":[%d,%d,%d]}",
+               ctf_is_solved(c->id) ? "true" : "false",
+               ctf_has_answer(c->id) ? "true" : "false", ctf_hint_tier(c->id),
                ctf_hint_price(c->id, 1), ctf_hint_price(c->id, 2), ctf_hint_price(c->id, 3));
     }
     jw_raw(w, "]}");

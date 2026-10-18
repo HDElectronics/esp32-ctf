@@ -376,6 +376,18 @@ bool ctf_set_answer(const char *id, ctf_answer_fn fn, void *ctx)
     return true;
 }
 
+bool ctf_has_answer(const char *id)
+{
+    int i = index_of(id);
+    if (i < 0) {
+        return false;
+    }
+    lock();
+    bool has = s.gate[i].fn != NULL;
+    unlock();
+    return has;
+}
+
 bool ctf_answer(const char *id, const char *value, char flag_out[18])
 {
     int i = index_of(id);
