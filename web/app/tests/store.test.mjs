@@ -132,7 +132,7 @@ test('export / import round trip', () => {
   p.solve('HW-03');
   p.buy('HW-03', 2);
   p.buy('HW-03', 3);
-  const file = JSON.stringify(p.exportData('ESP32-CTF-3014', '24:0A:C4:12:34:56', new Date(0)));
+  const file = JSON.stringify(p.exportData('ESP32-CTF-3456', '24:0A:C4:12:34:56', new Date(0)));
   const imp = parseImport(file, data, parseMac, macHex);
   assert.equal(imp.macHex, MAC);
 
@@ -146,7 +146,7 @@ test('export / import round trip', () => {
 });
 
 test('import rejects files that are not ours or do not add up', () => {
-  const base = { app: 'esp32-ctf', v: 1, board: 'ESP32-CTF-3014', mac: '24:0A:C4:12:34:56', solved: [], tiers: {} };
+  const base = { app: 'esp32-ctf', v: 1, board: 'ESP32-CTF-3456', mac: '24:0A:C4:12:34:56', solved: [], tiers: {} };
   const bad = (o) => assert.throws(() => parseImport(typeof o === 'string' ? o : JSON.stringify(o), data, parseMac, macHex));
   bad('not json');
   bad({ ...base, app: 'other' });

@@ -37,11 +37,11 @@ test('parseMac accepts colons, dashes, spaces or none, any case', () => {
     assert.ok(m, s);
     assert.equal(macHex(m), want, s);
   }
-  for (const s of ['', '24:0A:C4:12:34', '240AC412341', '240AC41234565', 'G4:0A:C4:12:34:14', '24:0A:C4:12:34:56:00']) {
+  for (const s of ['', '24:0A:C4:12:34', '240AC412345', '240AC41234567', 'G4:0A:C4:12:34:56', '24:0A:C4:12:34:56:00']) {
     assert.equal(parseMac(s), null, s);
   }
   const m = parseMac('24:0A:C4:12:34:56');
-  assert.equal(boardName(m), 'ESP32-CTF-3014');
+  assert.equal(boardName(m), 'ESP32-CTF-3456');
   assert.equal(macPretty(m), '24:0A:C4:12:34:56');
 });
 
@@ -95,7 +95,7 @@ test('checkAnswer: HW-03 frequency within 1 %, then the flag', async () => {
 });
 
 // Real boards: expected values read from their boot banners, kept out of git.
-// File (or $CTF_REAL_BOARDS): {"boards":[{"mac":"B4:8A:…","flags":{"SER-01":"ESP{…}"},"hw03":1028}]}
+// File (or $CTF_REAL_BOARDS): {"boards":[{"mac":"24:0A:C4:…","flags":{"SER-01":"ESP{…}"},"hw03":1028}]}
 const realFile = process.env.CTF_REAL_BOARDS || path.join(ROOT, '.cache', 'real-boards.local.json');
 const real = existsSync(realFile) ? JSON.parse(readFileSync(realFile, 'utf8')).boards : null;
 

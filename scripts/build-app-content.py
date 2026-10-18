@@ -91,6 +91,7 @@ def parse_guide(path):
             continue
         cid = m.group(1)
         brief, tools = [], []
+        cut = False  # the page shows the kit chip and port notes instead
         i += 1
         while i < len(lines) and not lines[i].startswith("#"):
             line = lines[i].strip()
@@ -98,6 +99,11 @@ def parse_guide(path):
             if line.startswith("Tools:"):
                 tools = split_tools(line[len("Tools:"):])
                 break
+            if cut or not line or line.startswith("UART2 pins"):
+                continue
+            if "Skip this one" in line:
+                line = line[:line.index("Skip this one")].strip()
+                cut = True
             if line:
                 brief.append(brief_line(line))
         if cid in out:

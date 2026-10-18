@@ -16,8 +16,8 @@ const PRIMER_FILE = { BLE: 'ble', BTC: 'btc', WEB: 'web', SER: 'serial', HW: 'hw
 const LEVELS = { 100: ['Easy', 1, 'lv-easy'], 200: ['Medium', 2, 'lv-medium'], 300: ['Hard', 3, 'lv-hard'] };
 const HINT_META = [['Nudge', 'A push in the right direction'], ['Hint', 'Names the technique you need'], ['Walkthrough', 'Step by step, without the flag']];
 const MODE_NOTE = {
-  radio: 'Needs <span class="mono">mode radio</span> on the board console, the default. If you switched the board to net mode, type <span class="mono">mode radio</span> in your serial terminal.',
-  net: 'Needs the board in <span class="mono">mode net</span>: type <span class="mono">mode net</span> in your serial terminal. The board restarts in net mode; <span class="mono">mode radio</span> switches back.',
+  radio: { cls: 'notice-info', html: 'Runs in radio mode, the board\'s default. If you switched to net mode, type <span class="mono">mode radio</span> in your serial terminal.' },
+  net: { cls: 'notice-warn', html: 'Needs the board in net mode: type <span class="mono">mode net</span> in your serial terminal. Switching restarts the board; its own console progress stays.' },
 };
 const PORT_NOTE = {
   'SER-02': 'This one uses the board\'s second serial port (pins 17/16) with a USB-UART adapter or a logic analyzer, not its USB port.',
@@ -244,7 +244,10 @@ function renderPanel() {
 
   const modeNote = MODE_NOTE[c.mode];
   $('ch-mode').hidden = !modeNote;
-  if (modeNote) $('ch-mode-text').innerHTML = modeNote;
+  if (modeNote) {
+    $('ch-mode').className = modeNote.cls;
+    $('ch-mode-text').innerHTML = modeNote.html;
+  }
 
   const port = PORT_NOTE[c.id];
   $('ch-port').hidden = !port;
