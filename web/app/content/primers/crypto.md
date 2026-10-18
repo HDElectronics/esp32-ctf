@@ -12,7 +12,7 @@ Cryptography keeps messages secret and proves they weren't changed. It protects 
 
 **Block ciphers** such as AES encrypt fixed-size blocks, 16 bytes for AES. Longer messages need a **mode** that says how the blocks are chained. The simplest, **ECB**, encrypts every block on its own with the same key. That leaks patterns: two identical plaintext blocks give two identical ciphertext blocks. Encrypt a picture of a penguin in ECB and you can still see the penguin.
 
-**Stream ciphers** and AES in **CTR** mode work differently. They turn the key and a **nonce** (a number used once) into a long stream of pseudo-random bytes, the **keystream**, and XOR it with the message. This is safe only while every message gets a fresh nonce. Reuse one, and two messages share the same keystream: XOR the two ciphertexts together and the keystream cancels out, leaving the two plaintexts XORed with each other.
+**Stream ciphers** and AES in **CTR** mode work differently. They turn the key and a **nonce** (a number used once) into a long stream of pseudo-random bytes, the **keystream**, and XOR it with the message. This is safe only while every message gets a fresh nonce. Reuse one, and two messages end up encrypted with the same keystream, which is one of the classic mistakes in real systems.
 
 An **oracle** is any service that will encrypt or decrypt for you on request, with a key you never see.
 
