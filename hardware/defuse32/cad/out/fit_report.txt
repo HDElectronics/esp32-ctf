@@ -1,0 +1,67 @@
+Defuse32 CAD build  (FreeCAD 1.1.1, GUI=True, font=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf)
+plate M1: 13 through-cuts, 1 engravings, 5 items
+plate M2: 16 through-cuts, 1 engravings, 6 items
+plate M3: 15 through-cuts, 1 engravings, 3 items
+plate M4: 17 through-cuts, 1 engravings, 13 items
+plate M5: 18 through-cuts, 1 engravings, 2 items
+plate M6: 24 through-cuts, 6 engravings, 10 items
+carrier: carrier.step (39 solids, board found, rotated 0 deg)
+carrier: Carrier_PCB x -95.0..95.0 y -70.0..70.0 z 11.0..12.5
+carrier: Carrier_Components x -83.5..91.6 y -66.4..64.8 z 9.1..26.4
+
+========================================================================
+FIT CHECKS
+========================================================================
+PASS  panel top z = 125.20, base rim z = 125.20 (flush at 125.2)
+PASS  plates z 125.2..128.2 on the panel
+PASS  panel openings inside the 1520PF clear opening (min margin 15.6 mm)
+PASS  M1 hanging parts inside the 114x118 opening footprint (min margin 2.00 mm at M1_StatusLED_Breakout), lowest z 113.1 (12.1 below plate, limit 40)
+PASS  M1 tallest part z 145.2 = 17.0 above the plate top (cap 35)
+PASS  M2 hanging parts inside the 114x118 opening footprint (min margin 2.00 mm at M2_StatusLED_Breakout), lowest z 106.9 (18.3 below plate, limit 40)
+PASS  M2 tallest part z 125.2 = -3.0 above the plate top (cap 35)
+PASS  M3 hanging parts inside the 114x118 opening footprint (min margin 1.23 mm at M3_Keypad_HeaderPlug), lowest z 113.3 (11.9 below plate, limit 40)
+PASS  M3 tallest part z 141.2 = 13.0 above the plate top (cap 35)
+PASS  M4 hanging parts inside the 114x118 opening footprint (min margin 2.00 mm at M4_StatusLED_Breakout), lowest z 107.2 (18.0 below plate, limit 40)
+PASS  M4 tallest part z 158.2 = 30.0 above the plate top (cap 35)
+PASS  M5 hanging parts inside the 114x118 opening footprint (min margin 2.00 mm at M5_StatusLED_Breakout), lowest z 120.6 (4.6 below plate, limit 40)
+PASS  M5 tallest part z 134.2 = 6.0 above the plate top (cap 35)
+PASS  M6 hanging parts inside the 114x118 opening footprint (min margin 1.00 mm at M6_Simon_Board), lowest z 105.1 (20.1 below plate, limit 40)
+PASS  M6 tallest part z 135.8 = 7.6 above the plate top (cap 35)
+PASS  M1 modules clear of plate and panel material (through cut-outs only)
+PASS  M2 modules clear of plate and panel material (through cut-outs only)
+PASS  M3 modules clear of plate and panel material (through cut-outs only)
+PASS  M4 modules clear of plate and panel material (through cut-outs only)
+PASS  M5 modules clear of plate and panel material (through cut-outs only)
+PASS  M6 modules clear of plate and panel material (through cut-outs only)
+PASS  M1 no clashes between different modules
+PASS  M2 no clashes between different modules
+PASS  M3 no clashes between different modules
+PASS  M4 no clashes between different modules
+PASS  M5 no clashes between different modules
+PASS  M6 no clashes between different modules
+PASS  nothing intersects the carrier PCB/components, its standoffs, the sled or the carrier keep-out (min clearance to keep-out 67.2 mm at M4_PostA6_Stud)
+PASS  carrier tallest part z 26.4 (13.8 above the board) <= keep-out top z 40; lowest module part z 105.1 at M6_IR_Leads (gap 78.7) [carrier.step (39 solids, board found, rotated 0 deg)]
+PASS  KeySwitch on the right wall: y 60, hole dia 19.0, flange z 56.0..84.0 (band 40..100)
+PASS  USBC on the right wall: y -60, hole dia 22.0, flange z 55.2..84.8 (band 40..100)
+PASS  wall parts clear of the shell, frame and plate modules
+PASS  lid closed: tallest part z 158.2 < lid inner skin z 170.7 (margin 12.5)
+PASS  closed lid shell intersects nothing (0.000 mm3)
+PASS  plate M1 webs >= 3 mm (min 3.15: OLED window <-> OLED M2 hole 3)
+PASS  plate M2 webs >= 3 mm (min 3.10: Buzzer sound hole <-> Buzzer sound hole L)
+PASS  plate M3 webs >= 3 mm (min 3.43: OLED window <-> OLED M2 hole 3)
+PASS  plate M4 webs >= 3 mm (min 4.30: plate M3 hole 1 <-> edge)
+PASS  plate M5 webs >= 3 mm (min 4.30: plate M3 hole 1 <-> edge)
+PASS  plate M6 webs >= 3 mm (min 4.30: plate M3 hole 1 <-> edge)
+PASS  panel webs >= 3 mm (min 3.96: M5 opening <-> M5 plate screw 2)
+------------------------------------------------------------------------
+fit checks: 0 failure(s)
+
+EXPORTS
+DXF entities: M1 194, M2 143, M3 202, M4 169, M5 276, M6 476, panel 72
+DXF read-back (Import.readDXF plate_M1.dxf): 197 objects
+assembly.step, assembly.glb (152 meshes, 696986 triangles)
+render: renders/cad_iso.png
+render: renders/cad_top.png
+render: renders/cad_exploded.png
+render: renders/cad_underside.png
+saved cad/defuse32.FCStd (153 objects)

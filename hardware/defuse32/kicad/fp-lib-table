@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "defuse32") (type "KiCad") (uri "${KIPRJMOD}/defuse32.pretty") (options "") (descr "Defuse32 project-local footprints"))
+)
