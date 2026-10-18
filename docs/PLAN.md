@@ -97,8 +97,8 @@ in `web/app/content/primers/`. Verified against SPEC + solvers for accuracy.
 ## 15. [x] Player app — Careful — deps: none (builds against SPEC + demo board)
 `web/app/` per mockup, Web Serial client, demo board, content build script.
 
-## 16. [ ] Integration on hardware — orchestrator + user — deps: 13, 14, 15
-App against a real board in Chrome; protocol test script in `solvers/common/`.
+## 16. [ ] Offline app — Careful — deps: 15
+Rebuild the app per SPEC "Player app — offline guide and scoreboard": no Web Serial; MAC setup; WebCrypto flag check; localStorage progress; content generated from firmware sources. Verify computed flags against real boards.
 
 ## 17. [ ] Docs, screenshots, release v0.2.0 — Medium — deps: 16
 README (app section + screenshot), players docs (points/hints), development.md,

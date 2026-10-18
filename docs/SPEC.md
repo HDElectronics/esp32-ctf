@@ -329,25 +329,32 @@ colours, copy and behaviour in the inline styles and the `renderVals()` logic).
   console pane and parses only framed lines. The app polls `api info` every
   5 s to pick up solves made over BLE or the web page.
 
-### Player app (`web/app/`)
+### Player app (`web/app/`) — offline guide and scoreboard
 
-- Static site, no build step: HTML + CSS + vanilla ES modules. xterm.js
-  (exact pinned version from jsDelivr) for the console pane. Web Serial at
-  115200 8N1; open without toggling DTR/RTS into a reset (both asserted).
-  Chromium desktop only; other browsers see the Connect screen's fallback text.
-- Screens exactly as the mockup: Connect (3 steps, Connect board) and Play
-  (top bar: points, Radio/Net switch, connection, Console toggle; track tabs
-  with solved counts; challenge list; side panel with brief, tools, primer
-  link, 3 hint rows, `ESP{ … }` flag box; console drawer). Mode switch and the
-  panel's "Switch to … mode" send `api mode`, show "Restarting the board…",
-  wait for the banner and resync. Disconnect button releases the port.
-- Content shipped with the app (spoiler-free): `web/app/content/challenges.json`
-  (id → brief and tools, generated from `docs/players/*.md` by
-  `scripts/build-app-content.py`) and `web/app/content/primers/<track>.md`
-  (7 primers, about 3 minutes each, rendered in-app). Hint texts come only
-  from the board.
-- `?demo` runs the app against a built-in fake board (placeholder hint texts,
-  demo flag body `DEMO00000000`) for screenshots and trying it without
-  hardware. It never contains real hint texts or flags.
-- `scripts/release.sh` copies the app into the hosted site next to the
-  flasher; the landing page links to it ("Play in the browser").
+Decided 2026-10-18 (replaces the Web Serial design): **the page never opens
+the board's port.** The board only runs the challenges; players keep using
+their own terminal tools. The page is served from the repo on the player's
+computer (`python3 -m http.server -d web`, then `http://localhost:8000/app/`).
+
+- Setup screen: 1. flash the firmware (link to the flasher page), 2. open a
+  serial terminal at 115200 and press EN, 3. type the `board MAC` printed in
+  the boot banner. The page shows the matching board name `ESP32-CTF-XXXX`
+  (last two MAC bytes) to confirm, then opens the challenges.
+- Flag check in the page: the same derivation as ctf_core (HMAC-SHA256 with
+  the firmware key over `mac6 || id`, first 6 bytes, upper hex), done with
+  WebCrypto. Answer gates (HW-03) are checked the same way
+  (`1000 + derive_u32("HW-03:freq") % 9000`, ±1 %), then the page shows the flag.
+  The key and the hint texts are generated into the app's content from
+  `ctf_core.c` / `ctf_catalog.c` by `scripts/build-app-content.py`, so the
+  firmware stays the single source. Accepted: a player who reads the page
+  source can compute flags (the repo is public anyway).
+- Points and hints exactly as the wallet rules above, stored in
+  `localStorage` per board MAC; Export / Import progress as a small JSON file.
+  The page's score is separate from the board's own console score (`submit`,
+  `hint`, `status`), which keeps working for players who don't use the page.
+- Play screen as the approved mockup, minus the parts that needed the port:
+  no Radio/Net switch, no connection pill, no console drawer. Header: logo,
+  points, board name chip with "Change board". Challenges that need a mode
+  show a plain note with the console command (`mode net` / `mode radio`).
+  SER-02 keeps its "second serial port (pins 17/16)" note.
+- The firmware machine channel (`api …`) stays but the app does not use it.
