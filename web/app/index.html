@@ -67,6 +67,10 @@
               <span class="step-title">Choose the board's port</span>
               <span class="step-desc">Your browser lists serial ports. The board usually appears as <span class="mono">USB Single Serial</span> or <span class="mono">CP2102</span>.</span>
             </div>
+            <div id="tab-notice" class="notice-info" hidden>
+              <p id="tab-notice-text" role="status">The app is already connected in another tab.</p>
+              <button type="button" class="btn-info" id="tab-takeover">Use this tab instead</button>
+            </div>
             <button type="button" id="connect-btn" class="btn-connect">Connect board</button>
             <p id="connect-status" class="status-line" role="status" hidden></p>
             <div id="connect-ok" class="connect-ok" hidden>
@@ -131,6 +135,11 @@
         <div class="notice-warn" id="ch-mode" hidden>
           <p id="ch-mode-text"></p>
           <button type="button" class="btn-warn" id="ch-mode-btn"></button>
+        </div>
+
+        <div class="notice-info" id="ch-port" hidden>
+          <p id="ch-port-text"></p>
+          <button type="button" class="btn-info" id="ch-port-btn" hidden>Disconnect now</button>
         </div>
 
         <div class="stack-8">

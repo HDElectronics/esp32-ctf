@@ -8,6 +8,7 @@ import { SerialTransport, serialSupported } from './serial.js';
 import { DemoTransport } from './demo.js';
 import { ConsolePane } from './terminal.js';
 import { renderMarkdown, escapeHtml as esc } from './markdown.js';
+import { TabCoordinator } from './tabs.js';
 
 const params = new URLSearchParams(location.search);
 const DEMO = params.has('demo');
@@ -21,6 +22,14 @@ const DEMO_BODY = 'DEMO00000000';
 const POLL_MS = 5000;
 const RESTART_WAIT_MS = 8000;
 const BANNER = 'type `help`';
+const MSG_BUSY = 'This board is already open in another tab or program. Close it there, or press Disconnect in that tab, then connect again.';
+const MSG_FREE = 'Disconnected. The port is free for other tools.';
+const MSG_MOVED = 'Connection moved to another tab.';
+// Challenges whose tools need the USB port, or that use another port.
+const PORT_NOTE = {
+  RE: { text: 'This one needs <span class="mono">esptool</span>, which can\'t share the port with this page. Press Disconnect, run your tool, then connect again. Your points stay on the board.', disconnect: true },
+  'SER-02': { text: 'This one uses the board\'s second serial port (pins 17/16) with a USB-UART adapter or a logic analyzer, not this USB port. Keep this page connected.', disconnect: false },
+};
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -50,7 +59,19 @@ const S = {
   primer: null,          // track key while the primer view is open
   restarting: false,
   pollTimer: null,
+  peer: null,            // another tab of this app holding the board
+  takingOver: false,
 };
+
+// Demo tabs coordinate among themselves only, so a demo tab never blocks a real one.
+const tabs = TabCoordinator.create(DEMO ? 'esp32-ctf-demo' : 'esp32-ctf', {
+  onRelease: async () => {
+    await teardown();
+    showScreen('connect');
+    setConnectState('idle', MSG_MOVED);
+  },
+  onPeer: (peer) => { S.peer = peer; renderTabNotice(); },
+});
 
 let consolePane = null;
 
@@ -129,11 +150,12 @@ function setConnectState(state, message = '') {
   const ok = $('connect-ok');
   btn.hidden = state === 'busy' || state === 'ok';
   ok.hidden = state !== 'ok';
-  status.hidden = !(state === 'busy' || state === 'error' || state === 'unsupported');
+  status.hidden = !(state === 'busy' || state === 'error' || state === 'unsupported' || (state === 'idle' && message));
   status.className = 'status-line' + (state === 'error' ? ' bad' : state === 'unsupported' ? ' warn' : '');
   status.setAttribute('role', state === 'error' ? 'alert' : 'status');
   if (state === 'busy') status.textContent = 'Reading the board…';
   else if (state === 'error' || state === 'unsupported') status.innerHTML = message;
+  else if (state === 'idle' && message) status.textContent = message;
   btn.disabled = state === 'unsupported';
   if (state === 'ok') {
     const i = S.info;
@@ -143,6 +165,30 @@ function setConnectState(state, message = '') {
     $('connect-ok-text').innerHTML = `Connected to ${name}. ${pts}`;
     $('start-btn').focus();
   }
+  S.connectState = state;
+  renderTabNotice();
+}
+
+// While another tab holds the board, the Connect button gives way to a notice
+// that can move the connection here.
+function renderTabNotice() {
+  const st = S.connectState;
+  const show = !!S.peer && !S.link && (st === 'idle' || st === 'error');
+  $('tab-notice').hidden = !show;
+  $('tab-takeover').setAttribute('aria-disabled', String(S.takingOver));
+  $('tab-takeover').textContent = S.takingOver ? 'Waiting for the other tab…' : 'Use this tab instead';
+  if (st === 'idle' || st === 'error') $('connect-btn').hidden = show;
+}
+
+async function takeOver() {
+  if (S.takingOver) return;
+  S.takingOver = true;
+  renderTabNotice();
+  await tabs.requestRelease();
+  S.takingOver = false;
+  S.peer = null;
+  setConnectState('idle', DEMO ? '' : 'The other tab let go of the board. Press Connect board and choose its port.');
+  $('connect-btn').focus();
 }
 
 function showScreen(which) {
@@ -162,9 +208,14 @@ function initConnect() {
   }
   $('connect-btn').addEventListener('click', connect);
   $('start-btn').addEventListener('click', enterPlay);
+  $('tab-takeover').addEventListener('click', takeOver);
 }
 
+const portBusy = (e) => !!e && (e.name === 'InvalidStateError' || e.name === 'NetworkError');
+
 async function connect() {
+  if (S.link) return;
+  if (S.peer) { renderTabNotice(); return; } // another tab holds the board: offer to move it
   let transport;
   if (DEMO) {
     transport = new DemoTransport();
@@ -180,7 +231,9 @@ async function connect() {
     try {
       await transport.open();
     } catch (e) {
-      setConnectState('error', 'The port could not be opened. Close any other program using it (a serial terminal or <span class="mono">idf.py monitor</span>), then try again.');
+      console.warn('[ctf] port open failed:', e && e.name, e && e.message);
+      setConnectState('error', portBusy(e) ? esc(MSG_BUSY)
+        : 'The port could not be opened. Close any other program using it (a serial terminal or <span class="mono">idf.py monitor</span>), then try again.');
       return;
     }
   }
@@ -196,6 +249,7 @@ async function connect() {
       : 'The board answered, but not as expected. Flash the latest CTF firmware in step 1, then connect again.');
     return;
   }
+  tabs.announceConnected(S.info && S.info.board);
   if (DEMO && params.get('screen') !== 'connect') enterPlay();
   else setConnectState('ok');
 }
@@ -229,13 +283,28 @@ async function teardown() {
   S.answer = null;
   S.restarting = false;
   hideOverlay();
+  tabs.announceDisconnected();
   if (link) { try { await link.close(); } catch { /* port already gone */ } }
+}
+
+// pagehide / beforeunload: no awaiting, no dialog. Start closing the port and
+// tell the other tabs it is free.
+function releaseOnLeave() {
+  const t = S.transport;
+  tabs.announceDisconnected();
+  if (!t) return;
+  stopPolling();
+  if (t.closeNow) t.closeNow();
+  if (S.link) S.link.close().catch(() => {}); // rejects pending requests; the port is already closing
+  S.link = null;
+  S.transport = null;
 }
 
 async function disconnect() {
   await teardown();
   showScreen('connect');
-  setConnectState(DEMO || serialSupported() ? 'idle' : 'unsupported');
+  if (DEMO || serialSupported()) setConnectState('idle', MSG_FREE);
+  else setConnectState('unsupported');
   $('connect-btn').focus();
 }
 
@@ -337,6 +406,13 @@ function renderPanel() {
     $('ch-mode-text').textContent = `This challenge needs the board in ${need} mode. Switching restarts the board; your points stay.`;
     $('ch-mode-btn').textContent = `Switch to ${need} mode`;
     $('ch-mode-btn').dataset.mode = need;
+  }
+
+  const note = PORT_NOTE[c.id] || PORT_NOTE[tk];
+  $('ch-port').hidden = !note;
+  if (note) {
+    $('ch-port-text').innerHTML = note.text;
+    $('ch-port-btn').hidden = !note.disconnect;
   }
 
   const tools = info.tools || [];
@@ -702,6 +778,18 @@ function wire() {
   $('console-btn').addEventListener('click', () => setConsole(!S.consoleOpen, true));
   $('disconnect-btn').addEventListener('click', disconnect);
   $('overlay-disconnect').addEventListener('click', disconnect);
+  $('ch-port-btn').addEventListener('click', disconnect);
+  window.addEventListener('pagehide', releaseOnLeave);
+  window.addEventListener('beforeunload', releaseOnLeave);
+  window.addEventListener('pageshow', (e) => {
+    // Back from the bfcache: the port was released on the way out.
+    if (e.persisted && !S.link && S.info) {
+      teardown();
+      showScreen('connect');
+      setConnectState('idle', MSG_FREE);
+    }
+    if (e.persisted) tabs.probe();
+  });
   $('overlay-close').addEventListener('click', () => {
     S.restarting = false;
     hideOverlay();
@@ -717,5 +805,9 @@ function wire() {
 wire();
 initConnect();
 if (debug) console.debug('[ctf] debug logging on');
-if (DEMO && params.get('screen') !== 'connect') connect();
-else showScreen('connect');
+// Look for a tab that already holds the board before connecting on our own.
+tabs.probe().then((peer) => {
+  if (peer) { S.peer = peer; showScreen('connect'); renderTabNotice(); return; }
+  if (DEMO && params.get('screen') !== 'connect') connect();
+  else showScreen('connect');
+});
