@@ -59,7 +59,18 @@
 - `docs/img/src/` — one self-contained HTML source per image (`?theme=dark` for dark); `make_i2c.py` generates `i2c.html` from a sigrok capture (`.sr` not in repo)
 - `scripts/render-images.sh` — renders `docs/img/src/*.html` to `docs/img/*.png` with headless Chrome
 - `docs/players/` — spoiler-free player guides: index + one per track
-- `scripts/release.sh` — clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/
-- `web/flasher/` — flasher landing page (esp-web-tools 10.4.0) + manifest
+- `scripts/release.sh` — clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/ (flasher at root + player app in app/, cross-links rewritten)
+- `web/flasher/` — flasher landing page (esp-web-tools 10.4.0) + manifest; hero links to the player app
+- `web/app/` — player app (static, no build): Web Serial client, demo board (`?demo`), xterm.js 6.0.0 console; README for local serving
+- `web/app/index.html`, `web/app/app.css` — Connect + Play screens per `docs/design/player-app/`, design tokens
+- `web/app/js/main.js` — app state, rendering, hints/flag/mode actions, polling, primer view
+- `web/app/js/link.js` — STX/ETX frame parser + one-at-a-time SOH request queue (SPEC "Machine channel")
+- `web/app/js/serial.js` — Web Serial transport (115200, DTR+RTS asserted, read loop)
+- `web/app/js/demo.js` — in-memory fake board speaking the same protocol (placeholder hints, flag body DEMO00000000)
+- `web/app/js/terminal.js` — console drawer (xterm.js + fit addon, plain-text fallback)
+- `web/app/js/markdown.js` — tiny escaping Markdown renderer for primers
+- `web/app/content/challenges.json` — generated briefs + tools per challenge (do not edit; see build-app-content.py)
+- `web/app/content/primers/<track>.md` — per-track primers (ble, btc, web, serial, hw, re, crypto)
+- `scripts/build-app-content.py` — docs/players/*.md → web/app/content/challenges.json (`--check` for staleness)
 - `LICENSE` — MIT
 - `docs/design/player-app/` — approved player-app mockups (Design Component HTML), v0.2.0 reference

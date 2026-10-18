@@ -1,0 +1,285 @@
+{
+  "BLE-01": {
+    "brief": "The board's custom service is full of characteristics. Start by simply looking.",
+    "tools": [
+      "bluetui",
+      "bluetoothctl"
+    ]
+  },
+  "BLE-02": {
+    "brief": "This value is readable, but not in a form you would want to submit.",
+    "tools": [
+      "bluetoothctl",
+      "CyberChef"
+    ]
+  },
+  "BLE-03": {
+    "brief": "One characteristic refuses to be read. It has other ways of talking.",
+    "tools": [
+      "bluetoothctl",
+      "bleak"
+    ]
+  },
+  "BLE-04": {
+    "brief": "The flag arrives in pieces, and the board wants to know you got each one.",
+    "tools": [
+      "bleak",
+      "btmon"
+    ]
+  },
+  "BLE-05": {
+    "brief": "A sealed hatch and a panel next to it. The panel tells you what it wants.",
+    "tools": [
+      "bluetoothctl",
+      "nRF Connect"
+    ]
+  },
+  "BLE-06": {
+    "brief": "A characteristic so boring nobody looks twice at it.",
+    "tools": [
+      "bluetoothctl",
+      "bleak"
+    ]
+  },
+  "BLE-07": {
+    "brief": "You don't always need to connect to learn something.",
+    "tools": [
+      "btmon",
+      "bleak"
+    ]
+  },
+  "BLE-08": {
+    "brief": "A long telemetry value. Is your client showing you all of it?",
+    "tools": [
+      "bleak",
+      "btmon"
+    ]
+  },
+  "BLE-09": {
+    "brief": "A locker that only opens for a properly paired client.",
+    "tools": [
+      "bluetoothctl",
+      "bluetuith"
+    ]
+  },
+  "BLE-10": {
+    "brief": "A four-digit keypad that does not like being rushed. Needs scripting.",
+    "tools": [
+      "bleak",
+      "btmon"
+    ]
+  },
+  "BLE-11": {
+    "brief": "A sequencer that wants a short pattern, in order, and quickly. Needs scripting.",
+    "tools": [
+      "bleak",
+      "btmon"
+    ]
+  },
+  "BTC-01": {
+    "brief": "The board offers a serial-style console over Bluetooth Classic. Get a terminal on it.",
+    "tools": [
+      "bluetuith",
+      "picocom / tio on an RFCOMM tty (rfcomm is legacy)",
+      "socket.AF_BLUETOOTH"
+    ]
+  },
+  "BTC-02": {
+    "brief": "The console's help is helpful, but not complete.",
+    "tools": [
+      "tio",
+      "socket.AF_BLUETOOTH"
+    ]
+  },
+  "BTC-03": {
+    "brief": "The board says more about itself than its name before you ever connect.",
+    "tools": [
+      "bluetoothctl",
+      "btmon"
+    ]
+  },
+  "CRY-01": {
+    "brief": "An old-school cipher, and a key that is scattered across the CTF. You will need to visit other tracks.",
+    "tools": [
+      "CyberChef",
+      "Python"
+    ]
+  },
+  "CRY-02": {
+    "brief": "An encryption oracle that will happily encrypt whatever you give it, along with something you want. Needs scripting.",
+    "tools": [
+      "pwntools",
+      "pycryptodome"
+    ]
+  },
+  "CRY-03": {
+    "brief": "Two encrypted messages. One of them you can already guess.",
+    "tools": [
+      "Python",
+      "xortool"
+    ]
+  },
+  "HW-01": {
+    "brief": "The board checks something about its own pins when it starts. Skip this one if you don't have a jumper wire.",
+    "tools": [
+      "a jumper wire",
+      "tio"
+    ]
+  },
+  "HW-02": {
+    "brief": "The onboard LED is trying to tell you something.",
+    "tools": [
+      "phone slow-motion video",
+      "CyberChef"
+    ]
+  },
+  "HW-03": {
+    "brief": "A pin is toggling at a frequency unique to your board. The answer is a number (answer HW-03 <value>). Skip this one if you don't have a logic analyzer.",
+    "tools": [
+      "PulseView",
+      "sigrok-cli"
+    ]
+  },
+  "HW-04": {
+    "brief": "The board talks on an I2C bus to a device that isn't there. Skip this one if you don't have a logic analyzer.",
+    "tools": [
+      "sigrok-cli -P i2c",
+      "PulseView"
+    ]
+  },
+  "HW-05": {
+    "brief": "Something is being sent over SPI every few seconds. Skip this one if you don't have a logic analyzer.",
+    "tools": [
+      "sigrok-cli -P spi",
+      "PulseView"
+    ]
+  },
+  "HW-06": {
+    "brief": "Four bare pins are a keypad. You need the code. Don't touch the pads while the board boots.",
+    "tools": [
+      "your fingers",
+      "tio"
+    ]
+  },
+  "RE-01": {
+    "brief": "Not everything in flash is code.",
+    "tools": [
+      "esptool read-flash",
+      "strings"
+    ]
+  },
+  "RE-02": {
+    "brief": "The firmware keeps a few things in its key-value store, and one of them is not quite in the clear.",
+    "tools": [
+      "nvs_tool.py",
+      "xortool"
+    ]
+  },
+  "RE-03": {
+    "brief": "The console has an unlock command. You don't have the key.",
+    "tools": [
+      "Ghidra 11+",
+      "radare2 / rizin"
+    ]
+  },
+  "RE-04": {
+    "brief": "There is a binary blob in the board's filesystem. It isn't readable as is.",
+    "tools": [
+      "Ghidra 11+",
+      "hexyl"
+    ]
+  },
+  "SER-01": {
+    "brief": "The board says a lot when it boots. Did you read all of it?",
+    "tools": [
+      "tio (with logging)",
+      "idf.py monitor"
+    ]
+  },
+  "SER-02": {
+    "brief": "The board has a second serial port that nobody connected. Skip this one if you have neither a 3.3 V USB-UART adapter nor a logic analyzer (an analyzer on GPIO17 plus GND, with sigrok's UART decoder, works too). UART2 pins: board TX = GPIO17, board RX = GPIO16; connect GND too.",
+    "tools": [
+      "tio",
+      "picocom",
+      "sigrok-cli -P uart",
+      "PulseView"
+    ]
+  },
+  "SER-03": {
+    "brief": "A debug login with a per-board password. Guessing by hand is hopeless. Needs scripting.",
+    "tools": [
+      "pwntools",
+      "pyserial"
+    ]
+  },
+  "SER-04": {
+    "brief": "Some consoles hide a back door behind the right keys.",
+    "tools": [
+      "picocom",
+      "pwntools"
+    ]
+  },
+  "WEB-01": {
+    "brief": "The board runs its own access point. You won't find it in your network list.",
+    "tools": [
+      "nmtui",
+      "nmcli"
+    ]
+  },
+  "WEB-02": {
+    "brief": "What a browser shows you is not everything the server sent.",
+    "tools": [
+      "curl",
+      "posting"
+    ]
+  },
+  "WEB-03": {
+    "brief": "There is an admin area. You are not an admin. Yet.",
+    "tools": [
+      "curl",
+      "mitmproxy"
+    ]
+  },
+  "WEB-04": {
+    "brief": "An API that is picky about who it talks to.",
+    "tools": [
+      "xh / httpie",
+      "posting"
+    ]
+  },
+  "WEB-05": {
+    "brief": "You can log in as a guest. The session token decides what you are.",
+    "tools": [
+      "jwt-cli",
+      "hashcat"
+    ]
+  },
+  "WEB-06": {
+    "brief": "A diagnostics page for reading log files. Only log files, surely.",
+    "tools": [
+      "curl",
+      "mitmproxy"
+    ]
+  },
+  "WEB-07": {
+    "brief": "A chatty WebSocket. Most of it is noise.",
+    "tools": [
+      "websocat",
+      "websockets"
+    ]
+  },
+  "WEB-08": {
+    "brief": "Not every service on the board is linked from its web pages.",
+    "tools": [
+      "avahi-browse",
+      "curl"
+    ]
+  },
+  "WEB-09": {
+    "brief": "A door that is closed until you knock the right way. The console has something to say about it.",
+    "tools": [
+      "knock / ncat",
+      "nmap (the board's IP only)"
+    ]
+  }
+}

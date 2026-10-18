@@ -121,6 +121,7 @@
     cursor: pointer;
   }
   .btn:hover { filter: brightness(1.08); }
+  .play-link { font-weight: 600; padding: 0.4rem 0; }
   .chipnote { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
   .notice {
     border: 1px solid var(--line);
@@ -221,6 +222,7 @@
         <span slot="unsupported" class="warn">Your browser has no Web Serial. Use desktop Chrome or Edge, or the esptool command below.</span>
         <span slot="not-allowed" class="warn">Web Serial needs this page to be served over HTTPS (or localhost).</span>
       </esp-web-install-button>
+      <a class="play-link" href="../app/">Play in the browser</a>
       <span class="chipnote">Classic ESP32 · 4 MB flash · v0.1.0</span>
     </div>
 
