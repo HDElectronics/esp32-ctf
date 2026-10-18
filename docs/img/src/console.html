@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- README console screenshot. Text is real output captured from the board on
+     /dev/ttyACM0 (v0.1.0, fresh board), with the boot ROM noise, the BLE passkey
+     line and the MAC tail removed. Always dark. Rendered at 1100 px wide. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ESP32 CTF console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,400..500&display=block">
+<style>
+  :root {
+    --bg: #17121f; --surface: #211a2c; --ink: #ece6f4; --muted: #a79cb8; --line: #3a3048;
+    --accent: #b99ae8; --gold: #e2b450; --ok: #8fd6a4; --bad: #f08a7e;
+  }
+  html, body { margin: 0; }
+  body { width: 1100px; background: var(--bg); }
+  .win { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+  .bar {
+    height: 38px; display: flex; align-items: center; justify-content: center; position: relative;
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    font-family: "Martian Mono", monospace; font-size: 12px; letter-spacing: 0.08em; color: var(--muted);
+  }
+  .dots { position: absolute; left: 16px; top: 14px; display: flex; gap: 7px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--line); box-sizing: border-box; }
+  pre {
+    margin: 0; padding: 22px 30px 26px;
+    font-family: "Martian Mono", monospace; font-size: 13px; line-height: 1.68;
+    color: var(--muted); white-space: pre;
+  }
+  .p { color: var(--accent); }
+  .c { color: var(--ink); }
+  .h { color: var(--ink); font-weight: 500; }
+  .g { color: var(--gold); }
+  .bad { color: var(--bad); }
+  .cur { display: inline-block; width: 0.62em; height: 1.15em; background: var(--accent); vertical-align: -0.2em; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="bar"><span class="dots"><i></i><i></i><i></i></span>tio · /dev/ttyACM0 · 115200</div>
+<pre><span class="g">==========================================</span>
+  <span class="h">ESP32 CTF</span>
+  mode: radio
+  board MAC: B4:8A:0A:xx:xx:xx
+  type `help` to get started
+<span class="g">==========================================</span>
+
+<span class="p">ctf&gt;</span> <span class="c">status</span>
+Score: 0 / 7300 (max without kit: 6400)
+Mode: radio
+  BLE   0/11
+  BTC   0/3
+  WEB   0/9
+  SER   0/4
+  HW    0/6
+  RE    0/4
+  CRY   0/3
+Hints used: none
+<span class="p">ctf&gt;</span> <span class="c">list SER</span>
+SER-01  Boot log                   100  -
+SER-02  Wrong baud                 200  -            [needs USB-UART adapter — skip if you don't have it]
+SER-03  Debug login                300  -
+SER-04  Escape sequence            200  -
+<span class="p">ctf&gt;</span> <span class="c">hint SER-03</span>
+The hint for SER-03 costs 75 points (25% of 300).
+Type `hint SER-03 yes` to reveal it.
+<span class="p">ctf&gt;</span> <span class="c">submit ESP{000000000000}</span>
+<span class="bad">Wrong flag.</span>
+<span class="p">ctf&gt;</span> <span class="cur"></span></pre>
+</div>
+</body>
+</html>

@@ -5,17 +5,18 @@ kit it needs (if any), a short teaser and the tools that fit it best. The
 guides tell you what each challenge is, not how to solve it; for that there are
 the in-game hints (`hint <id>`, then `hint <id> yes`, 25% of the points).
 
-| Track | Guide | Challenges | Points | Mode |
-|-------|-------|-----------:|-------:|------|
-| Bluetooth Low Energy | [ble.md](ble.md) | 11 | 2000 | radio |
-| Bluetooth Classic | [btc.md](btc.md) | 3 | 500 | radio |
-| Wi-Fi and web | [web.md](web.md) | 9 | 1500 | net |
-| Serial | [serial.md](serial.md) | 4 | 800 | always |
-| Hardware pins | [hw.md](hw.md) | 6 | 1000 | always |
-| Firmware reversing | [re.md](re.md) | 4 | 900 | always |
-| Crypto | [crypto.md](crypto.md) | 3 | 600 | always |
+| Track | Guide | Challenges | Points | Mode | Interface |
+|-------|-------|-----------:|-------:|------|-----------|
+| Bluetooth Low Energy | [ble.md](ble.md) | 11 | 2000 | radio | GATT, advertising |
+| Bluetooth Classic | [btc.md](btc.md) | 3 | 500 | radio | inquiry, SPP |
+| Wi-Fi and web | [web.md](web.md) | 9 | 1500 | net | SoftAP, HTTP, WebSocket, mDNS, UDP |
+| Serial | [serial.md](serial.md) | 4 | 800 | always | USB console, UART2 |
+| Hardware pins | [hw.md](hw.md) | 6 | 1000 | always | LED, GPIO, touch pads |
+| Firmware reversing | [re.md](re.md) | 4 | 900 | always | flash dump, console |
+| Crypto | [crypto.md](crypto.md) | 3 | 600 | always | console |
 
-Total 7300 points, 6400 without the optional kit.
+Easy 100, medium 200, hard 300 points. Total 7300 points, 6400 without the
+optional kit.
 
 ## Before you start
 
@@ -43,11 +44,14 @@ if you don't have the hardware; everything else works with a laptop and a phone.
 
 ## Scope
 
-Everything targets your board. No challenge involves any other network or
-device; keep your tools pointed at the board only.
+Every challenge targets the board and nothing else. The board runs its own
+access point and Bluetooth services; no challenge asks you to scan, join,
+attack or affect any other network or device. Keep tools like `nmap` and
+`hashcat` pointed at the board's own address and data. If you play in a room
+with other boards, only touch your own.
 
 ## Tools
 
-The [README Toolbox](../../README.md#toolbox) lists the recommended tools per
-track with install commands. Each challenge below names the one or two that fit
+The [Toolbox](../toolbox.md) lists the recommended tools per track with
+install commands. Each challenge below names the one or two that fit
 best.

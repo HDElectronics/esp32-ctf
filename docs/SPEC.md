@@ -223,8 +223,8 @@ Net mode also serves `/score` and `/submit`.
 
 ## Player toolbox (README + landing page)
 
-The README and the flasher landing page both have a "Toolbox" section that
-recommends terminal tools per track, with TUIs first and a one-line install
+`docs/toolbox.md` (linked from a short "Toolbox" list in the README) and the
+flasher landing page both have a "Toolbox" section that recommends terminal tools per track, with TUIs first and a one-line install
 hint each (`apt`, `pipx`, `cargo`, `go install`). Only tools used against the
 player's own board. Mark BlueZ's deprecated utilities (`hcitool`, `gatttool`,
 `rfcomm`, `sdptool`) as "legacy, may be missing on new distros".

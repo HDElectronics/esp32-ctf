@@ -1,0 +1,114 @@
+<!doctype html>
+<!-- README track overview. Counts and points match docs/players/index.md.
+     Rendered at 1200 px wide by scripts/render-images.sh; ?theme=dark for the dark variant. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ESP32 CTF tracks</title>
+<script>if (/[?&]theme=dark/.test(location.search) || location.hash === "#dark") document.documentElement.dataset.theme = "dark";</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Instrument+Sans:wght@400;500;600&family=Martian+Mono:wdth,wght@75..112.5,400..500&display=block">
+<style>
+  :root {
+    --bg: #f6f4f8; --surface: #ffffff; --ink: #221b2e; --muted: #6a6178; --line: #ddd6e6;
+    --accent: #4b2a7a; --gold: #a87414; --gold-soft: #f4e7c9; --on-accent: #f6f4f8;
+  }
+  :root[data-theme="dark"] {
+    --bg: #17121f; --surface: #211a2c; --ink: #ece6f4; --muted: #a79cb8; --line: #3a3048;
+    --accent: #b99ae8; --gold: #e2b450; --gold-soft: #3a2f17; --on-accent: #17121f;
+  }
+  html, body { margin: 0; }
+  body { width: 1200px; background: var(--bg); color: var(--ink); font-family: "Instrument Sans", system-ui, sans-serif; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 28px 32px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 20px 20px 18px; height: 196px; box-sizing: border-box;
+    display: flex; flex-direction: column; position: relative;
+  }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .ref { font-family: "Martian Mono", monospace; font-size: 12px; font-weight: 500; letter-spacing: 0.18em; color: var(--gold); padding-top: 4px; }
+  .card svg { width: 40px; height: 40px; color: var(--accent); }
+  h3 {
+    font-family: "Big Shoulders Display", "Arial Narrow", sans-serif; font-weight: 800;
+    text-transform: uppercase; font-size: 30px; line-height: 0.98; margin: 0 0 12px; color: var(--ink);
+    min-height: 59px; display: flex; align-items: flex-end;
+  }
+  .meta { font-family: "Martian Mono", monospace; font-size: 12px; color: var(--muted); margin-top: auto; white-space: nowrap; }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .left { display: flex; align-items: center; gap: 10px; }
+  .left .ref { padding-top: 0; }
+  .chip {
+    font-family: "Martian Mono", monospace; font-size: 10.5px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px; border: 1px solid;
+  }
+  .radio { color: var(--accent); border-color: var(--accent); }
+  .net { color: var(--gold); border-color: var(--gold); background: var(--gold-soft); }
+  .always { color: var(--muted); border-color: var(--line); }
+  .sum { background: var(--accent); border-color: var(--accent); color: var(--on-accent); justify-content: space-between; }
+  .sum .ref { color: var(--on-accent); opacity: 0.8; }
+  .big { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; text-transform: uppercase; font-size: 38px; line-height: 0.98; }
+  .sum .note { font-family: "Martian Mono", monospace; font-stretch: 80%; font-size: 11px; line-height: 1.6; opacity: 0.85; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- BLE: the Bluetooth rune -->
+    <symbol id="i-ble" viewBox="0 0 24 24"><path d="M6.5 7.2 17 16.4 11.8 21V3l5.2 4.6L6.5 16.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <!-- BT Classic: rune + audio waveform -->
+    <symbol id="i-btc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.4 9.6 15l-3.4 3V6l3.4 3L3 14.6"/><path d="M13 10.5v3M16 7v10M19 9v6M22 11v2"/></g></symbol>
+    <!-- Wi-Fi arcs -->
+    <symbol id="i-wifi" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 9a13.4 13.4 0 0 1 19 0"/><path d="M5.8 12.4a8.8 8.8 0 0 1 12.4 0"/><path d="M9 15.7a4.3 4.3 0 0 1 6 0"/></g><circle cx="12" cy="19" r="1.4" fill="currentColor"/></symbol>
+    <!-- UART: TX -> RX, RX <- TX -->
+    <symbol id="i-uart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="4" height="14" rx="1"/><rect x="18" y="5" width="4" height="14" rx="1"/><path d="M8 9h8M13.5 6.5 16 9l-2.5 2.5"/><path d="M16 15H8M10.5 12.5 8 15l2.5 2.5"/></g></symbol>
+    <!-- Pin header -->
+    <symbol id="i-pins" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="12" width="20" height="6" rx="1"/><path d="M5 12V4M9.67 12V4M14.33 12V4M19 12V4M5 18v3M9.67 18v3M14.33 18v3M19 18v3"/></g></symbol>
+    <!-- Firmware RE: chip + magnifier -->
+    <symbol id="i-re" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h5"/><path d="M7 4V1.5M11 4V1.5M7 16v2.5M4 8H1.5M4 12H1.5"/><circle cx="16" cy="13" r="4.5"/><path d="m19.3 16.3 3.2 3.2"/></g></symbol>
+    <!-- Crypto: key -->
+    <symbol id="i-cry" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="4.5"/><circle cx="7" cy="12" r="1.3"/><path d="M11.5 12H22M18.5 12v3.5M15.5 12v2.5"/></g></symbol>
+  </defs>
+</svg>
+<div class="grid">
+  <article class="card">
+    <div class="top"><span class="left"><span class="ref">BLE</span><span class="chip radio">radio</span></span><svg><use href="#i-ble"/></svg></div>
+    <h3>Bluetooth Low Energy</h3>
+    <span class="meta"><b>11</b> challenges · <b>2000</b> pts</span>
+  </article>
+  <article class="card">
+    <div class="top"><span class="left"><span class="ref">BTC</span><span class="chip radio">radio</span></span><svg><use href="#i-btc"/></svg></div>
+    <h3>Bluetooth Classic</h3>
+    <span class="meta"><b>3</b> challenges · <b>500</b> pts</span>
+  </article>
+  <article class="card">
+    <div class="top"><span class="left"><span class="ref">WEB</span><span class="chip net">net</span></span><svg><use href="#i-wifi"/></svg></div>
+    <h3>Wi-Fi and web</h3>
+    <span class="meta"><b>9</b> challenges · <b>1500</b> pts</span>
+  </article>
+  <article class="card">
+    <div class="top"><span class="left"><span class="ref">SER</span><span class="chip always">always on</span></span><svg><use href="#i-uart"/></svg></div>
+    <h3>Serial</h3>
+    <span class="meta"><b>4</b> challenges · <b>800</b> pts</span>
+  </article>
+  <article class="card">
+    <div class="top"><span class="left"><span class="ref">HW</span><span class="chip always">always on</span></span><svg><use href="#i-pins"/></svg></div>
+    <h3>Hardware pins</h3>
+    <span class="meta"><b>6</b> challenges · <b>1000</b> pts</span>
+  </article>
+  <article class="card">
+    <div class="top"><span class="left"><span class="ref">RE</span><span class="chip always">always on</span></span><svg><use href="#i-re"/></svg></div>
+    <h3>Firmware reversing</h3>
+    <span class="meta"><b>4</b> challenges · <b>900</b> pts</span>
+  </article>
+  <article class="card">
+    <div class="top"><span class="left"><span class="ref">CRY</span><span class="chip always">always on</span></span><svg><use href="#i-cry"/></svg></div>
+    <h3>Crypto</h3>
+    <span class="meta"><b>3</b> challenges · <b>600</b> pts</span>
+  </article>
+  <article class="card sum">
+    <span class="ref">TOTAL</span>
+    <div class="big">40 challenges<br>7300 pts</div>
+    <div class="note">easy 100 · medium 200 · hard 300<br>6400 without the optional kit</div>
+  </article>
+</div>
+</body>
+</html>

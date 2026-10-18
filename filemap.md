@@ -52,7 +52,12 @@
 - `sdkconfig.dev.local` — (git-ignored, user-created) dev STA Wi-Fi credentials overlay
 - `solvers/common/console.py` — shared no-reset board serial Console (all tracks; `--port` / `$CTF_PORT`)
 - `solvers/README.md` — solver setup: venv from /usr/bin/python3, port option, organizer-only (spoilers)
-- `README.md` — player/organizer overview, quick start, toolbox, build, dev options
+- `README.md` — short visual overview: banner, quick start, tracks, modes, hardware, toolbox pointers, organizer links
+- `docs/toolbox.md` — full per-track tool table + install hints (moved from README)
+- `docs/development.md` — build from source, release script, host tests, dev options (Wi-Fi password warning), organizer notes
+- `docs/img/` — README images, `<name>-light.png` / `<name>-dark.png` at 2x (`console.png` single, always dark)
+- `docs/img/src/` — one self-contained HTML source per image (`?theme=dark` for dark); `make_i2c.py` generates `i2c.html` from a sigrok capture (`.sr` not in repo)
+- `scripts/render-images.sh` — renders `docs/img/src/*.html` to `docs/img/*.png` with headless Chrome
 - `docs/players/` — spoiler-free player guides: index + one per track
 - `scripts/release.sh` — clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/
 - `web/flasher/` — flasher landing page (esp-web-tools 10.4.0) + manifest
