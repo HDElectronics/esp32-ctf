@@ -48,7 +48,7 @@ The onboard LED is trying to tell you something.
 Tools: phone slow-motion video, CyberChef
 
 ### HW-03 PWM frequency (200) · Kit: logic analyzer
-A pin is toggling at a frequency unique to your board. The answer is a number (`answer HW-03 <value>`). Skip this one if you don't have a logic analyzer.
+A pin is toggling at a frequency unique to your board. The answer is a number: check it in the player app's answer box or with `answer HW-03 <value>` on the console. Skip this one if you don't have a logic analyzer.
 Tools: `PulseView`, `sigrok-cli`
 
 ### HW-04 I2C chatter (200) · Kit: logic analyzer

@@ -1,0 +1,15 @@
+<!doctype html>
+<!-- README app screenshot (docs/img/app.png). scripts/render-images.sh serves
+     the repo root over HTTP and opens this page: it seeds the player app's
+     localStorage for the neutral example board 24:0A:C4:12:34:56 (three
+     challenges solved, the BLE-03 tier-2 hint bought: 100 + 300 - 20 = 380
+     points), then opens the app with the same query string. -->
+<meta charset="utf-8">
+<title>App screenshot seed</title>
+<script>
+  localStorage.setItem('esp32ctf:v1:240AC4123456', JSON.stringify({
+    v: 1, mac: '240AC4123456', solved: ['BLE-01', 'BLE-02', 'SER-01'], tiers: { 'BLE-03': 2 },
+  }));
+  localStorage.setItem('esp32ctf:v1:last', '240AC4123456');
+  location.replace('/web/app/' + location.search);
+</script>

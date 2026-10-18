@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- README console screenshot. Text is real output captured from the board on
-     /dev/ttyACM0 (v0.1.0, fresh board), with the boot ROM noise, the BLE passkey
-     line and the MAC tail removed. Always dark. Rendered at 1100 px wide. -->
+     /dev/ttyACM0 (v0.2.0, fresh board in net mode), with the boot log and the
+     selftest token line removed and the MAC replaced by a neutral example. Always dark. Rendered at 1100 px wide. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -40,14 +40,15 @@
   <div class="bar"><span class="dots"><i></i><i></i><i></i></span>tio · /dev/ttyACM0 · 115200</div>
 <pre><span class="g">==========================================</span>
   <span class="h">ESP32 CTF</span>
-  mode: radio
-  board MAC: 24:0A:C4:xx:xx:xx
+  mode: net
+  board MAC: 24:0A:C4:12:34:56
   type `help` to get started
 <span class="g">==========================================</span>
 
 <span class="p">ctf&gt;</span> <span class="c">status</span>
-Score: 0 / 7300 (max without kit: 6400)
-Mode: radio
+Points: 100 (started with 100, +0 solved, -0 hints)
+Challenges: 7300 points to earn (6400 without optional kit)
+Mode: net
   BLE   0/11
   BTC   0/3
   WEB   0/9
@@ -55,15 +56,18 @@ Mode: radio
   HW    0/6
   RE    0/4
   CRY   0/3
-Hints used: none
+Hints bought: none
 <span class="p">ctf&gt;</span> <span class="c">list SER</span>
 SER-01  Boot log                   100  -
-SER-02  Wrong baud                 200  -            [needs USB-UART adapter — skip if you don't have it]
+SER-02  Wrong baud                 200  -               [needs USB-UART adapter — skip if you don't have it]
 SER-03  Debug login                300  -
 SER-04  Escape sequence            200  -
 <span class="p">ctf&gt;</span> <span class="c">hint SER-03</span>
-The hint for SER-03 costs 75 points (25% of 300).
-Type `hint SER-03 yes` to reveal it.
+SER-03 Debug login (300 points). Hint tiers:
+  1 Nudge        free        [show: hint SER-03 1]
+  2 Hint         60 points   [buy: hint SER-03 2]
+  3 Walkthrough  150 points  [locked: buy tier 2 first]
+You have 100 points.
 <span class="p">ctf&gt;</span> <span class="c">submit ESP{000000000000}</span>
 <span class="bad">Wrong flag.</span>
 <span class="p">ctf&gt;</span> <span class="cur"></span></pre>

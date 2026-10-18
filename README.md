@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/img/banner-dark.png">
-    <img src="docs/img/banner-light.png" alt="ESP32 Multi-Track CTF, v0.1.0: one board, 40 challenges, 7 tracks (BLE, BT Classic, Wi-Fi, UART, pins, firmware, crypto). Drawing of an ESP32 DevKit seen from above with radio waves off its antenna." width="100%">
+    <img src="docs/img/banner-light.png" alt="ESP32 Multi-Track CTF, v0.2.0: one board, 40 challenges, 7 tracks (BLE, BT Classic, Wi-Fi, UART, pins, firmware, crypto). Drawing of an ESP32 DevKit seen from above with radio waves off its antenna." width="100%">
   </picture>
 </p>
 
@@ -15,23 +15,24 @@
 
 Flash one classic ESP32 DevKit and play a self-contained capture-the-flag across
 seven tracks, from Bluetooth to firmware reversing. 40 challenges from easy to hard,
-scored on the board itself, with per-board flags and built-in hints that cost points.
+scored on the board itself or in an offline browser app, with per-board flags and
+three tiers of hints paid from your points.
 Inspired by [hackgnar/ble_ctf](https://github.com/hackgnar/ble_ctf), broader in scope.
 
 <p align="center">
-  <img src="docs/img/console.png" alt="The board's serial console in tio: boot banner (ESP32 CTF, mode radio, board MAC), then status showing 0 / 7300 points per track, list SER showing four serial challenges, hint SER-03 asking to confirm a 75-point cost, and submit of a wrong flag answered with Wrong flag." width="100%">
+  <img src="docs/img/console.png" alt="The board's serial console in tio: boot banner (ESP32 CTF, mode net, board MAC), then status showing Points: 100 and 7300 points to earn, list SER showing four serial challenges, hint SER-03 listing its three hint tiers (Nudge free, Hint 60 points, Walkthrough 150 points), and submit of a wrong flag answered with Wrong flag." width="100%">
 </p>
 
 ## Quick start
 
-1. Download `esp32-ctf-v0.1.0.bin` from the [latest release](https://github.com/HDElectronics/esp32-ctf/releases/latest).
+1. Download `esp32-ctf-v0.2.0.bin` from the [latest release](https://github.com/HDElectronics/esp32-ctf/releases/latest).
 2. Flash it with `esptool` (`pipx install esptool`); flashing again wipes your progress.
 3. Open the console at 115200 8N1, press EN/RST, then type `help`, `status` and `list`.
 
 ```sh
 # merged image (bootloader + partition table + app) at offset 0x0;
 # the port may be /dev/ttyACM0, COM3 or /dev/cu.usbserial-*
-esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.1.0.bin
+esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.2.0.bin
 tio -b 115200 /dev/ttyUSB0
 ```
 
@@ -56,9 +57,23 @@ choice and reboots, progress is kept; `mode` alone shows the current one.
 </picture>
 
 - **Flags are unique per board** (derived from its MAC) and look like `ESP{0123456789AB}`; a few challenges take `answer <id> <value>` instead.
-- **Hints cost 25%** of a challenge's points: `hint <id>` shows the cost, `hint <id> yes` reveals it.
+- **Points wallet:** you start with 100 points, a solve adds its full value (100/200/300) and hints are paid from your points; max 7400.
+- **Three hint tiers** per challenge, bought in order: 1 Nudge (free), 2 Hint (20%), 3 Walkthrough (50%). `hint <id>` lists them, `hint <id> <n>` shows or buys one.
 - **Submit anywhere:** `submit <flag>` on the console, over BLE in radio mode (CTF control service) or on the board's `/submit` page in net mode; any interface accepts any challenge's flag.
-- **Optional-kit challenges can be skipped:** max 7300 points, 6400 without the kit.
+- **Optional-kit challenges can be skipped:** 7300 points to earn, 6400 without the kit.
+
+## Play in the browser
+
+<p align="center">
+  <img src="docs/img/app.png" alt="The player app on the board ESP32-CTF-3456: 380 points in the header, the Bluetooth LE tab with BLE-01 and BLE-02 solved, and BLE-03 Notify me open on the right with its radio-mode note, tools and hint tiers (Nudge free, Hint unlocked, Walkthrough for 50)." width="100%">
+</p>
+
+The player app is a guide and scoreboard served from this repo:
+`python3 -m http.server -d web 8000`, then open <http://localhost:8000/app/>.
+It never touches the board: type your board's MAC once (from the boot banner),
+then check flags and answers, buy hints and keep your points in the page.
+Progress stays in your browser (Export / Import moves it). The board's own
+console score (`submit`, `hint`, `status`) keeps working separately.
 
 ## Hardware
 

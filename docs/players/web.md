@@ -18,7 +18,7 @@ second adapter, or a phone hotspot over USB for your other traffic, helps.
 
 ### Submitting on the web
 
-- `/score`: current score
+- `/score`: current points (the board's own wallet, same as `status`)
 - `/submit`: form that accepts any challenge's flag
 
 ## Challenges

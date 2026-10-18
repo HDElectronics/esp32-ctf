@@ -58,11 +58,11 @@
 - `README.md` — short visual overview: banner, quick start, tracks, modes, hardware, toolbox pointers, organizer links
 - `docs/toolbox.md` — full per-track tool table + install hints (moved from README)
 - `docs/development.md` — build from source, release script, host tests, dev options (Wi-Fi password warning), organizer notes
-- `docs/img/` — README images, `<name>-light.png` / `<name>-dark.png` at 2x (`console.png` single, always dark)
-- `docs/img/src/` — one self-contained HTML source per image (`?theme=dark` for dark); `make_i2c.py` generates `i2c.html` from a sigrok capture (`.sr` not in repo)
-- `scripts/render-images.sh` — renders `docs/img/src/*.html` to `docs/img/*.png` with headless Chrome
+- `docs/img/` — README images, `<name>-light.png` / `<name>-dark.png` at 2x (`console.png` and `app.png` single, always dark)
+- `docs/img/src/` — one self-contained HTML source per image (`?theme=dark` for dark); `make_i2c.py` generates `i2c.html` from a sigrok capture (`.sr` not in repo); `app-seed.html` seeds the player app's progress for `app.png`
+- `scripts/render-images.sh` — renders `docs/img/src/*.html` to `docs/img/*.png` with headless Chrome; `app` serves the repo on :8012 and shoots the real player app
 - `docs/players/` — spoiler-free player guides: index + one per track
-- `scripts/release.sh` — clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/ (flasher at root + player app in app/, cross-links rewritten)
+- `scripts/release.sh` — app-content `--check` guard, clean release build, dev-option guard, merged .bin → dist/, ESP Web Tools manifest, web/flasher/dist-site/ (flasher at root + player app in app/, cross-links rewritten)
 - `web/flasher/` — flasher landing page (esp-web-tools 10.4.0) + manifest; hero links to the player app
 - `web/app/` — player app (static, no build): offline guide and scoreboard, never opens the board's port; README for local serving
 - `web/app/index.html`, `web/app/app.css` — Setup (MAC entry) + Play screens per `docs/design/player-app/`, design tokens

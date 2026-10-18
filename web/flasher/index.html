@@ -214,7 +214,7 @@
   <div class="wrap">
     <span class="silk">U1 · flash</span>
     <h1>ESP32 Multi-Track CTF</h1>
-    <p class="lede">Flash one classic ESP32 DevKit and play 40 capture-the-flag challenges across radio, web, serial, hardware pins, firmware reversing and crypto, scored on the board itself.</p>
+    <p class="lede">Flash one classic ESP32 DevKit and play 40 capture-the-flag challenges across radio, web, serial, hardware pins, firmware reversing and crypto. Keep score on the board's console, or play in the browser: the player app is an offline guide and scoreboard that checks your flags and sells hints without ever touching the board.</p>
 
     <div class="install">
       <esp-web-install-button manifest="manifest.json">
@@ -223,14 +223,14 @@
         <span slot="not-allowed" class="warn">Web Serial needs this page to be served over HTTPS (or localhost).</span>
       </esp-web-install-button>
       <a class="play-link" href="../app/">Play in the browser</a>
-      <span class="chipnote">Classic ESP32 · 4 MB flash · v0.1.0</span>
+      <span class="chipnote">Classic ESP32 · 4 MB flash · v0.2.0</span>
     </div>
 
     <div class="notice">
       <p>Browser flashing uses Web Serial, which works in desktop Chrome and Edge (not Firefox, Safari or mobile browsers). Plug the board in over USB, click the button and pick its serial port.</p>
       <p>Or flash from a terminal with <code>esptool</code> (<code>pipx install esptool</code>), with the image from this page:</p>
-      <pre><code>esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.1.0.bin</code></pre>
-      <p class="small">The port may be <code>/dev/ttyACM0</code>, <code>/dev/cu.usbserial-*</code> or <code>COM3</code>. Download: <a href="esp32-ctf-v0.1.0.bin" download>esp32-ctf-v0.1.0.bin</a>. Flashing again wipes your progress.</p>
+      <pre><code>esptool --chip esp32 -p /dev/ttyUSB0 write-flash 0x0 esp32-ctf-v0.2.0.bin</code></pre>
+      <p class="small">The port may be <code>/dev/ttyACM0</code>, <code>/dev/cu.usbserial-*</code> or <code>COM3</code>. Download: <a href="esp32-ctf-v0.2.0.bin" download>esp32-ctf-v0.2.0.bin</a>. Flashing again wipes your progress.</p>
     </div>
   </div>
 </header>
@@ -284,7 +284,7 @@
         <p>A classic cipher with a scattered key, an encryption oracle and a reused nonce.</p>
       </article>
     </div>
-    <p class="totals">Max 7300 points · 6400 without the optional kit · hints cost 25% of a challenge's points</p>
+    <p class="totals">Start with 100 points · 7300 to earn, 6400 without the optional kit · hints: free nudge, hint 20%, walkthrough 50%</p>
   </div>
 </section>
 
@@ -309,7 +309,7 @@
       <li>
         <h3>Check the board, pick a track</h3>
         <div class="body">
-          <p><code>status</code> shows your score and mode, <code>list</code> (or <code>list BLE</code>, <code>list HW</code>, …) the challenges. Submit with <code>submit ESP{…}</code>; when stuck, <code>hint &lt;id&gt;</code> shows the cost and <code>hint &lt;id&gt; yes</code> reveals it. <code>mode net</code> switches to the web track.</p>
+          <p><code>status</code> shows your points and mode, <code>list</code> (or <code>list BLE</code>, <code>list HW</code>, …) the challenges. Submit with <code>submit ESP{…}</code>; when stuck, <code>hint &lt;id&gt;</code> lists the three hint tiers and <code>hint &lt;id&gt; &lt;n&gt;</code> shows or buys one. Or type the board MAC from the banner into the <a href="../app/">player app</a> and play there. <code>mode net</code> switches to the web track.</p>
         </div>
       </li>
     </ol>

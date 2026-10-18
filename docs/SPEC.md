@@ -89,6 +89,8 @@ console saves it and reboots.
 
 ### Scoring and hints
 
+> Superseded in v0.2.0 by "Points wallet" (start with 100, three hint tiers); kept for history.
+
 - Points: easy 100, medium 200, hard 300.
 - `hint <id>` reveals the challenge's hint and deducts 25% of its points
   (once per challenge). Hint text is stored in firmware.
