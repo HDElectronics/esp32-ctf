@@ -1,0 +1,15 @@
+# Defuse32 firmware defaults (target esp32, classic)
+CONFIG_IDF_TARGET="esp32"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# Packs live on the microSD card: no SPIFFS/FAT partition in flash.
+# Single factory app (1.5 MB) + NVS.
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
+# Console on UART0, 115200
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+
+# FATFS on the SD card: long file names for /sd/packs/<name>.json
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=64

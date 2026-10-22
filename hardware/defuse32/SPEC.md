@@ -23,6 +23,12 @@ Guiding rule: **reuse, don't design from scratch.** Off-the-shelf carry case, of
 - **Carrier PCB**: 190 × 140 mm, 1.6 mm, 4 × Ø3.2 mounting holes 5 mm from the corners, on M3 × 8 standoffs on a 3 mm floor sled (z: sled 0–3, PCB 11–12.6), centred on the floor, DevKit USB edge facing the case's right wall. Plate connectors J1–J3 on the back edge, J4–J6 on the front edge, in plate order left→right.
 - **DevKit footprint**: 2 × 1×19 sockets at 25.40 mm (genuine DevKitC) plus an unpopulated third 1×19 row at 22.86 mm from row 1 for narrow clones, same nets.
 
+## Rev 1 changes (2026-10-22)
+
+- **Challenge packs on microSD**: a 3.3 V-only microSD breakout (no level shifter; e.g. Adafruit 4682 style: 3V, GND, CLK, SO, SI, CS, DET) on a 1×7 female socket on the carrier, on the existing VSPI bus (SCK 18, MOSI 23, MISO 19) with **SD_CS = GPIO2** and a 10 kΩ pull-down on GPIO2 (keeps the boot/download strapping valid). Card detect DET → MCP U2 GPB5 (was SPARE1). Avoid 5 V "catalex" modules: their level shifter does not release MISO and would fight the probe plate's W25Q32. The SD sits on the carrier, under the panel: only the game master reaches it.
+- **Separate 3.3 V rail for peripherals**: U5 LD1117V33 (TO-220) from the 5 V rail → net `3V3P`, 10 µF in, 10 µF out (+100 nF). All plate `3V3` pins, U2/U3, the GY-521, the SD card and the I2C/INT pull-ups move to `3V3P`. The DevKit's own regulator only powers the ESP32. Modules run only when the 5 V input is connected (DevKit USB alone powers the ESP32, not the modules).
+- **Ready for hand routing** (the owner routes the board): net classes `Power` (5V, 3V3P, GND: 0.8 mm track, 0.3 mm clearance) and `Default` (0.25 mm track, 0.2 mm clearance), vias 0.6/0.3 mm, JLCPCB 2-layer capabilities as design rules. Board stays unrouted.
+
 ## Electronics (carrier PCB)
 
 THT-only, 2-layer, hand-solderable. Everything 3.3 V logic except the WS2812 chain, servo and buzzer (5 V).
@@ -34,8 +40,8 @@ THT-only, 2-layer, hand-solderable. Everything 3.3 V logic except the WS2812 cha
 | U4 | 74AHCT125 (DIP-14) | 3.3 → 5 V buffer for WS2812 data (one gate used, others tied off). |
 | Q1 | 2N3904 | Low-side driver for the 5 V passive buzzer, 1 kΩ base, 1N4148 across buzzer. |
 | D1 | SS34 / 1N5822 Schottky | 5 V rail → DevKit 5V pin, so USB on the DevKit can't back-feed the rail. |
-| C | 470 µF/10 V bulk on 5 V near servo + LED connectors; 100 nF per IC; 10 µF on 3V3 | |
-| R | I2C pull-ups 4.7 kΩ to 3V3 (SDA, SCL); 10 kΩ pull-ups on GPIO35, GPIO34; 10 kΩ GPIO36→GND (LDR divider, LDR on the plate goes 3V3→GPIO36); 330 Ω in series with WS2812 data out | |
+| C | 470 µF/10 V bulk on 5 V near servo + LED connectors; 100 nF per IC; 10 µF in + 10 µF out on U5 (3V3P, rev 1) | |
+| R | I2C pull-ups 4.7 kΩ to 3V3P (SDA, SCL); 10 kΩ pull-ups to 3V3P on GPIO35, GPIO34; 10 kΩ pull-down on GPIO2 (SD_CS, rev 1); 10 kΩ GPIO36→GND (LDR divider, LDR on the plate goes 3V3P→GPIO36); 330 Ω in series with WS2812 data out | |
 | A1 | GY-521 MPU-6050 module | Female 1×8 header on the carrier (tilt anti-tamper sits on the carrier, not a plate). |
 | J_PWR | 2-pin screw terminal, 5 V in | From the panel-mount USB-C 5 V module. |
 
@@ -45,7 +51,7 @@ THT-only, 2-layer, hand-solderable. Everything 3.3 V logic except the WS2812 cha
 |------|----------|-------|
 | 21 / 22 | I2C SDA / SCL | Carrier bus to MCPs, MPU-6050 and every plate connector |
 | 35 | MCP23017 INT (wired-OR, open-drain) | input-only, 10 k pull-up |
-| 39 | MPU-6050 INT | input-only |
+| 39 | Encoder switch ENC_SW (rev 1b) | input-only, 10 k pull-up to 3V3P. MPU-6050 INT is not connected; the firmware polls the MPU over I2C |
 | 34 | IR receiver out | input-only, 10 k pull-up |
 | 36 (VP) | LDR divider | ADC1_CH0 |
 | 32 / 33 | TM1637 CLK / DIO | timer plate |
@@ -55,11 +61,14 @@ THT-only, 2-layer, hand-solderable. Everything 3.3 V logic except the WS2812 cha
 | 4 / 13 / 14 / 15 | Touch pads T0 / T4 / T6 / T3 | bare wires to copper pads on the sensor plate |
 | 18 / 23 / 19 / 5 | SPI SCK / MOSI / MISO / CS | exposed SPI flash (W25Q32) on the probe plate |
 | 17 / 16 | UART2 TX / RX | exposed header on the probe plate |
-| 2, 12 | unused | strapping; leave unconnected |
+| 2 | SD_CS (rev 1) | strapping pin: 10 k pull-down keeps download mode working |
+| 12 | unused | strapping; leave unconnected |
 | 0, 1, 3, 6–11 | reserved | boot / USB console / flash |
 
-MCP23017 U2 (0x20): GPA0–3 keypad rows, GPA4–7 keypad columns, GPB0–3 Simon buttons, GPB4 key switch, GPB5–7 spare (to a 3-pin spare header).
-MCP23017 U3 (0x21): GPA0–4 + GPA7 wire posts "A" WA1–5, WA6 (outputs), GPB0–5 wire posts "B" (inputs), GPA6/GPA5/GPB6 encoder A/B/SW, GPB7 spare. GPA7/GPB7 are **output-only** on current MCP23017 silicon, so they only carry outputs (WA6) or spares; U2 GPB7 (SPARE3) is output-only too.
+MCP23017 U2 (0x20): GPA0–3 keypad rows ROW1–4, GPA4–6 keypad columns COL1–3, **GPB6 COL4** (rev 1b), GPB0–3 Simon buttons, GPB4 key switch, GPB5 SD_DET, GPA7 + GPB7 spare outputs.
+MCP23017 U3 (0x21): GPA0–4 wire posts WA1–5, **GPB6 WA6** (rev 1b), GPB0–5 wire posts WB1–6, GPA6/GPA5 encoder A/B (ENC_SW moved to GPIO39), GPA7 + GPB7 spare outputs.
+
+Rev 1b rule: GPA7/GPB7 are **output-only** on current MCP23017 silicon and cannot go high-impedance, so no keypad or wire-matrix line may use them (scanning drives one line at a time and leaves the others as inputs; an output-only line would short against the active one when two keys or two leads share a line). All four (U2 GPA7, U2 GPB7, U3 GPA7, U3 GPB7) go to `J_SPARE` as spare outputs.
 
 WS2812 chain order (15 LEDs): radio link LEDs (2) → radio status → timer strikes (3) → timer status → keypad status → wires status → probe status → sensor Simon (4) → sensor status. The chain enters each plate on LDI and leaves on LDO.
 
@@ -76,7 +85,7 @@ Every plate gets the **common** connector `Jn_A` (7 pin): `5V, 3V3, GND, SDA, SC
 | M5 Probe | U2TX, U2RX, SCK, MOSI, MISO, CS (6) |
 | M6 Sensors | T0, T4, T6, T3, LDR, IR, SIM1–4, SERVO_SIG (11) |
 
-Plus on the carrier: `J_KEY` (2: GPB4, GND), `J_SERVO` (3, SG90 plug order: GND, 5V, SIG; the M6 SERVO_SIG pin is the same net, use either), `J_SPARE` (U2 GPB5–7), `J_PWR`.
+Plus on the carrier: `J_KEY` (2: GPB4, GND), `J_SERVO` (3, SG90 plug order: GND, 5V, SIG; the M6 SERVO_SIG pin is the same net, use either), `J_SPARE` (4 + GND: U2 GPA7, U2 GPB7, U3 GPA7, U3 GPB7, all output-only), `J_PWR`.
 
 KiCad references: Jn_A → `Jn1`, Jn_B → `Jn2`, J_PWR = J7, J_KEY = J8, J_SERVO = J9, J_SPARE = J10 (the SPEC name is in each Value and on the silkscreen).
 
@@ -85,7 +94,7 @@ KiCad references: Jn_A → `Jn1`, Jn_B → `Jn2`, J_PWR = J7, J_KEY = J8, J_SERV
 | Plate | Modules |
 |-------|---------|
 | M1 Radio | SSD1306 0.96" I2C OLED (0x3C), KY-040 rotary encoder, 2 WS2812 (or a 2-LED strip piece), antenna lead from the DevKit (U.FL variant optional) |
-| M2 Timer | TM1637 0.56" 4-digit module, 3 WS2812 strike LEDs, 12 mm passive buzzer |
+| M2 Timer | TM1637 0.56" 4-digit module **powered from 3V3P** (its pull-ups would put 5 V on GPIO32/33 if powered from 5 V), 3 WS2812 strike LEDs, 12 mm passive buzzer |
 | M3 Keypad | 4×4 keypad (hard-key PCB type) **mounted on top of the plate** (its 61 mm hole pattern is too close to its 60 mm key field to mount from below), header through a slot; printed 0–F overlay; SH1106 1.3" I2C OLED (0x3D) |
 | M4 Wires | 12 × 4 mm banana binding posts, 6 coloured banana leads |
 | M5 Probe | 2.54 mm headers (UART, I2C, SPI), DIP-8 socket with 24C32 EEPROM (on I2C, 0x50), W25Q32 on a SOIC-8 breakout, test-point loops |

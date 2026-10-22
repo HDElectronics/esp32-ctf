@@ -33,6 +33,11 @@ DEVKIT_RIGHT = [
     ("GPIO15", "bidirectional"), ("SD1/GPIO8", "bidirectional"), ("SD0/GPIO7", "bidirectional"),
     ("CLK/GPIO6", "bidirectional"),
 ]
+# Rev 1: 3.3 V-only microSD breakout (Adafruit 4682 style), 1x7 header in this order
+SD_PINS = [("3V", "power_in"), ("GND", "power_in"), ("CLK", "input"), ("SO", "output"), ("SI", "input"),
+           ("CS", "input"), ("DET", "output")]
+# typical outline (Mouser listing for 4682: 25.4 x 22.8 mm); header along the 25.4 side, card slot opposite
+SD_W, SD_D, SD_EDGE = 25.4, 22.8, 1.27
 GY521_PINS = [("VCC", "power_in"), ("GND", "power_in"), ("SCL", "input"), ("SDA", "bidirectional"),
               ("XDA", "bidirectional"), ("XCL", "output"), ("AD0", "input"), ("INT", "output")]
 
@@ -108,9 +113,22 @@ def gy521_symbol():
     return s
 
 
+def sd_symbol():
+    s = sym_header("MicroSD_Breakout_3V3", "A", "MicroSD_Breakout_3V3", "defuse32:MicroSD_Breakout_Socket",
+                   "https://www.adafruit.com/product/4682",
+                   "3.3 V-only microSD breakout (no level shifter), SPI, plugs into a 1x7 female header: "
+                   "3V GND CLK SO SI CS DET", "microSD SD card SPI module", (0, 12.7), (0, -12.7))
+    body = [S("symbol"), "MicroSD_Breakout_3V3_0_1", rect(-5.08, 10.16, 7.62, -10.16)]
+    pins = [S("symbol"), "MicroSD_Breakout_3V3_1_1"]
+    for i, (n, t) in enumerate(SD_PINS):
+        pins.append(pin(t, -7.62, 7.62 - 2.54 * i, 0, n, str(i + 1)))
+    s += [body, pins, [S("embedded_fonts"), S("no")]]
+    return s
+
+
 def write_symlib():
     lib = [S("kicad_symbol_lib"), [S("version"), 20251024], [S("generator"), "defuse32_gen_lib"],
-           [S("generator_version"), "10.0"], devkit_symbol(), gy521_symbol()]
+           [S("generator_version"), "10.0"], devkit_symbol(), gy521_symbol(), sd_symbol()]
     with open(os.path.join(KDIR, "defuse32.kicad_sym"), "w") as f:
         f.write(dump(lib) + "\n")
 
@@ -272,10 +290,47 @@ def gy521_footprint():
     return fp
 
 
+def sd_footprint():
+    """1x7 socket along +Y (pin 1 = 3V at the top). The module body lies to the left (-X), so the
+    footprint goes at a board edge with the card slot facing outward. Pin names on the right (visible)."""
+    yc = 3 * 2.54
+    o = (round(SD_EDGE - SD_D, 3), round(yc - SD_W / 2, 3), SD_EDGE, round(yc + SD_W / 2, 3))
+    fp = [S("footprint"), "MicroSD_Breakout_Socket", [S("version"), 20260206], [S("generator"), "defuse32_gen_lib"],
+          [S("layer"), "F.Cu"],
+          [S("descr"), "1x7 female header for a 3.3 V-only microSD breakout (3V GND CLK SO SI CS DET, Adafruit 4682 "
+                       "style); silk/courtyard show the module (25.4 x 22.8, typical) to the left of the header, "
+                       "card slot on the far (left) side"],
+          [S("tags"), "microSD SD card breakout socket"],
+          fprop("Reference", "REF**", 3.2, o[1] - 1.2, "F.SilkS"),
+          fprop("Value", "MicroSD_Breakout_Socket", (o[0] + o[2]) / 2, o[3] + 1.5, "F.Fab"),
+          fprop("Datasheet", "https://www.adafruit.com/product/4682", 0, 0, "F.Fab", hide=True),
+          fprop("Description", "microSD breakout socket", 0, 0, "F.Fab", hide=True),
+          [S("attr"), S("through_hole")], [S("duplicate_pad_numbers_are_jumpers"), S("no")]]
+    fp += box(o[0], o[1], o[2], o[3], "F.SilkS", 0.12)
+    for i, (n, _) in enumerate(SD_PINS):
+        fp.append(text(n, 1.6, round(i * 2.54, 3), "F.SilkS", 0.8, justify="left"))
+    fp.append(text("microSD  3V3 ONLY", -9.5, yc, "F.SilkS", 1.0, angle=90))
+    # card arrow toward the slot side (-X)
+    ax = o[0] + 1.5
+    fp.append(line(ax + 7, yc, ax, yc, "F.SilkS", 0.2))
+    fp.append(line(ax, yc, ax + 1.6, yc - 1.2, "F.SilkS", 0.2))
+    fp.append(line(ax, yc, ax + 1.6, yc + 1.2, "F.SilkS", 0.2))
+    fp.append(text("CARD", ax + 3.5, yc - 1.8, "F.SilkS", 0.8))
+    fp += box(o[0], o[1], o[2], o[3], "F.Fab", 0.1)
+    fp.append(text("${REFERENCE}", -6, yc + 4, "F.Fab", 1.0))
+    c = 0.25
+    fp += box(o[0] - c, o[1] - c, o[2] + c, o[3] + c, "F.CrtYd", 0.05)
+    for i in range(7):
+        fp.append(pad(str(i + 1), 0, round(i * 2.54, 4), first=(i == 0)))
+    fp += [[S("embedded_fonts"), S("no")]]
+    fp.append(model(SOCK % 7))
+    return fp
+
+
 def write_fplib():
     d = os.path.join(KDIR, "defuse32.pretty")
     os.makedirs(d, exist_ok=True)
-    for fp in (devkit_footprint(), gy521_footprint()):
+    for fp in (devkit_footprint(), gy521_footprint(), sd_footprint()):
         with open(os.path.join(d, fp[1] + ".kicad_mod"), "w") as f:
             f.write(dump(fp) + "\n")
 

@@ -1,15 +1,17 @@
-"""Defuse32 carrier rev 0: single source of truth for parts, nets and placement.
+"""Defuse32 carrier rev 1b: single source of truth for parts, nets and placement.
 
 Used by gen_sch.py (schematic) and gen_pcb.py (board). Net names follow
 hardware/defuse32/SPEC.md. Pin numbers are symbol pin numbers == footprint pad numbers.
 """
 
-# MCP23017 GPA7/GPB7 are output-only on current silicon. True (as SPEC.md now says):
-# U3 GPA7 carries WA6 (an output) and ENC_B moves to GPA5; GPB7 stays a spare.
-FIX_U3_GPA7 = True
+# MCP23017 GPA7/GPB7 are output-only on current silicon and cannot go high-impedance.
+# Rev 1b rule (SPEC.md): no keypad or wire-matrix line on GPA7/GPB7. COL4 -> U2 GPB6,
+# WA6 -> U3 GPB6, ENC_SW -> GPIO39 (MPU-6050 INT not connected); all four GPA7/GPB7
+# go to J_SPARE as spare outputs.
 
 NC = None          # explicit no-connect flag on that pin
-POWER = ("5V", "3V3", "GND", "DK_5V")
+POWER = ("5V", "3V3P", "GND", "DK_5V")
+# Rev 1: every peripheral 3.3 V pin is on 3V3P (U5 LD1117V33 from 5V). The DevKit 3V3 pin feeds nothing.
 
 R_FP = "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
 C_FP = "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
@@ -44,9 +46,9 @@ part("D1", "Diode", "1N5822", "1N5822", "Diode_THT:D_DO-201AD_P15.24mm_Horizonta
 part("C1", "Device", "C_Polarized", "470uF/10V", "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm",
      {"1": "5V", "2": "GND"}, (86.36, 35.56))
 part("C2", "Device", "C_Polarized", "10uF", "Capacitor_THT:CP_Radial_D5.0mm_P2.00mm",
-     {"1": "3V3", "2": "GND"}, (101.6, 35.56))
-part("C3", "Device", "C", "100nF", C_FP, {"1": "3V3", "2": "GND"}, (22.86, 81.28), note="U2")
-part("C4", "Device", "C", "100nF", C_FP, {"1": "3V3", "2": "GND"}, (35.56, 81.28), note="U3")
+     {"1": "3V3P", "2": "GND"}, (373.38, 218.44), note="U5 out")
+part("C3", "Device", "C", "100nF", C_FP, {"1": "3V3P", "2": "GND"}, (22.86, 81.28), note="U2")
+part("C4", "Device", "C", "100nF", C_FP, {"1": "3V3P", "2": "GND"}, (35.56, 81.28), note="U3")
 part("C5", "Device", "C", "100nF", C_FP, {"1": "5V", "2": "GND"}, (48.26, 81.28), note="U4")
 for i, (x, y) in enumerate([(71.12, 73.66), (96.52, 73.66), (71.12, 88.9), (96.52, 88.9)]):
     part("H%d" % (i + 1), "Mechanical", "MountingHole", "MountingHole_M3", "MountingHole:MountingHole_3.2mm_M3",
@@ -54,21 +56,23 @@ for i, (x, y) in enumerate([(71.12, 73.66), (96.52, 73.66), (71.12, 88.9), (96.5
 
 # ------------------------------------------------------------------ ESP32 DevKitC
 U1 = {str(i): NC for i in range(1, 39)}
-U1.update({"1": "3V3", "3": "LDR", "4": "MPU_INT", "5": "IR", "6": "MCP_INT", "7": "TM_CLK", "8": "TM_DIO",
+U1.update({"3": "LDR", "4": "ENC_SW", "5": "IR", "6": "MCP_INT", "7": "TM_CLK", "8": "TM_DIO",
            "9": "WS_DATA", "10": "BUZZ", "11": "SERVO_SIG", "12": "T6", "14": "GND", "15": "T4", "19": "DK_5V",
            "20": "GND", "21": "MOSI", "22": "SCL", "25": "SDA", "26": "GND", "27": "MISO", "28": "SCK",
-           "29": "CS", "30": "U2TX", "31": "U2RX", "32": "T0", "35": "T3"})
+           "29": "CS", "30": "U2TX", "31": "U2RX", "32": "T0", "34": "SD_CS", "35": "T3"})   # pin 1 (3V3) stays NC in rev 1
 part("U1", "defuse32", "ESP32-DevKitC-32E", "ESP32-DevKitC-32E", "defuse32:ESP32-DevKitC_Socket",
      U1, (180.34, 53.34))
 
 # ------------------------------------------------------------------ pull-ups, IMU
-part("R2", "Device", "R", "4.7k", R_FP, {"1": "3V3", "2": "SDA"}, (248.92, 40.64), note="I2C SDA pull-up")
-part("R3", "Device", "R", "4.7k", R_FP, {"1": "3V3", "2": "SCL"}, (259.08, 40.64), note="I2C SCL pull-up")
-part("R4", "Device", "R", "10k", R_FP, {"1": "3V3", "2": "MCP_INT"}, (269.24, 40.64), note="GPIO35 pull-up")
-part("R5", "Device", "R", "10k", R_FP, {"1": "3V3", "2": "IR"}, (279.4, 40.64), note="GPIO34 pull-up")
+part("R2", "Device", "R", "4.7k", R_FP, {"1": "3V3P", "2": "SDA"}, (248.92, 40.64), note="I2C SDA pull-up")
+part("R3", "Device", "R", "4.7k", R_FP, {"1": "3V3P", "2": "SCL"}, (259.08, 40.64), note="I2C SCL pull-up")
+part("R4", "Device", "R", "10k", R_FP, {"1": "3V3P", "2": "MCP_INT"}, (269.24, 40.64), note="GPIO35 pull-up")
+part("R5", "Device", "R", "10k", R_FP, {"1": "3V3P", "2": "IR"}, (279.4, 40.64), note="GPIO34 pull-up")
 part("R6", "Device", "R", "10k", R_FP, {"1": "LDR", "2": "GND"}, (289.56, 40.64), note="LDR divider")
+# rev 1b: ENC_SW on GPIO39 (input-only, no internal pull-up)
+part("R9", "Device", "R", "10k", R_FP, {"1": "3V3P", "2": "ENC_SW"}, (284.48, 63.5), note="GPIO39 ENC_SW pull-up")
 part("A1", "defuse32", "GY-521", "GY-521 (MPU-6050)", "defuse32:GY-521_Socket",
-     {"1": "3V3", "2": "GND", "3": "SCL", "4": "SDA", "5": NC, "6": NC, "7": "GND", "8": "MPU_INT"},
+     {"1": "3V3P", "2": "GND", "3": "SCL", "4": "SDA", "5": NC, "6": NC, "7": "GND", "8": NC},
      (317.5, 50.8))
 
 # ------------------------------------------------------------------ WS2812 buffer
@@ -83,20 +87,18 @@ part("U4", "74xx", "74AHCT125", "74AHCT125", "Package_DIP:DIP-14_W7.62mm",
 part("R1", "Device", "R", "330", R_FP, {"1": "WS_5V", "2": "LDI"}, (398.78, 30.48), note="WS2812 data series R")
 
 # ------------------------------------------------------------------ expanders
-U2 = {"9": "3V3", "10": "GND", "12": "SCL", "13": "SDA", "15": "GND", "16": "GND", "17": "GND",
-      "18": "3V3", "19": "MCP_INT", "20": "MCP_INT",
+U2 = {"9": "3V3P", "10": "GND", "12": "SCL", "13": "SDA", "15": "GND", "16": "GND", "17": "GND",
+      "18": "3V3P", "19": "MCP_INT", "20": "MCP_INT",
       "21": "ROW1", "22": "ROW2", "23": "ROW3", "24": "ROW4",
-      "25": "COL1", "26": "COL2", "27": "COL3", "28": "COL4",
+      "25": "COL1", "26": "COL2", "27": "COL3", "28": "U2_GPA7",
       "1": "SIM1", "2": "SIM2", "3": "SIM3", "4": "SIM4", "5": "KEY",
-      "6": "SPARE1", "7": "SPARE2", "8": "SPARE3"}
-U3 = {"9": "3V3", "10": "GND", "12": "SCL", "13": "SDA", "15": "3V3", "16": "GND", "17": "GND",
-      "18": "3V3", "19": "MCP_INT", "20": "MCP_INT",
-      "21": "WA1", "22": "WA2", "23": "WA3", "24": "WA4", "25": "WA5", "26": "WA6",
-      "27": "ENC_A", "28": "ENC_B",
+      "6": "SD_DET", "7": "COL4", "8": "U2_GPB7"}
+U3 = {"9": "3V3P", "10": "GND", "12": "SCL", "13": "SDA", "15": "3V3P", "16": "GND", "17": "GND",
+      "18": "3V3P", "19": "MCP_INT", "20": "MCP_INT",
+      "21": "WA1", "22": "WA2", "23": "WA3", "24": "WA4", "25": "WA5", "26": "ENC_B",
+      "27": "ENC_A", "28": "U3_GPA7",
       "1": "WB1", "2": "WB2", "3": "WB3", "4": "WB4", "5": "WB5", "6": "WB6",
-      "7": "ENC_SW", "8": NC}
-if FIX_U3_GPA7:
-    U3["26"], U3["28"] = "ENC_B", "WA6"
+      "7": "WA6", "8": "U3_GPB7"}
 part("U2", "Interface_Expansion", "MCP23017x-x-SP", "MCP23017-E/SP (0x20)", "Package_DIP:DIP-28_W7.62mm",
      U2, (66.04, 158.75))
 part("U3", "Interface_Expansion", "MCP23017x-x-SP", "MCP23017-E/SP (0x21)", "Package_DIP:DIP-28_W7.62mm",
@@ -104,7 +106,8 @@ part("U3", "Interface_Expansion", "MCP23017x-x-SP", "MCP23017-E/SP (0x21)", "Pac
 
 # ------------------------------------------------------------------ buzzer
 part("R7", "Device", "R", "1k", R_FP, {"1": "BUZZ", "2": "BUZZ_B"}, (254.0, 147.32), note="Q1 base")
-part("Q1", "Transistor_BJT", "2N3904", "2N3904", "Package_TO_SOT_THT:TO-92_Inline",
+# rev 1: TO-92_Inline_Wide (2.54 mm pitch): the 1.27 mm inline pads break the 0.3 mm Power clearance
+part("Q1", "Transistor_BJT", "2N3904", "2N3904", "Package_TO_SOT_THT:TO-92_Inline_Wide",
      {"1": "GND", "2": "BUZZ_B", "3": "BUZZ-"}, (279.4, 152.4))
 part("D2", "Diode", "1N4148", "1N4148", "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
      {"1": "5V", "2": "BUZZ-"}, (299.72, 144.78), rot=270)
@@ -113,9 +116,11 @@ part("D2", "Diode", "1N4148", "1N4148", "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizon
 part("J_KEY", "Connector_Generic", "Conn_01x02", "KEY", XH % (2, 2), {"1": "KEY", "2": "GND"}, (337.82, 139.7))
 part("J_SERVO", "Connector_Generic", "Conn_01x03", "SERVO", "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
      {"1": "GND", "2": "5V", "3": "SERVO_SIG"}, (365.76, 139.7))
-part("J_SPARE", "Connector_Generic", "Conn_01x03", "U2 GPB5-7",
-     "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
-     {"1": "SPARE1", "2": "SPARE2", "3": "SPARE3"}, (391.16, 139.7))
+# Rev 1b: the four output-only MCP23017 pins + GND
+SPARE_PINS = ["U2 GPA7", "U2 GPB7", "U3 GPA7", "U3 GPB7", "GND"]
+part("J_SPARE", "Connector_Generic", "Conn_01x05", "outputs only",
+     "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical",
+     {"1": "U2_GPA7", "2": "U2_GPB7", "3": "U3_GPA7", "4": "U3_GPB7", "5": "GND"}, (391.16, 142.24))
 
 # ------------------------------------------------------------------ plate connectors
 PLATE_B = {
@@ -136,10 +141,29 @@ for n in range(1, 7):
     name, pins = PLATE_B[n]
     x, y = PLATE_SCH[n]
     part("J%d_A" % n, "Connector_Generic", "Conn_01x07", "M%d %s common" % (n, name), XH % (7, 7),
-         {"1": "5V", "2": "3V3", "3": "GND", "4": "SDA", "5": "SCL", "6": LD_IN[n], "7": LD_OUT[n]}, (x, y))
+         {"1": "5V", "2": "3V3P", "3": "GND", "4": "SDA", "5": "SCL", "6": LD_IN[n], "7": LD_OUT[n]}, (x, y))
     k = len(pins)
     part("J%d_B" % n, "Connector_Generic", "Conn_01x%02d" % k, "M%d %s" % (n, name), XH % (k, k),
          {str(i + 1): p for i, p in enumerate(pins)}, (x + 45.72, y))
+
+
+# ------------------------------------------------------------------ rev 1: peripheral 3.3 V rail
+# U5 LD1117V33 (TO-220: 1 GND, 2 VO, 3 VI) from the 5V rail -> 3V3P. C2 (10 uF) is reused as the
+# output bulk; C6/C7 on the input, C2/C8 on the output.
+part("U5", "Regulator_Linear", "LD1117V33", "LD1117V33", "Package_TO_SOT_THT:TO-220-3_Vertical",
+     {"1": "GND", "2": "3V3P", "3": "5V"}, (347.98, 215.9))
+part("C6", "Device", "C_Polarized", "10uF", "Capacitor_THT:CP_Radial_D5.0mm_P2.00mm",
+     {"1": "5V", "2": "GND"}, (309.88, 218.44), note="U5 in")
+part("C7", "Device", "C", "100nF", C_FP, {"1": "5V", "2": "GND"}, (322.58, 218.44), note="U5 in")
+part("C8", "Device", "C", "100nF", C_FP, {"1": "3V3P", "2": "GND"}, (386.08, 218.44), note="U5 out")
+
+# ------------------------------------------------------------------ rev 1: microSD (3.3 V-only breakout)
+# 1x7 female socket, pin order 3V GND CLK SO SI CS DET (Adafruit 4682 style). VSPI bus shared with
+# the probe plate; SD_CS = GPIO2 with a 10k pull-down (keeps the strapping valid); DET -> U2 GPB5.
+part("A2", "defuse32", "MicroSD_Breakout_3V3", "microSD 3V3 breakout", "defuse32:MicroSD_Breakout_Socket",
+     {"1": "3V3P", "2": "GND", "3": "SCK", "4": "MISO", "5": "MOSI", "6": "SD_CS", "7": "SD_DET"},
+     (355.6, 160.02))
+part("R8", "Device", "R", "10k", R_FP, {"1": "SD_CS", "2": "GND"}, (398.78, 167.64), note="GPIO2 pull-down")
 
 
 # ------------------------------------------------------------------ PCB placement
@@ -157,7 +181,15 @@ PCB = {
     "D1": (150, 112, 0),
     "C1": (172, 28, 0),
     "J_SERVO": (185, 40, 0),
-    "C2": (136, 96, 0),
+    # rev 1: U5 next to the 5 V entry (J_PWR / D1), input caps on the J_PWR side, output caps on the left
+    "U5": (158, 100, 0),
+    "C6": (169.5, 99, 270), "C7": (174, 97.5, 270),
+    "C2": (151.5, 99, 270), "C8": (146.5, 97.5, 270),
+    # rev 1: microSD socket at the left edge, module body toward the edge (card slot outward)
+    "A2": (28, 92, 0),
+    "R8": (166.2, 55, 180),
+    # rev 1b: GPIO39 pull-up, pad 2 (ENC_SW) 4 mm below U1 pin 4, pad 1 (3V3P) toward C2/C8
+    "R9": (137.62, 102.16, 90),
     "J_KEY": (180, 122, 0),
     "U4": (16, 22, 0),
     "C5": (28, 22, 90),
@@ -175,6 +207,10 @@ PCB = {
 }
 for p in PARTS:
     p["pcb"] = PCB.get(p["spec"])
+
+# Reference text positions (board coords) where the footprint default would hit a neighbour
+REF_POS = {"C2": (151.5, 104.4), "C8": (146.5, 104.6), "C6": (169.5, 104.4), "C7": (174, 95.2),
+           "U5": (160.54, 94.6)}
 
 BOARD_W, BOARD_H = 190.0, 140.0
 # Antenna keepout (board coords): under and beyond the DevKit antenna overhang (left of U1)

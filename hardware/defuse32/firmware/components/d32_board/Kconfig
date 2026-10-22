@@ -1,0 +1,50 @@
+menu "Defuse32 board"
+
+    config D32_I2C_FREQ_HZ
+        int "I2C bus frequency (Hz)"
+        range 100000 400000
+        default 100000
+        help
+            Carrier I2C bus speed. The bus runs through the plate harnesses, so
+            100 kHz is the safe default; 400 kHz speeds up OLED refreshes.
+
+    config D32_KEYSW_ARMED_LOW
+        bool "Key switch reads low when turned to ARM"
+        default y
+        help
+            J_KEY wires U2 GPB4 to GND through the switch (MCP pull-up on).
+            Turn this off if the switch is wired normally-closed.
+
+    config D32_SD_DET_ACTIVE_HIGH
+        bool "microSD DET is high when a card is inserted"
+        default y
+        help
+            Adafruit 4682 style breakouts tie DET to GND without a card and pull
+            it up with a card inserted.
+
+    config D32_SH1106_COL_OFFSET
+        int "SH1106 column offset"
+        range 0 4
+        default 2
+        help
+            The SH1106 has 132 columns; 1.3" 128x64 modules show columns 2-129.
+
+    config D32_TOUCH_THRESH_PCT
+        int "Touch threshold (percent drop from baseline)"
+        range 2 60
+        default 15
+        help
+            A pad counts as touched when its filtered reading drops this many
+            percent below the baseline measured at calibration.
+
+    config D32_SERVO_OPEN_DEG
+        int "Servo angle for the open prize hatch"
+        range 0 180
+        default 90
+
+    config D32_SERVO_CLOSED_DEG
+        int "Servo angle for the closed prize hatch"
+        range 0 180
+        default 0
+
+endmenu

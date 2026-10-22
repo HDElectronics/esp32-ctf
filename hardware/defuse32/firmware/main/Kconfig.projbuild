@@ -1,0 +1,12 @@
+menu "Defuse32 game"
+
+    config D32_TILT_DEG
+        int "Tilt threshold (degrees from the orientation at arming)"
+        range 5 90
+        default 30
+        help
+            The game task polls the MPU-6050 every 100 ms while a round runs.
+            A tilt above this angle (against the reference captured when the
+            round was armed) is a strike, at most one per 5 s.
+
+endmenu

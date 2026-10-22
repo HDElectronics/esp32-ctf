@@ -2,7 +2,7 @@
 """Generate defuse32-carrier.kicad_sch from design.py.
 
 Every connected pin gets a 2.54 mm wire stub ending in a global label (net name)
-or, on vertical stubs, a power symbol (5V / 3V3 / GND). No-connect flags on NC pins.
+or, on vertical stubs, a power symbol (5V / 3V3P / GND / DK_5V). No-connect flags on NC pins.
 Run:  /usr/bin/python3 kicad/gen/gen_sch.py   (then `kicad-cli sch upgrade` is optional)
 """
 import math
@@ -160,7 +160,7 @@ class Sheet:
         if net == "GND":
             libsym, rot = "GND", (ang + 90) % 360
         else:
-            libsym, rot = {"5V": "+5V", "3V3": "+3V3", "DK_5V": "+5V"}[net], (ang - 90) % 360
+            libsym, rot = {"5V": "+5V", "3V3P": "+3.3VP", "DK_5V": "+5V"}[net], (ang - 90) % 360
         self.pwr_n += 1
         ref = "#PWR%03d" % self.pwr_n
         d = 3.81
@@ -194,6 +194,8 @@ class Sheet:
             elif p["sym"].startswith("MCP23017"):
                 props = {"Reference": (x + 2.54, y - 27.94, "left", False),
                          "Value": (x + 2.54, y + 29.21, "left", False)}
+            elif p["sym"] == "LD1117V33":
+                props = {"Reference": (x, y - 6.35, None, False), "Value": (x, y - 3.81, None, False)}
             elif p["sym"] == "2N3904":
                 props = {"Reference": (x + 6.35, y - 1.27, "left", False),
                          "Value": (x + 6.35, y + 1.27, "left", False)}
@@ -235,38 +237,45 @@ def build():
     sh.box(15.24, 15.24, 119.38, 101.6, "POWER IN, BULK, DECOUPLING")
     sh.text("5 V from the panel USB-C module (J_PWR). D1: DevKit USB cannot back-feed the rail.", 17.78, 22.86, 1.0)
     sh.text("PWR_FLAGs (ERC)", 17.78, 48.26, 1.0)
-    sh.text("C3: U2   C4: U3   C5: U4", 17.78, 68.58, 1.0)
+    sh.text("C3: U2   C4: U3   C5: U4 (C2 moved to the U5 output, rev 1)", 17.78, 68.58, 1.0)
     sh.box(124.46, 15.24, 236.22, 101.6, "ESP32-DevKitC-32E (U1)")
-    sh.text("GPIO2, GPIO12: strapping, unused.  GPIO0/1/3/6-11: boot, console, flash.", 127.0, 88.9, 1.0)
+    sh.text("GPIO2 = SD_CS (10k pull-down R8).  GPIO12: strapping, unused.  GPIO0/1/3/6-11: boot, console, flash.", 127.0, 88.9, 1.0)
     sh.text("Socket: 2x 1x19 at 25.40 mm + unpopulated clone row at 22.86 mm (same nets).", 127.0, 92.71, 1.0)
-    sh.text("D1 feeds the DevKit 5V pin (DK_5V); the DevKit LDO makes 3V3 for the carrier.", 127.0, 96.52, 1.0)
+    sh.text("D1 feeds the DevKit 5V pin (DK_5V). The DevKit 3V3 pin feeds nothing on the carrier (rev 1: U5 -> 3V3P).", 127.0, 96.52, 1.0)
     sh.box(241.3, 15.24, 332.74, 101.6, "PULL-UPS, IMU (A1 on carrier)")
-    sh.text("R2/R3 I2C 4.7k; R4 GPIO35, R5 GPIO34 10k pull-ups.", 243.84, 81.28, 1.0)
-    sh.text("LDR on M6: 3V3 -> GPIO36 (LDR); R6 is the low side.", 243.84, 85.09, 1.0)
-    sh.text("A1 AD0 tied low: MPU-6050 at 0x68.", 243.84, 88.9, 1.0)
+    sh.text("R2/R3 I2C 4.7k; R4 GPIO35, R5 GPIO34, R9 GPIO39 (ENC_SW, rev 1b) 10k pull-ups.", 243.84, 81.28, 1.0)
+    sh.text("LDR on M6: 3V3P (J6_A pin 2) -> GPIO36 (LDR); R6 is the low side.", 243.84, 85.09, 1.0)
+    sh.text("A1 AD0 tied low: MPU-6050 at 0x68. INT not connected (rev 1b): firmware polls over I2C.", 243.84, 88.9, 1.0)
     sh.box(337.82, 15.24, 406.4, 101.6, "WS2812 BUFFER 3V3->5V")
     sh.text("Gates 2-4 unused: A to GND, ~{OE} high.", 340.36, 99.06, 1.0)
     sh.box(15.24, 106.68, 236.22, 195.58, "I2C EXPANDERS (U2 0x20, U3 0x21)")
     sh.text("INTA/INTB of both chips: mirrored, open-drain, wired-OR to GPIO35 (MCP_INT).", 17.78, 115.57, 1.0)
-    sh.text("U2: keypad ROW/COL, Simon SIM1-4, KEY, spare GPB5-7 (J_SPARE).", 17.78, 119.38, 1.0)
-    sh.text("U3: wire posts WA (outputs) / WB (inputs), encoder ENC_A/B/SW.", 119.38, 115.57, 1.0)
-    sh.text("GPA7/GPB7 are output-only on current MCP23017 silicon: U3 GPA7 = WA6 (output),", 119.38, 119.38, 1.0)
-    sh.text("ENC_B on GPA5, GPB7 spare (handled, as SPEC).", 119.38, 123.19, 1.0)
+    sh.text("U2: keypad ROW1-4 GPA0-3, COL1-3 GPA4-6, COL4 GPB6 (rev 1b), SIM1-4, KEY, GPB5 = SD_DET.", 17.78, 119.38, 1.0)
+    sh.text("U3: wire posts WA1-5 GPA0-4, WA6 GPB6 (rev 1b), WB1-6 GPB0-5, ENC_A/B GPA6/5.", 119.38, 115.57, 1.0)
+    sh.text("Rev 1b: GPA7/GPB7 are output-only (cannot go hi-Z): no keypad/wire line on them;", 119.38, 119.38, 1.0)
+    sh.text("all four (U2/U3 GPA7, GPB7) go to J_SPARE as spare outputs. ENC_SW -> GPIO39.", 119.38, 123.19, 1.0)
     sh.box(241.3, 106.68, 317.5, 195.58, "BUZZER DRIVER")
     sh.text("GPIO26 (BUZZ, LEDC PWM) -> R7 -> Q1.", 243.84, 182.88, 1.0)
     sh.text("Buzzer on M2: BUZZ+ = 5V, BUZZ- on J2_B.", 243.84, 186.69, 1.0)
-    sh.box(322.58, 106.68, 406.4, 195.58, "CARRIER HEADERS")
+    sh.box(322.58, 106.68, 406.4, 195.58, "CARRIER HEADERS, microSD (A2)")
     sh.text("J_KEY: key switch (case wall) -> U2 GPB4.", 325.12, 175.26, 1.0)
     sh.text("J_SERVO: SG90 order GND / 5V / SIG", 325.12, 179.07, 1.0)
     sh.text("(SERVO_SIG is also on J6_B; use either).", 325.12, 182.88, 1.0)
-    sh.text("J_SPARE: U2 GPB5-7 (GPB7 output-only).", 325.12, 186.69, 1.0)
+    sh.text("J_SPARE: U2 GPA7, U2 GPB7, U3 GPA7, U3 GPB7, GND (outputs only).", 325.12, 186.69, 1.0)
+    sh.text("A2: 3.3 V-only microSD breakout, VSPI shared with the probe plate.", 325.12, 190.5, 1.0)
+    sh.text("SD_CS = GPIO2 (R8 pull-down keeps the strapping valid), DET -> U2 GPB5.", 325.12, 194.31, 1.0)
     sh.box(15.24, 198.12, 294.64, 284.48, "PLATE CONNECTORS (JST-XH 2.5 mm)")
-    sh.text("Jn_A (all plates): 5V 3V3 GND SDA SCL LDI LDO.  WS2812 chain: U4 -> R1 -> LDI (M1) -> LDO1 -> M2 -> LDO2 -> M3 "
+    sh.text("Jn_A (all plates): 5V 3V3P GND SDA SCL LDI LDO.  WS2812 chain: U4 -> R1 -> LDI (M1) -> LDO1 -> M2 -> LDO2 -> M3 "
             "-> LDO3 -> M4 -> LDO4 -> M5 -> LDO5 -> M6 (end).", 17.78, 205.74, 1.0)
     sh.text("SPEC names -> references: Jn_A = Jn1, Jn_B = Jn2, J_PWR = J7, J_KEY = J8, J_SERVO = J9, J_SPARE = J10 "
             "(the SPEC name starts each Value).", 17.78, 209.55, 1.0)
+    sh.box(299.72, 198.12, 406.4, 248.92, "PERIPHERAL 3V3 RAIL (U5, rev 1)")
+    sh.text("U5 LD1117V33: 5V -> 3V3P for plates, U2/U3, A1, A2 and the pull-ups.", 302.26, 238.76, 1.0)
+    sh.text("C6/C7 input, C2/C8 output. Modules run only with 5 V on J_PWR.", 302.26, 242.57, 1.0)
     for n, (x, y) in D.PLATE_SCH.items():
         sh.text("M%d %s" % (n, D.PLATE_B[n][0]), x - 27.94, y - 12.7, 1.778, bold=True)
+        if n == 2:
+            sh.text("TM1637: power from 3V3P (J2_A pin 2)", x - 10.16, y + 15.24, 1.0)
 
     # ---- power flags
     for net, x, y in (("5V", 20.32, 58.42), ("GND", 43.18, 58.42), ("DK_5V", 66.04, 58.42)):
@@ -279,11 +288,12 @@ def build():
 
     sch = [S("kicad_sch"), [S("version"), 20260306], [S("generator"), "eeschema"], [S("generator_version"), "10.0"],
            [S("uuid"), ROOT], [S("paper"), "A3"],
-           [S("title_block"), [S("title"), "Defuse32 carrier"], [S("date"), "2026-10-19"], [S("rev"), "0"],
+           [S("title_block"), [S("title"), "Defuse32 carrier"], [S("date"), "2026-10-22"], [S("rev"), "1b"],
             [S("company"), "ESP32 CTF / Defuse32"],
             [S("comment"), 1, "Spec: hardware/defuse32/SPEC.md (Electronics, carrier PCB)"],
             [S("comment"), 2, "Generated by kicad/gen/gen_sch.py from kicad/gen/design.py"],
-            [S("comment"), 3, "THT only, 2 layers, 190 x 140 mm"]],
+            [S("comment"), 3, "THT only, 2 layers, 190 x 140 mm"],
+            [S("comment"), 4, "Rev 1b: COL4/WA6 on GPB6, ENC_SW on GPIO39 (R9), MPU INT NC, J_SPARE 1x5"]],
            [S("lib_symbols")] + list(sh.libs.values())]
     sch += sh.items
     sch += [[S("sheet_instances"), [S("path"), "/", [S("page"), "1"]]], [S("embedded_fonts"), S("no")]]

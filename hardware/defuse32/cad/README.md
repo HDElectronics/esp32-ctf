@@ -1,4 +1,4 @@
-# Defuse32 rev 0 mechanical CAD
+# Defuse32 mechanical CAD (case rev 0, carrier rev 1)
 
 Scripted FreeCAD model of the Defuse32 case: a Pelican 1520 with the 1520PF panel frame, the panel, six module plates with placeholder modules, the floor sled, the carrier PCB, and the wall-mounted key switch and USB-C input. Every dimension comes from `../data/parts.json` and from the plate layouts in `layout.py`. The scripts write the outputs; nothing here is drawn by hand.
 
@@ -257,9 +257,13 @@ How each plate is mounted (the generated tables below give exact positions):
 ## Fit checks (last run, real `carrier.step`)
 
 ```
-carrier: carrier.step (39 solids, board found, rotated 0 deg)
+carrier: carrier.step (45 solids, board found, rotated 0 deg)
 carrier: Carrier_PCB x -95.0..95.0 y -70.0..70.0 z 11.0..12.5
-carrier: Carrier_Components x -83.5..91.6 y -66.4..64.8 z 9.1..26.4
+carrier: Carrier_Components x -83.5..91.6 y -66.4..64.8 z 2.8..31.4
+
+========================================================================
+FIT CHECKS
+========================================================================
 PASS  panel top z = 125.20, base rim z = 125.20 (flush at 125.2)
 PASS  plates z 125.2..128.2 on the panel
 PASS  panel openings inside the 1520PF clear opening (min margin 15.6 mm)
@@ -288,7 +292,7 @@ PASS  M4 no clashes between different modules
 PASS  M5 no clashes between different modules
 PASS  M6 no clashes between different modules
 PASS  nothing intersects the carrier PCB/components, its standoffs, the sled or the carrier keep-out (min clearance to keep-out 67.2 mm at M4_PostA6_Stud)
-PASS  carrier tallest part z 26.4 (13.8 above the board) <= keep-out top z 40; lowest module part z 105.1 at M6_IR_Leads (gap 78.7) [carrier.step (39 solids, board found, rotated 0 deg)]
+PASS  carrier tallest part z 31.4 (18.8 above the board) <= keep-out top z 40; lowest module part z 105.1 at M6_IR_Leads (gap 73.7) [carrier.step (45 solids, board found, rotated 0 deg)]
 PASS  KeySwitch on the right wall: y 60, hole dia 19.0, flange z 56.0..84.0 (band 40..100)
 PASS  USBC on the right wall: y -60, hole dia 22.0, flange z 55.2..84.8 (band 40..100)
 PASS  wall parts clear of the shell, frame and plate modules
@@ -305,7 +309,7 @@ PASS  panel webs >= 3 mm (min 3.96: M5 opening <-> M5 plate screw 2)
 fit checks: 0 failure(s)
 ```
 
-The carrier comes from the KiCad STEP (board plus all parts, centred on the floor, underside at z 11, USB edge toward the right wall). Its tallest parts (the DevKit sockets and the 470 µF capacitor) reach z 26.4; a plugged-in DevKit (about 5 mm of PCB and parts above the socket tops) is not in the STEP but stays far under the 40 mm keep-out top and the lowest plate module (z 105.1).
+The carrier comes from the rev 1 KiCad STEP (board plus all parts, centred on the floor, underside at z 11, USB edge toward the right wall). Its tallest part is the upright LD1117 regulator U5 (TO-220), top at z 31.4; its STEP leads reach down to z 2.8, which would touch the sled top (z 3) by 0.2 mm, so trim the leads flush. The microSD breakout socket A2 sits at the left board edge (x -95); the case wall is at x -223, so the card slot has about 128 mm of free access. The STEP models only A2's pin socket, not the breakout board itself. The DevKit sockets and the 470 µF capacitor reach z 26.4; a plugged-in DevKit (about 5 mm of PCB and parts above the socket tops) is not in the STEP but stays far under the 40 mm keep-out top and the lowest plate module (z 105.1).
 
 Other notes from the checks:
 - M2 has nothing above its plate. The TM1637 display sits 0.2 mm under its window.
