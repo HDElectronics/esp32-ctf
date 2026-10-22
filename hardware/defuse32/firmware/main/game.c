@@ -133,7 +133,7 @@ static d32_arm_result_t arm_locked(int minutes)
     d32_arm_result_t r = d32_arm(&s_d, seed);
     if (r == D32_ARM_OK) {
         d32_modules_arm(&s_d, seed);
-        board_mpu_set_reference(); /* "level" = the orientation at arming */
+        board_lis3dh_set_reference(); /* "level" = the orientation at arming */
         ESP_LOGI(TAG, "round armed: %u min, %d module(s), pack %s", (unsigned)cfg.minutes,
                  d32_enabled_count(&s_d), d32_pack_current_name());
     }
@@ -321,11 +321,11 @@ static void poll_keyswitch(void)
 static void poll_tilt(uint32_t now)
 {
     d32_phase_t ph = d32_phase(&s_d);
-    if ((ph != D32_ARMED && ph != D32_FINAL) || !board_mpu_present()) {
+    if ((ph != D32_ARMED && ph != D32_FINAL) || !board_lis3dh_present()) {
         return;
     }
     float tilt;
-    if (board_mpu_tilt(&tilt, NULL, NULL) == ESP_OK && tilt > (float)CONFIG_D32_TILT_DEG) {
+    if (board_lis3dh_tilt(&tilt, NULL, NULL) == ESP_OK && tilt > (float)CONFIG_D32_TILT_DEG) {
         if (d32_tilt(&s_d, now)) {
             ESP_LOGI(TAG, "tilt %.0f deg (limit %d)", (double)tilt, CONFIG_D32_TILT_DEG);
         }

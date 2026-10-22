@@ -23,6 +23,21 @@ Guiding rule: **reuse, don't design from scratch.** Off-the-shelf carry case, of
 - **Carrier PCB**: 190 × 140 mm, 1.6 mm, 4 × Ø3.2 mounting holes 5 mm from the corners, on M3 × 8 standoffs on a 3 mm floor sled (z: sled 0–3, PCB 11–12.6), centred on the floor, DevKit USB edge facing the case's right wall. Plate connectors J1–J3 on the back edge, J4–J6 on the front edge, in plate order left→right.
 - **DevKit footprint**: 2 × 1×19 sockets at 25.40 mm (genuine DevKitC) plus an unpopulated third 1×19 row at 22.86 mm from row 1 for narrow clones, same nets.
 
+## Rev 2 carrier (2026-10-23, approved by the owner) — supersedes the rev 1b board
+
+Preview the owner approved: https://claude.ai/artifact/G4984uR9xEvDVbf2QLoGjv (private). Rev 1b stays in git history (local tag `carrier-rev1b`). Everything below overrides the rev 0/1/1b board text where they conflict; the **ESP32 GPIO pin map, MCP23017 allocation (rev 1b), WS2812 chain and I2C addresses stay the same**.
+
+- **Board**: 100 × 70 mm, 2 layers, 1.6 mm, 4 × M3 (Ø3.2) holes 4 mm from the corners. SMD everywhere except the IDC box headers and the small 2.54 mm headers. JLCPCB assembles the SMD side; prefer JLCPCB Basic parts, Extended only where no Basic part fits.
+- **ESP32**: ESP32-WROOM-32E (4 MB) soldered at the **left edge**, rotated so the antenna end points left and the whole antenna region lies **outside** the board outline (Espressif's recommended placement). No copper under or around the antenna. EN and BOOT tactile switches next to the module.
+- **USB-C** (16-pin receptacle, right edge): only power input and programming port. VBUS → PTC fuse (≈1.5–2 A hold) → `5V`; CC1/CC2 5.1 kΩ to GND; USBLC6-2SC6 ESD on D+/D−; **CH340C** (no crystal) USB-UART on UART0 (GPIO1/3); classic two-NPN (MMBT3904) DTR/RTS auto-reset driving EN and GPIO0; EN RC 10 kΩ + 1 µF; GPIO0 10 kΩ pull-up. In the case, a panel-mount USB-C extension runs from this port to the case wall. Firmware caps WS2812 brightness to stay within a 5 V / 2 A budget.
+- **Power**: `5V` bulk ≥ 220 µF; AMS1117-3.3 (SOT-223) `5V` → `3V3` for the ESP32 and CH340C (10 µF + 100 nF at the module's 3V3 pin); AP2112K-3.3 (SOT-23-5, 600 mA) `5V` → `3V3P` for the plates, expanders, LIS3DH and microSD.
+- **Expanders**: MCP23017-E/SO (SOIC-28) ×2, same addresses and allocation; 100 nF at each VDD pin (≤ 3 mm).
+- **Tilt sensor**: **LIS3DH** (LGA-16) on I2C at 0x19 (SA0 high), CS high (I2C mode), INT pins not connected (polled). Replaces the GY-521 / MPU-6050.
+- **microSD**: push-push microSD socket on the board edge, SPI mode on SCK18/MOSI23/MISO19, SD_CS GPIO2 (10 kΩ pull-down kept), card detect → U2 GPB5, 10 kΩ pull-ups on DAT0/DAT1/DAT2 to 3V3P.
+- **WS2812 buffer**: 74AHCT1G125 (SOT-23-5) at 5 V, 330 Ω series out. **Buzzer**: MMBT3904 low side, 1 kΩ base, 1N4148WS across the buzzer pins.
+- **Plate connectors**: one keyed 2.54 mm IDC box header per plate, ribbon cable to the plate. Sizes: J1 M1 2×5, J2 M2 2×6, J3 M3 2×8, J4 M4 2×10, J5 M5 2×7, J6 M6 2×10. Pinout rule: pin 1 = 5V, pin 2 = GND, then 3V3P, SDA, SCL, LDI, LDO, then the plate's signals (same signal sets as the rev 1 Jn_B table), spare positions = GND. Back-row plates (J1–J3) on the top edge, J4–J5 on the bottom edge, J6 vertical on the right edge above the USB-C. Small headers: J_KEY 1×2, J_SERVO 1×3 (GND, 5V, SIG), J_SPARE 1×5 (outputs only + GND).
+- **Placement** follows the approved preview (positions ±5 mm): module left, expanders in the middle, CH340C + USB-C bottom right, regulators near the USB path, microSD bottom right edge.
+
 ## Rev 1 changes (2026-10-22)
 
 - **Challenge packs on microSD**: a 3.3 V-only microSD breakout (no level shifter; e.g. Adafruit 4682 style: 3V, GND, CLK, SO, SI, CS, DET) on a 1×7 female socket on the carrier, on the existing VSPI bus (SCK 18, MOSI 23, MISO 19) with **SD_CS = GPIO2** and a 10 kΩ pull-down on GPIO2 (keeps the boot/download strapping valid). Card detect DET → MCP U2 GPB5 (was SPARE1). Avoid 5 V "catalex" modules: their level shifter does not release MISO and would fight the probe plate's W25Q32. The SD sits on the carrier, under the panel: only the game master reaches it.

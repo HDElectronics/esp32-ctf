@@ -1,0 +1,9 @@
+(version 1)
+
+(rule "LIS3DH LGA-16 0.5 mm pitch"
+  (constraint clearance (min 0.15mm))
+  (condition "A.intersectsCourtyard('U8') && B.intersectsCourtyard('U8')"))
+
+(rule "USB-C 16P 0.5 mm pitch"
+  (constraint clearance (min 0.15mm))
+  (condition "A.intersectsCourtyard('J7') && B.intersectsCourtyard('J7')"))

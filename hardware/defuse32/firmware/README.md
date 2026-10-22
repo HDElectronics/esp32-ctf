@@ -2,7 +2,7 @@
 
 ESP-IDF v6.1 firmware for the Defuse32 training case, target `esp32` (classic). The specs are [`../FIRMWARE.md`](../FIRMWARE.md) (behaviour and packs) and [`../SPEC.md`](../SPEC.md) (pins, which win over anything here).
 
-Status (v0): board drivers (SPEC rev 1b pin map), pack loader, game engine, module adapters with the simple v0 challenges, game task and game-master console. A full round can be played from the serial console alone, with no plate hardware attached. Nothing has run on hardware yet (see "Tested vs untested").
+Status (v0): board drivers (SPEC rev 1b pin map, rev 2 LIS3DH tilt sensor), pack loader, game engine, module adapters with the simple v0 challenges, game task and game-master console. A full round can be played from the serial console alone, with no plate hardware attached. Nothing has run on hardware yet (see "Tested vs untested").
 
 ## Build
 
@@ -31,7 +31,7 @@ components/d32_board/   pin map (board.h) and drivers
 components/d32_pack/    pack parser + SD loader
 components/d32_engine/  portable game engine (see its README)
 components/d32_modules/ module adapters, one file per plate, + registry and pure logic
-test/host/              host tests: engine, d32_mod_logic, pack parser
+test/host/              host tests: engine, d32_mod_logic, tilt math, pack parser
 ```
 
 ## Boot sequence
@@ -45,7 +45,7 @@ test/host/              host tests: engine, d32_mod_logic, pack parser
 
 ## d32_board
 
-`board.h` holds every GPIO, I2C address and MCP23017 pin from SPEC rev 1b as named constants, plus `board_init()`/`board_deinit()` and the presence table. It includes all the driver headers.
+`board.h` holds every GPIO, I2C address and MCP23017 pin from SPEC rev 1b (plus the rev 2 LIS3DH at 0x19) as named constants, plus `board_init()`/`board_deinit()` and the presence table. It includes all the driver headers.
 
 | Driver | File | Notes |
 |---|---|---|
@@ -61,7 +61,7 @@ test/host/              host tests: engine, d32_mod_logic, pack parser
 | Touch | `board_touch.c` | `driver/touch_sens.h` (touch V1) on T0/T4/T6/T3 with the software filter. Baselines are averaged at init. A pad counts as touched when its reading drops 15 % below baseline. |
 | IR | `board_ir.c` | RMT RX on GPIO34 at 1 µs resolution. A background task decodes NEC frames (8-bit or extended 16-bit address, repeat codes) into a queue. |
 | LDR | `board_ldr.c` | `adc_oneshot` on ADC1_CH0 (GPIO36), 12 dB attenuation, line-fitting calibration when the eFuse has it. |
-| MPU-6050 | `board_mpu.c` | 0x68, ±2 g, about 44 Hz bandwidth, polled over I2C (its INT pin is not connected in rev 1b). Tilt is the angle between gravity now and a reference captured at init and again at each round start (`board_mpu_set_reference()`), plus pitch and roll. |
+| LIS3DH (rev 2) | `board_lis3dh.c`, `board_tilt.c` | Replaces the rev 1b GY-521 / MPU-6050 (driver removed, no Kconfig choice). 0x19 (SA0 high), I2C mode (CS high), WHO_AM_I must read 0x33 or the device counts as missing. Normal mode, 50 Hz, ±2 g (4 mg per digit), BDU on, polled over I2C (INT1/INT2 not connected). Tilt is the angle between gravity now and a reference captured at init and again at each round start (`board_lis3dh_set_reference()`), plus pitch and roll. The math (raw to g, reference, angle) is portable in `board_tilt.c` and host-tested. |
 | microSD | `board_sd.c` | SDSPI on SPI3 (VSPI, 18/23/19), CS GPIO2, 10 MHz, FATFS at `/sd`. It never formats the card. While unmounted, CS is driven high (the carrier's pull-down would otherwise leave the card selected on the shared bus). |
 | UART2 | `board_uart2.c` | TX17/RX16, 8N1, init/read/write helpers for the probe plate. |
 | PN532 | `board_nfc.c` | **Stub**: presence probe at 0x24 only (see the TODO in `board_nfc.h`). |
@@ -168,11 +168,11 @@ cmake --build build-d32-host
 ctest --test-dir build-d32-host --output-on-failure
 ```
 
-Groups: `config phase timer codes wires frags events` (engine), `modlogic` (`d32_mod_logic.c`: Morse, patch pattern, touch order, service PIN and its collision counter, base64, debounce, key hold / rolled typing, entry buffer with auto-submit and idle timeout, and typing the PIN and every code of a round on the keypad model) and `pack` (`d32_pack_parse.c`: valid, defaults, invalid values, unknown keys, broken JSON, names). The `pack` group needs cJSON: `-DD32_CJSON_DIR=<dir>`, else the copy in `managed_components/espressif__cjson/cJSON` (present after one `idf.py build` or `idf.py reconfigure`), else a system cJSON (`libcjson-dev`); without any of them the group is skipped with a CMake warning. cJSON is built as its own static library, without our `-Werror`.
+Groups: `config phase timer codes wires frags events` (engine), `tilt` (`board_tilt.c`: LIS3DH raw to g including full scale and negatives, reference capture and rejection of free fall / zero / NaN, tilt angle against vertical and non-vertical references, pitch and roll), `modlogic` (`d32_mod_logic.c`: Morse, patch pattern, touch order, service PIN and its collision counter, base64, debounce, key hold / rolled typing, entry buffer with auto-submit and idle timeout, and typing the PIN and every code of a round on the keypad model) and `pack` (`d32_pack_parse.c`: valid, defaults, invalid values, unknown keys, broken JSON, names). The `pack` group needs cJSON: `-DD32_CJSON_DIR=<dir>`, else the copy in `managed_components/espressif__cjson/cJSON` (present after one `idf.py build` or `idf.py reconfigure`), else a system cJSON (`libcjson-dev`); without any of them the group is skipped with a CMake warning. cJSON is built as its own static library, without our `-Werror`.
 
 ## Tested vs untested
 
-Verified: the project builds with no warnings from our code (`idf.py build`, ESP-IDF 6.1), and the host tests pass (engine, `d32_mod_logic`, pack parser).
+Verified: the project builds with no warnings from our code (`idf.py build`, ESP-IDF 6.1), and the host tests pass (engine, `d32_mod_logic`, tilt math, pack parser).
 
 **Nothing has run on hardware yet**: no board was flashed, so neither the drivers nor the game task, the console round commands or the adapters have been exercised on a device. Check on the bench, in particular:
 
@@ -197,5 +197,6 @@ Verified: the project builds with no warnings from our code (`idf.py build`, ESP
 - Buzzer loudness at 50 % duty, and the servo pulse range and the open/closed angles on the real hatch.
 - Touch thresholds (15 %) with the real pads and wire lengths.
 - NEC timing tolerance (±25 % + 100 µs) with the receiver in the case.
-- LDR range, MPU-6050 clones (WHO_AM_I other than 0x68 is accepted with a warning), and microSD at 10 MHz on the shared bus.
+- LIS3DH (rev 2): never run on a device. Check WHO_AM_I 0x33 at 0x19, the register setup (CTRL_REG1 0x47, CTRL_REG4 0x80), the auto-increment burst read of OUT_X_L..OUT_Z_H (0x28 | 0x80), the axis orientation on the carrier (pitch/roll signs) and that the 4 mg / 50 Hz noise stays well below the tilt threshold.
+- LDR range, and microSD at 10 MHz on the shared bus.
 - PN532: presence only; the driver comes later.

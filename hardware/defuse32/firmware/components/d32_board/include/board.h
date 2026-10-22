@@ -1,6 +1,6 @@
 /* Defuse32 carrier board: pin map, device addresses, init/teardown and the
  * device presence table. Authoritative source: hardware/defuse32/SPEC.md
- * (rev 1b). Every driver tolerates its device being absent: it probes at init,
+ * (rev 1b pin map; rev 2 carrier: LIS3DH tilt sensor). Every driver tolerates its device being absent: it probes at init,
  * logs once, and afterwards returns an error (ESP_ERR_INVALID_STATE) without
  * blocking or crashing.
  *
@@ -21,7 +21,7 @@ extern "C" {
 #define BOARD_PIN_I2C_SCL       GPIO_NUM_22
 #define BOARD_PIN_MCP_INT       GPIO_NUM_35   /* U2/U3 INTA/INTB mirrored, open-drain, wired-OR; input-only, 10k pull-up */
 #define BOARD_PIN_ENC_SW        GPIO_NUM_39   /* rev 1b: KY-040 switch, active low; input-only, 10k pull-up to 3V3P.
-                                                 MPU-6050 INT is not connected: the MPU is polled over I2C */
+                                                 LIS3DH INT pins are not connected: it is polled over I2C */
 #define BOARD_PIN_IR            GPIO_NUM_34   /* VS1838B out, active low; input-only, 10k pull-up */
 #define BOARD_PIN_LDR           GPIO_NUM_36   /* VP, ADC1_CH0; LDR 3V3P->pin, 10k pin->GND */
 #define BOARD_PIN_TM_CLK        GPIO_NUM_32   /* TM1637 CLK (timer plate) */
@@ -49,13 +49,13 @@ extern "C" {
 #define BOARD_TOUCH_CH_T3       3
 
 /* ---- I2C addresses (7-bit) --------------------------------------------- */
+#define BOARD_I2C_ADDR_LIS3DH   0x19  /* rev 2: LIS3DH accelerometer (carrier, SA0 high) */
 #define BOARD_I2C_ADDR_MCP_U2   0x20  /* keypad, Simon buttons, key switch, SD detect */
 #define BOARD_I2C_ADDR_MCP_U3   0x21  /* wire posts, rotary encoder */
 #define BOARD_I2C_ADDR_NFC      0x24  /* PN532 V3 (sensor plate) */
 #define BOARD_I2C_ADDR_OLED_M1  0x3C  /* SSD1306 0.96" (radio plate) */
 #define BOARD_I2C_ADDR_OLED_M3  0x3D  /* SH1106 1.3" (keypad plate) */
 #define BOARD_I2C_ADDR_EEPROM   0x50  /* 24C32 in the probe-plate DIP-8 socket */
-#define BOARD_I2C_ADDR_MPU      0x68  /* GY-521 MPU-6050 (carrier) */
 
 /* ---- MCP23017 pin numbers: 0-7 = GPA0-7, 8-15 = GPB0-7 ------------------ */
 #define BOARD_MCP_GPA(n)        (n)
@@ -113,7 +113,7 @@ typedef struct {
     bool mcp_u3;        /* 0x21 */
     bool oled_m1;       /* 0x3C SSD1306 */
     bool oled_m3;       /* 0x3D SH1106 */
-    bool mpu;           /* 0x68 MPU-6050 (WHO_AM_I ok) */
+    bool lis3dh;        /* 0x19 LIS3DH (WHO_AM_I 0x33) */
     bool nfc;           /* 0x24 PN532 answered (driver is a stub) */
     bool eeprom;        /* 0x50 24C32 */
     bool tm1637;        /* TM1637 acknowledged */
@@ -151,7 +151,7 @@ void board_print_presence(void);
 #include "board_touch.h"
 #include "board_ir.h"
 #include "board_ldr.h"
-#include "board_mpu.h"
+#include "board_lis3dh.h"
 #include "board_sd.h"
 #include "board_uart2.h"
 #include "board_nfc.h"

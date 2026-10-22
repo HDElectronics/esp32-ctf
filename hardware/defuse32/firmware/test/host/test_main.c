@@ -1,5 +1,5 @@
-/* Minimal host test runner for d32_engine, d32_mod_logic and the d32_pack
- * parse core (the `pack` group needs cJSON, see CMakeLists.txt).
+/* Minimal host test runner for d32_engine, d32_mod_logic, the d32_board
+ * tilt math and the d32_pack parse core (the `pack` group needs cJSON, see CMakeLists.txt).
  * Usage: d32_engine_tests [group]   (no group = all groups). */
 #include <string.h>
 
@@ -72,6 +72,7 @@ static const struct {
     {"config", run_config_tests}, {"phase", run_phase_tests}, {"timer", run_timer_tests},
     {"codes", run_code_tests},    {"wires", run_wire_tests},  {"frags", run_frag_tests},
     {"events", run_event_tests},  {"modlogic", run_modlogic_tests},
+    {"tilt", run_tilt_tests},
 #ifdef D32_HAVE_CJSON
     {"pack", run_pack_tests},
 #endif

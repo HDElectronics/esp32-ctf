@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
-"""Generate defuse32-carrier.kicad_sch from design.py.
+"""Generate the rev 2 schematic from design.py: defuse32-carrier.kicad_sch (root: sheet symbols
+and notes) plus one A3 sub-sheet per function block (design.SHEETS).
 
-Every connected pin gets a 2.54 mm wire stub ending in a global label (net name)
-or, on vertical stubs, a power symbol (5V / 3V3P / GND / DK_5V). No-connect flags on NC pins.
-Run:  /usr/bin/python3 kicad/gen/gen_sch.py   (then `kicad-cli sch upgrade` is optional)
+Every connected pin gets a 2.54 mm wire stub ending in a power symbol (VBUS / 5V / 3V3 / 3V3P /
+GND) or a global label (net name); no-connect flags on NC pins. Global labels and power symbols
+connect across sheets. Stacked pins (hidden duplicates at the same spot) share one stub.
+Each symbol carries the JLCPCB fields LCSC, MPN, Manufacturer and JLC (Basic/Extended).
+
+Run:  python3 kicad/gen/gen_sch.py
 """
 import math
 import os
 import uuid
 
 import design as D
-from sexp import Sym as S, dump
+from sexp import Sym as S, dump, find
 from symlib import flat, pins as lib_pins, prop as lib_prop
-from sexp import find
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 KDIR = os.path.normpath(os.path.join(HERE, ".."))
 PROJECT = "defuse32-carrier"
 NS = uuid.UUID("6f1c3c2e-0d6a-4b8e-9a51-defe32c0ffee")
+SCH_VERSION = 20260306
 
 
 def uid(*key):
@@ -25,12 +29,18 @@ def uid(*key):
 
 
 ROOT = uid("root")
+IC_LIBS = ("RF_Module", "defuse32", "Sensor_Motion", "Interface_Expansion", "Power_Protection",
+           "Regulator_Linear", "74xGxx", "Connector")
 STUB = 2.54
-G = 1.27
 
 
-def snap(v):
-    return round(round(v / G) * G, 4)
+def sheet_uuid(key):
+    """UUID of the sheet symbol (instance) for sub-sheet `key`; part of every symbol path."""
+    return uid("sheet", key)
+
+
+def sheet_path(key):
+    return "/" + sheet_uuid(key)
 
 
 def rotv(x, y, a):
@@ -79,12 +89,21 @@ def iprop(name, value, x, y, angle=0, hide=False, justify=None):
     return p
 
 
+class Counter:
+    pwr = 0
+    flg = 0
+
+
 class Sheet:
-    def __init__(self):
+    def __init__(self, key):
+        self.key = key            # None = root
         self.items = []
         self.libs = {}
-        self.pwr_n = 0
-        self.flg_n = 0
+        self.pwr_vals = []        # (net, x, y) of shown power-symbol values
+        self.direct = {}          # net -> stub ends, for design.DIRECT nets
+
+    def inst_path(self):
+        return "/" + ROOT + (sheet_path(self.key) if self.key else "")
 
     def lib(self, libname, sym):
         key = "%s:%s" % (libname, sym)
@@ -98,36 +117,50 @@ class Sheet:
     def wire(self, x1, y1, x2, y2):
         self.items.append([S("wire"), [S("pts"), [S("xy"), x1, y1], [S("xy"), x2, y2]],
                            [S("stroke"), [S("width"), 0], [S("type"), S("default")]],
-                           [S("uuid"), uid("w", x1, y1, x2, y2)]])
+                           [S("uuid"), uid("w", self.key, x1, y1, x2, y2)]])
 
     def noconnect(self, x, y):
-        self.items.append([S("no_connect"), [S("at"), x, y], [S("uuid"), uid("nc", x, y)]])
+        self.items.append([S("no_connect"), [S("at"), x, y], [S("uuid"), uid("nc", self.key, x, y)]])
 
     def glabel(self, name, x, y, angle):
         just = "left" if angle in (0, 90) else "right"
         self.items.append([S("global_label"), name, [S("shape"), S("passive")], [S("at"), x, y, angle],
-                           eff(justify=just), [S("uuid"), uid("gl", name, x, y)],
+                           eff(justify=just), [S("uuid"), uid("gl", self.key, name, x, y)],
                            [S("property"), "Intersheetrefs", "${INTERSHEET_REFS}", [S("at"), x, y, angle],
                             [S("hide"), S("yes")], [S("show_name"), S("no")], [S("do_not_autoplace"), S("no")],
                             eff(justify=just)]])
 
     def text(self, t, x, y, size=1.27, bold=False):
         self.items.append([S("text"), t, [S("exclude_from_sim"), S("no")], [S("at"), x, y, 0],
-                           eff(size, "left", bold=bold), [S("uuid"), uid("t", t, x, y)]])
+                           eff(size, "left", bold=bold), [S("uuid"), uid("t", self.key, t, x, y)]])
 
     def box(self, x1, y1, x2, y2, title):
         self.items.append([S("rectangle"), [S("start"), x1, y1], [S("end"), x2, y2],
                            [S("stroke"), [S("width"), 0.254], [S("type"), S("dash")]],
-                           [S("fill"), [S("type"), S("none")]], [S("uuid"), uid("box", title)]])
+                           [S("fill"), [S("type"), S("none")]], [S("uuid"), uid("box", self.key, title)]])
         self.text(title, x1 + 2.54, y1 + 3.81, 2.54, bold=True)
 
+    def sheet_symbol(self, key, x, y, w, h):
+        name, fname, page = D.SHEETS[key]
+        self.items.append([
+            S("sheet"), [S("at"), x, y], [S("size"), w, h], [S("exclude_from_sim"), S("no")],
+            [S("in_bom"), S("yes")], [S("on_board"), S("yes")], [S("dnp"), S("no")],
+            [S("stroke"), [S("width"), 0.1524], [S("type"), S("solid")]],
+            [S("fill"), [S("color"), 0, 0, 0, 0.0]], [S("uuid"), sheet_uuid(key)],
+            [S("property"), "Sheetname", name, [S("at"), x, round(y - 0.7116, 4), 0],
+             [S("show_name"), S("no")], [S("do_not_autoplace"), S("no")], eff(justify="left bottom")],
+            [S("property"), "Sheetfile", fname, [S("at"), x, round(y + h + 0.5874, 4), 0],
+             [S("show_name"), S("no")], [S("do_not_autoplace"), S("no")], eff(justify="left top")],
+            [S("instances"), [S("project"), PROJECT, [S("path"), "/" + ROOT, [S("page"), str(page)]]]]])
+
     # -------------------------------------------------------------- symbols
-    def place(self, libname, sym, ref, value, x, y, rot=0, unit=1, footprint="", props=None, power=False):
+    def place(self, libname, sym, ref, value, x, y, rot=0, unit=1, footprint="", props=None, power=False,
+              fields=None, in_bom=True):
         node = self.lib(libname, sym)
         key = node[1]
         u = uid("sym", ref, unit) if not power else uid("pwr", ref)
         s = [S("symbol"), [S("lib_id"), key], [S("at"), x, y, rot], [S("unit"), unit], [S("body_style"), 1],
-             [S("exclude_from_sim"), S("no")], [S("in_bom"), S("no" if power or ref.startswith("H") else "yes")],
+             [S("exclude_from_sim"), S("no")], [S("in_bom"), S("yes" if in_bom and not power else "no")],
              [S("on_board"), S("no" if power else "yes")], [S("in_pos_files"), S("yes")], [S("dnp"), S("no")],
              [S("uuid"), u]]
         props = props or {}
@@ -146,11 +179,17 @@ class Sheet:
                     if p[1] == pname:
                         at = [a for a in p if isinstance(a, list) and a[0] == "at"][0]
                         px, py = to_sheet(x, y, float(at[1]), float(at[2]), rot)
+            if rot in (90, 270):      # field angles are relative to the symbol: 90 reads horizontal
+                pang = (pang + 90) % 180
+            if rot in (90, 180) and pj:   # KiCad flips the justification to keep the text readable
+                pj = " ".join({"left": "right", "right": "left"}.get(j, j) for j in pj.split())
             s.append(iprop(pname, val, px, py, pang, hide=hide or power and pname == "Reference", justify=pj))
+        for fname, fval in (fields or {}).items():
+            s.append(iprop(fname, fval, x, y, 0, hide=True))
         for p in lib_pins(node):
             if p["unit"] in (0, unit):
                 s.append([S("pin"), p["num"], [S("uuid"), uid("pin", ref, unit, p["num"])]])
-        s.append([S("instances"), [S("project"), PROJECT, [S("path"), "/" + ROOT, [S("reference"), ref],
+        s.append([S("instances"), [S("project"), PROJECT, [S("path"), self.inst_path(), [S("reference"), ref],
                                                            [S("unit"), unit]]]])
         self.items.append(s)
         return node
@@ -158,149 +197,207 @@ class Sheet:
     def power(self, net, x, y, ang):
         """Power symbol whose graphic points along screen angle `ang` from (x, y)."""
         if net == "GND":
-            libsym, rot = "GND", (ang + 90) % 360
+            rot = (ang + 90) % 360
         else:
-            libsym, rot = {"5V": "+5V", "3V3P": "+3.3VP", "DK_5V": "+5V"}[net], (ang - 90) % 360
-        self.pwr_n += 1
-        ref = "#PWR%03d" % self.pwr_n
+            rot = (ang - 90) % 360
+        Counter.pwr += 1
+        ref = "#PWR%03d" % Counter.pwr
         d = 3.81
-        vx, vy = {0: (d, 0), 90: (0, -d), 180: (-d, 0), 270: (0, d + 0.6)}[ang]
+        vx, vy = {0: (d + 1.27, 0), 90: (0, -d), 180: (-d - 1.27, 0), 270: (0, d + 0.6)}[ang]
         just = {0: "left", 180: "right"}.get(ang)
-        self.place("power", libsym, ref, net, x, y, rot,
-                   props={"Value": (round(x + vx, 3), round(y + vy, 3), just, False),
-                          "Reference": (x, y, None, True)}, power=True)
+        tx, ty = round(x + vx, 3), round(y + vy, 3)
+        # two symbols of the same net side by side (e.g. CH340C VCC + V3): show the name once
+        dup = any(n == net and abs(tx - qx) < 4 and abs(ty - qy) < 2 for n, qx, qy in self.pwr_vals)
+        if not dup:
+            self.pwr_vals.append((net, tx, ty))
+        self.place("power", D.PWR_SYM[net], ref, net, x, y, rot,
+                   props={"Value": (tx, ty, just, dup), "Reference": (x, y, None, True)}, power=True)
 
     def pwr_flag(self, x, y):
-        self.flg_n += 1
-        ref = "#FLG%03d" % self.flg_n
+        Counter.flg += 1
+        ref = "#FLG%03d" % Counter.flg
         self.place("power", "PWR_FLAG", ref, "PWR_FLAG", x, y, 0,
                    props={"Value": (x, round(y - 3.81, 3), None, False), "Reference": (x, y, None, True)},
                    power=True)
 
     def part(self, p):
-        units = p["unit_pos"] or {1: p["sch"]}
+        x, y = p["sch"]
         node = self.lib(p["lib"], p["sym"])
         pins = lib_pins(node)
+        props = None
+        sym, rot = p["sym"], p["rot"]
+        if sym in ("R", "C", "C_Polarized", "Polyfuse") and rot == 0:
+            props = {"Reference": (x + 2.54, y - 1.27, "left", False),
+                     "Value": (x + 2.54, y + 1.27, "left", False)}
+        elif sym in ("R", "C") and rot in (90, 270):
+            props = {"Reference": (x, y - 2.54, None, False), "Value": (x, y + 2.54, None, False)}
+        elif sym == "1N4148WS" and rot in (90, 270):
+            props = {"Reference": (x + 2.54, y - 1.27, "left", False),
+                     "Value": (x + 2.54, y + 1.27, "left", False)}
+        elif sym == "SW_Push" and rot in (90, 270):
+            props = {"Reference": (x + 2.54, y - 1.27, "left", False),
+                     "Value": (x + 2.54, y + 1.27, "left", False)}
+        elif sym == "MMBT3904":
+            props = {"Reference": (x + 5.08, y - 1.27, "left", False),
+                     "Value": (x + 5.08, y + 1.27, "left", False)}
+        elif p["lib"] in IC_LIBS:
+            # Reference / Value under the body, right of the bottom pin's power symbol
+            ymax = max(to_sheet(x, y, q["x"], q["y"], rot)[1] for q in pins)
+            props = {"Reference": (x + 3.81, ymax + 3.81, "left", False),
+                     "Value": (x + 3.81, ymax + 6.35, "left", False)}
+        fields = {}
+        if p["lcsc"]:
+            lc, mpn, mfr, tier = p["lcsc"]
+            fields = {"LCSC": lc, "MPN": mpn, "Manufacturer": mfr, "JLC": tier}
+        self.place(p["lib"], sym, p["ref"], p["value"], x, y, rot, 1, p["fp"], props, fields=fields,
+                   in_bom=not p["ref"].startswith("H"))
         used = set()
-        for unit, (x, y) in units.items():
-            props = None
-            if p["sym"] in ("R", "C", "C_Polarized"):
-                props = {"Reference": (x + 2.54, y - 1.27, "left", False),
-                         "Value": (x + 2.54, y + 1.27, "left", False)}
-            elif p["sym"] in ("1N5822", "1N4148") and p["rot"] in (90, 270):
-                # field angles are relative to the symbol: 90 shows horizontal on a rotated part
-                props = {"Reference": (x + 4.445, y - 1.27, None, False, 90),
-                         "Value": (x + 5.715, y + 1.27, None, False, 90)}
-            elif p["sym"].startswith("MCP23017"):
-                props = {"Reference": (x + 2.54, y - 27.94, "left", False),
-                         "Value": (x + 2.54, y + 29.21, "left", False)}
-            elif p["sym"] == "LD1117V33":
-                props = {"Reference": (x, y - 6.35, None, False), "Value": (x, y - 3.81, None, False)}
-            elif p["sym"] == "2N3904":
-                props = {"Reference": (x + 6.35, y - 1.27, "left", False),
-                         "Value": (x + 6.35, y + 1.27, "left", False)}
-            elif p["sym"] == "74AHCT125" and unit < 5:
-                props = {"Reference": (x, y - 7.62, None, False), "Value": (x, y - 5.08, None, False)}
-            elif p["sym"] in ("1N5822", "1N4148"):
-                props = {"Reference": (x, y - 3.81, None, False), "Value": (x, y + 3.81, None, False)}
-            self.place(p["lib"], p["sym"], p["ref"], p["value"], x, y, p["rot"], unit, p["fp"], props)
-            for pin in pins:
-                if pin["unit"] not in (0, unit):
-                    continue
-                num = pin["num"]
-                px, py = to_sheet(x, y, pin["x"], pin["y"], p["rot"])
-                if num not in p["nets"]:
-                    if pin["type"] != "no_connect":
-                        raise SystemExit("%s pin %s (%s) has no net and no NC" % (p["ref"], num, pin["name"]))
-                    continue
-                used.add(num)
-                net = p["nets"][num]
-                if net is D.NC:
-                    self.noconnect(px, py)
-                    continue
-                dx, dy = outward(pin["rot"], p["rot"])
-                ex, ey = round(px + dx * STUB, 4), round(py + dy * STUB, 4)
-                self.wire(px, py, ex, ey)
-                ang = vec_angle(dx, dy)
-                if net in D.POWER and ang in (90, 270):
-                    self.power(net, ex, ey, ang)
-                else:
-                    self.glabel(net, ex, ey, ang)
+        done = {}
+        for pin in pins:
+            if pin["unit"] not in (0, 1):
+                continue
+            num = pin["num"]
+            px, py = to_sheet(x, y, pin["x"], pin["y"], rot)
+            if num not in p["nets"]:
+                if pin["type"] != "no_connect" and (px, py) not in done:
+                    raise SystemExit("%s pin %s (%s) has no net and no NC" % (p["ref"], num, pin["name"]))
+                if (px, py) in done and pin["type"] != "no_connect":
+                    raise SystemExit("%s pin %s: stacked pin needs a net entry" % (p["ref"], num))
+                continue
+            used.add(num)
+            net = p["nets"][num]
+            if (px, py) in done:          # stacked pin: shares the stub of the first pin there
+                if done[(px, py)] != net:
+                    raise SystemExit("%s pin %s stacked on a pin with net %s" % (p["ref"], num, done[(px, py)]))
+                continue
+            done[(px, py)] = net
+            if net is D.NC:
+                self.noconnect(px, py)
+                continue
+            dx, dy = outward(pin["rot"], rot)
+            ex, ey = round(px + dx * STUB, 4), round(py + dy * STUB, 4)
+            self.wire(px, py, ex, ey)
+            ang = vec_angle(dx, dy)
+            if net in D.POWER:
+                self.power(net, ex, ey, ang)
+            elif net in D.DIRECT:
+                self.direct.setdefault(net, []).append((ex, ey))
+            else:
+                self.glabel(net, ex, ey, ang)
         missing = set(p["nets"]) - used
         if missing:
             raise SystemExit("%s: nets for unknown pins %s" % (p["ref"], sorted(missing)))
 
+    def wire_direct(self):
+        for net, ends in self.direct.items():
+            if len(ends) != 2:
+                raise SystemExit("direct net %s has %d ends on one sheet" % (net, len(ends)))
+            (x1, y1), (x2, y2) = ends
+            # a global label standing on the first segment names the net (else KiCad calls it
+            # Net-(...); a local label would get the sheet path as prefix)
+            if y1 == y2 or x1 != x2:
+                self.glabel(net, round((x1 + x2) / 2 / 1.27) * 1.27, y1, 90)
+            else:
+                self.glabel(net, x1, round((y1 + y2) / 2 / 1.27) * 1.27, 0)
+            if x1 == x2 or y1 == y2:
+                self.wire(x1, y1, x2, y2)
+            else:
+                self.wire(x1, y1, x2, y1)
+                self.wire(x2, y1, x2, y2)
+
+    # -------------------------------------------------------------- file
+    def write(self, fname, paper, comment):
+        tb = [S("title_block"), [S("title"), D.TITLE], [S("date"), D.DATE], [S("rev"), D.REV],
+              [S("company"), "ESP32 CTF / Defuse32"],
+              [S("comment"), 1, "Spec: hardware/defuse32/SPEC.md, \"Rev 2 carrier (2026-10-23)\""],
+              [S("comment"), 2, "Generated by kicad/gen/gen_sch.py from kicad/gen/design.py"],
+              [S("comment"), 3, "SMD, 2 layers, 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part"],
+              [S("comment"), 4, comment]]
+        u = ROOT if self.key is None else uid("file", self.key)
+        sch = [S("kicad_sch"), [S("version"), SCH_VERSION], [S("generator"), "eeschema"],
+               [S("generator_version"), "10.0"], [S("uuid"), u], [S("paper"), paper], tb,
+               [S("lib_symbols")] + list(self.libs.values())]
+        sch += self.items
+        if self.key is None:
+            sch += [[S("sheet_instances"), [S("path"), "/", [S("page"), "1"]]]]
+        sch += [[S("embedded_fonts"), S("no")]]
+        with open(os.path.join(KDIR, fname), "w") as f:
+            f.write(dump(sch) + "\n")
+        n = sum(1 for i in self.items if i[0] == "symbol" and not find(i, "lib_id")[0][1].startswith("power:"))
+        print("wrote", fname, "parts:", n)
+
+
+ROOT_NOTES = [
+    ("Defuse32 carrier, rev 2 (2026-10-23): SMD, 100 x 70 mm, 2 layers, 1.6 mm, 4 x M3 holes 4 mm from the corners.", 2.0),
+    ("ESP32-WROOM-32E (4 MB) at the left edge, antenna region outside the board outline. USB-C (power + programming)", 1.5),
+    ("-> PTC -> 5V; CH340C on UART0 with DTR/RTS auto-reset. AMS1117-3.3 -> 3V3 (ESP32, CH340C); AP2112K-3.3 -> 3V3P", 1.5),
+    ("(plates, MCP23017 x2, LIS3DH, microSD, pull-ups). One keyed IDC box header per plate (J1-J6).", 1.5),
+    ("", 1.5),
+    ("I2C (GPIO21 SDA / GPIO22 SCL): U2 MCP23017 0x20, U3 MCP23017 0x21, U8 LIS3DH 0x19; on the plates: SSD1306 0x3C,", 1.5),
+    ("SH1106 0x3D, 24C32 0x50, PN532 0x24. ESP32 GPIO map, MCP23017 allocation and WS2812 chain unchanged from rev 1b.", 1.5),
+    ("", 1.5),
+    ("Nets cross sheets through global labels and power symbols. Every part carries LCSC / MPN / Manufacturer / JLC fields.", 1.5),
+    ("SPEC connector names -> references: plate Jn = Jn, J_USB = J7, J_KEY = J8, J_SERVO = J9, J_SPARE = J10, J_SD = J11.", 1.5),
+]
+ROOT_SHEETS = [("power", 25.4, 33.02), ("mcu", 147.32, 33.02), ("io", 25.4, 68.58), ("conn", 147.32, 68.58)]
+SHEET_W, SHEET_H = 116.84, 25.4
+SHEET_TEXT = {
+    "power": ["USB-C J7, CC 5.1k, USBLC6 U9, PTC F1, 220 uF bulk", "AMS1117 U6 -> 3V3, AP2112K U5 -> 3V3P",
+              "CH340C U7 (UART0), auto-reset Q2/Q3"],
+    "mcu": ["ESP32-WROOM-32E U1 + decoupling, EN/BOOT SW1/SW2", "pull-ups / pull-downs (R2-R6, R8, R9)",
+            "WS2812 buffer U4, buzzer driver Q1"],
+    "io": ["MCP23017-E/SO U2 (0x20), U3 (0x21)", "LIS3DH U8 (0x19, I2C, polled)",
+           "microSD J11 (push-push, SPI) + card detect"],
+    "conn": ["IDC box headers J1-J6 (plates M1-M6)", "J_KEY J8, J_SERVO J9, J_SPARE J10",
+             "mounting holes H1-H4"],
+}
+
 
 def build():
-    sh = Sheet()
-    # ---- block frames and notes (A3 sheet: 420 x 297)
-    sh.box(15.24, 15.24, 119.38, 101.6, "POWER IN, BULK, DECOUPLING")
-    sh.text("5 V from the panel USB-C module (J_PWR). D1: DevKit USB cannot back-feed the rail.", 17.78, 22.86, 1.0)
-    sh.text("PWR_FLAGs (ERC)", 17.78, 48.26, 1.0)
-    sh.text("C3: U2   C4: U3   C5: U4 (C2 moved to the U5 output, rev 1)", 17.78, 68.58, 1.0)
-    sh.box(124.46, 15.24, 236.22, 101.6, "ESP32-DevKitC-32E (U1)")
-    sh.text("GPIO2 = SD_CS (10k pull-down R8).  GPIO12: strapping, unused.  GPIO0/1/3/6-11: boot, console, flash.", 127.0, 88.9, 1.0)
-    sh.text("Socket: 2x 1x19 at 25.40 mm + unpopulated clone row at 22.86 mm (same nets).", 127.0, 92.71, 1.0)
-    sh.text("D1 feeds the DevKit 5V pin (DK_5V). The DevKit 3V3 pin feeds nothing on the carrier (rev 1: U5 -> 3V3P).", 127.0, 96.52, 1.0)
-    sh.box(241.3, 15.24, 332.74, 101.6, "PULL-UPS, IMU (A1 on carrier)")
-    sh.text("R2/R3 I2C 4.7k; R4 GPIO35, R5 GPIO34, R9 GPIO39 (ENC_SW, rev 1b) 10k pull-ups.", 243.84, 81.28, 1.0)
-    sh.text("LDR on M6: 3V3P (J6_A pin 2) -> GPIO36 (LDR); R6 is the low side.", 243.84, 85.09, 1.0)
-    sh.text("A1 AD0 tied low: MPU-6050 at 0x68. INT not connected (rev 1b): firmware polls over I2C.", 243.84, 88.9, 1.0)
-    sh.box(337.82, 15.24, 406.4, 101.6, "WS2812 BUFFER 3V3->5V")
-    sh.text("Gates 2-4 unused: A to GND, ~{OE} high.", 340.36, 99.06, 1.0)
-    sh.box(15.24, 106.68, 236.22, 195.58, "I2C EXPANDERS (U2 0x20, U3 0x21)")
-    sh.text("INTA/INTB of both chips: mirrored, open-drain, wired-OR to GPIO35 (MCP_INT).", 17.78, 115.57, 1.0)
-    sh.text("U2: keypad ROW1-4 GPA0-3, COL1-3 GPA4-6, COL4 GPB6 (rev 1b), SIM1-4, KEY, GPB5 = SD_DET.", 17.78, 119.38, 1.0)
-    sh.text("U3: wire posts WA1-5 GPA0-4, WA6 GPB6 (rev 1b), WB1-6 GPB0-5, ENC_A/B GPA6/5.", 119.38, 115.57, 1.0)
-    sh.text("Rev 1b: GPA7/GPB7 are output-only (cannot go hi-Z): no keypad/wire line on them;", 119.38, 119.38, 1.0)
-    sh.text("all four (U2/U3 GPA7, GPB7) go to J_SPARE as spare outputs. ENC_SW -> GPIO39.", 119.38, 123.19, 1.0)
-    sh.box(241.3, 106.68, 317.5, 195.58, "BUZZER DRIVER")
-    sh.text("GPIO26 (BUZZ, LEDC PWM) -> R7 -> Q1.", 243.84, 182.88, 1.0)
-    sh.text("Buzzer on M2: BUZZ+ = 5V, BUZZ- on J2_B.", 243.84, 186.69, 1.0)
-    sh.box(322.58, 106.68, 406.4, 195.58, "CARRIER HEADERS, microSD (A2)")
-    sh.text("J_KEY: key switch (case wall) -> U2 GPB4.", 325.12, 175.26, 1.0)
-    sh.text("J_SERVO: SG90 order GND / 5V / SIG", 325.12, 179.07, 1.0)
-    sh.text("(SERVO_SIG is also on J6_B; use either).", 325.12, 182.88, 1.0)
-    sh.text("J_SPARE: U2 GPA7, U2 GPB7, U3 GPA7, U3 GPB7, GND (outputs only).", 325.12, 186.69, 1.0)
-    sh.text("A2: 3.3 V-only microSD breakout, VSPI shared with the probe plate.", 325.12, 190.5, 1.0)
-    sh.text("SD_CS = GPIO2 (R8 pull-down keeps the strapping valid), DET -> U2 GPB5.", 325.12, 194.31, 1.0)
-    sh.box(15.24, 198.12, 294.64, 284.48, "PLATE CONNECTORS (JST-XH 2.5 mm)")
-    sh.text("Jn_A (all plates): 5V 3V3P GND SDA SCL LDI LDO.  WS2812 chain: U4 -> R1 -> LDI (M1) -> LDO1 -> M2 -> LDO2 -> M3 "
-            "-> LDO3 -> M4 -> LDO4 -> M5 -> LDO5 -> M6 (end).", 17.78, 205.74, 1.0)
-    sh.text("SPEC names -> references: Jn_A = Jn1, Jn_B = Jn2, J_PWR = J7, J_KEY = J8, J_SERVO = J9, J_SPARE = J10 "
-            "(the SPEC name starts each Value).", 17.78, 209.55, 1.0)
-    sh.box(299.72, 198.12, 406.4, 248.92, "PERIPHERAL 3V3 RAIL (U5, rev 1)")
-    sh.text("U5 LD1117V33: 5V -> 3V3P for plates, U2/U3, A1, A2 and the pull-ups.", 302.26, 238.76, 1.0)
-    sh.text("C6/C7 input, C2/C8 output. Modules run only with 5 V on J_PWR.", 302.26, 242.57, 1.0)
-    for n, (x, y) in D.PLATE_SCH.items():
-        sh.text("M%d %s" % (n, D.PLATE_B[n][0]), x - 27.94, y - 12.7, 1.778, bold=True)
-        if n == 2:
-            sh.text("TM1637: power from 3V3P (J2_A pin 2)", x - 10.16, y + 15.24, 1.0)
+    sheets = {k: Sheet(k) for k in D.SHEETS}
+    root = Sheet(None)
+    for k, x, y in ROOT_SHEETS:
+        root.sheet_symbol(k, x, y, SHEET_W, SHEET_H)
+        for i, line in enumerate(SHEET_TEXT[k]):
+            root.text(line, x + 2.54, y + 6.35 + i * 5.08, 1.27)
+    y = 106.68
+    for t, step in ROOT_NOTES:
+        if t:
+            root.text(t, 25.4, y, 1.27 if step < 2 else 1.778, bold=step >= 2)
+        y += 5.08 if step >= 2 else 4.445
+    root.text("Sheets: 2 Power, USB, UART  |  3 ESP32 module  |  4 Expanders, tilt, microSD  |  5 Plate connectors",
+              25.4, 22.86, 1.27)
 
-    # ---- power flags
-    for net, x, y in (("5V", 20.32, 58.42), ("GND", 43.18, 58.42), ("DK_5V", 66.04, 58.42)):
+    for key, blocks in D.BLOCKS.items():
+        sh = sheets[key]
+        for x1, y1, x2, y2, title, notes in blocks:
+            sh.box(x1, y1, x2, y2, title)
+            for t, tx, ty in notes:
+                sh.text(t, tx, ty, 1.0)
+    # plate connector captions
+    for n, (x, y) in D.PLATE_SCH.items():
+        name, rows, _ = D.PLATES[n]
+        sheets["conn"].text("J%d  M%d %s  (2x%d)" % (n, n, name, rows), x - 20.32, y - rows * 1.27 - 7.62, 1.778,
+                            bold=True)
+    sheets["conn"].text("pin 11 = BUZZ+ (5V)", D.PLATE_SCH[2][0] + 22.86, D.PLATE_SCH[2][1] + 10.16, 1.0)
+
+    # power flags
+    fkey, flags = D.PWR_FLAGS
+    for net, x, y in flags:
+        sh = sheets[fkey]
         sh.wire(x, y, x + 10.16, y)
         sh.power(net, x, y, 270 if net == "GND" else 90)
         sh.pwr_flag(x + 10.16, y)
 
     for p in D.PARTS:
-        sh.part(p)
+        sheets[p["sheet"]].part(p)
+    for sh in sheets.values():
+        sh.wire_direct()
 
-    sch = [S("kicad_sch"), [S("version"), 20260306], [S("generator"), "eeschema"], [S("generator_version"), "10.0"],
-           [S("uuid"), ROOT], [S("paper"), "A3"],
-           [S("title_block"), [S("title"), "Defuse32 carrier"], [S("date"), "2026-10-22"], [S("rev"), "1b"],
-            [S("company"), "ESP32 CTF / Defuse32"],
-            [S("comment"), 1, "Spec: hardware/defuse32/SPEC.md (Electronics, carrier PCB)"],
-            [S("comment"), 2, "Generated by kicad/gen/gen_sch.py from kicad/gen/design.py"],
-            [S("comment"), 3, "THT only, 2 layers, 190 x 140 mm"],
-            [S("comment"), 4, "Rev 1b: COL4/WA6 on GPB6, ENC_SW on GPIO39 (R9), MPU INT NC, J_SPARE 1x5"]],
-           [S("lib_symbols")] + list(sh.libs.values())]
-    sch += sh.items
-    sch += [[S("sheet_instances"), [S("path"), "/", [S("page"), "1"]]], [S("embedded_fonts"), S("no")]]
-    out = os.path.join(KDIR, PROJECT + ".kicad_sch")
-    with open(out, "w") as f:
-        f.write(dump(sch) + "\n")
-    print("wrote", out, "symbols:", sum(1 for i in sh.items if i[0] == "symbol"))
+    root.write(PROJECT + ".kicad_sch", "A4", "Root: sheet symbols and overview")
+    for key, sh in sheets.items():
+        name, fname, page = D.SHEETS[key]
+        sh.write(fname, "A3", "Sheet %d: %s" % (page, name))
 
 
 if __name__ == "__main__":

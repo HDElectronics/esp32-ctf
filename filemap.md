@@ -101,7 +101,7 @@
 - `hardware/defuse32/firmware/` — Defuse32 ESP-IDF project (esp32): CMakeLists (COMPONENTS main, ctf_core extra dir), sdkconfig.defaults, dependencies.lock, README
 - `hardware/defuse32/firmware/main/` — app_main (board init, banner, SD mount, boot pack), `game.c` (10 ms game task, UI, key switch, tilt), `console_cmds.c` (hw/round/pack commands), `Kconfig.projbuild`
 - `hardware/defuse32/firmware/components/d32_engine/` — portable game engine (C11, host-testable, no IDF headers)
-- `hardware/defuse32/firmware/components/d32_board/` — `board.h` pin map + presence table; drivers (I2C, MCP23017, keypad/wires/encoder, TM1637, OLED, WS2812, buzzer/servo, touch, IR, LDR, MPU-6050, SD, UART2, PN532 stub)
+- `hardware/defuse32/firmware/components/d32_board/` — `board.h` pin map + presence table; drivers (I2C, MCP23017, keypad/wires/encoder, TM1637, OLED, WS2812, buzzer/servo, touch, IR, LDR, LIS3DH (`board_lis3dh.c`) + portable tilt math (`board_tilt.c`, host-tested), SD, UART2, PN532 stub)
 - `hardware/defuse32/firmware/components/d32_pack/` — pack JSON parser (portable) + SD loader
 - `hardware/defuse32/firmware/components/d32_modules/` — module adapters `mod_*.c`, registry, buzzer arbiter, `d32_mod_logic.c` (portable)
 - `hardware/defuse32/firmware/test/host/` — host tests (engine, pack parser, module logic): `cmake -S hardware/defuse32/firmware/test/host -B build-d32-host`

@@ -3,7 +3,8 @@ project(d32_host_tests C)
 
 # Host tests for the portable parts of the Defuse32 firmware:
 #   d32_engine (links ctf_core from the repo root), the pure logic of
-#   d32_modules (d32_mod_logic.c) and the d32_pack parse core (needs cJSON).
+#   d32_modules (d32_mod_logic.c), the d32_board tilt math (board_tilt.c)
+#   and the d32_pack parse core (needs cJSON).
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
@@ -12,6 +13,7 @@ set(CTF_CORE_DIR ${FW_DIR}/../../../components/ctf_core)
 set(D32_ENGINE_DIR ${FW_DIR}/components/d32_engine)
 set(D32_MODULES_DIR ${FW_DIR}/components/d32_modules)
 set(D32_PACK_DIR ${FW_DIR}/components/d32_pack)
+set(D32_BOARD_DIR ${FW_DIR}/components/d32_board)
 file(GLOB CTF_CORE_SRCS CONFIGURE_DEPENDS ${CTF_CORE_DIR}/*.c)
 file(GLOB D32_ENGINE_SRCS CONFIGURE_DEPENDS ${D32_ENGINE_DIR}/*.c)
 file(GLOB TEST_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/test_*.c)
@@ -54,10 +56,12 @@ if(NOT HAVE_CJSON)
 endif()
 
 add_executable(d32_engine_tests ${TEST_SRCS} ${D32_ENGINE_SRCS} ${CTF_CORE_SRCS}
-               ${D32_MODULES_DIR}/d32_mod_logic.c)
+               ${D32_MODULES_DIR}/d32_mod_logic.c ${D32_BOARD_DIR}/board_tilt.c)
 target_include_directories(d32_engine_tests PRIVATE
     ${D32_ENGINE_DIR}/include ${CTF_CORE_DIR}/include ${D32_MODULES_DIR}/include
     ${D32_PACK_DIR}/include ${CMAKE_CURRENT_LIST_DIR})
+# d32_board: tests include only the portable board_tilt.h (board.h needs IDF).
+target_include_directories(d32_engine_tests PRIVATE ${D32_BOARD_DIR}/include)
 target_compile_options(d32_engine_tests PRIVATE -Wall -Wextra -Werror)
 target_link_libraries(d32_engine_tests PRIVATE m)
 if(HAVE_CJSON)
@@ -68,7 +72,7 @@ endif()
 
 enable_testing()
 # One ctest entry per group; `d32_engine_tests` with no argument runs them all.
-set(D32_GROUPS config phase timer codes wires frags events modlogic)
+set(D32_GROUPS config phase timer codes wires frags events modlogic tilt)
 if(HAVE_CJSON)
     list(APPEND D32_GROUPS pack)
 endif()

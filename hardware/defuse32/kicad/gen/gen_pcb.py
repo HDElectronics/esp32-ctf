@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Generate defuse32-carrier.kicad_pcb (placement + nets + GND zones, unrouted) and the
-project file (net classes and JLCPCB 2-layer design rules).
+"""Generate the rev 2 defuse32-carrier.kicad_pcb (outline, holes, every footprint with its nets,
+roughly placed, unrouted) and the project file (net classes, JLCPCB 2-layer design rules).
 
 Needs KiCad's Python:  /usr/bin/python3 kicad/gen/gen_pcb.py [--force]
-Footprint-to-symbol links use the same deterministic UUIDs as gen_sch.py.
+Footprint-to-symbol links use the same deterministic UUIDs as gen_sch.py (path /sheet/symbol).
 
-The board has been routed (2026-10-22) and is edited by hand since. This script would replace it
-with an unrouted one, so it refuses to run when the existing board has tracks or vias; --force
-overwrites anyway (the routing is lost). Board changes go schematic -> KiCad "Update PCB from
-Schematic" instead.
+Once the board is placed or routed by hand, this script would throw that work away, so it refuses
+to run when the existing board has tracks or vias; --force overwrites anyway. Board changes then go
+schematic -> KiCad "Update PCB from Schematic".
 """
 import json
 import os
@@ -19,12 +18,12 @@ import sys
 import pcbnew
 
 import design as D
-from gen_sch import PROJECT, ROOT, uid
+from gen_sch import PROJECT, sheet_path, uid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 KDIR = os.path.normpath(os.path.join(HERE, ".."))
 SYS_FP = "/usr/share/kicad/footprints"
-OX, OY = 50.0, 40.0          # board top-left corner on the page (mm)
+OX, OY = 50.0, 50.0          # board top-left corner on the page (mm)
 mm = pcbnew.FromMM
 
 
@@ -53,20 +52,6 @@ def silk_text(board, txt, x, y, size=1.0, angle=0, layer=pcbnew.F_SilkS, bold=Fa
         t.SetTextAngleDegrees(angle)
     board.Add(t)
     return t
-
-
-def rect_zone(board, x1, y1, x2, y2, layers):
-    z = pcbnew.ZONE(board)
-    ls = pcbnew.LSET()
-    for l in layers:
-        ls.AddLayer(l)
-    z.SetLayerSet(ls)
-    o = z.Outline()
-    o.NewOutline()
-    for x, y in ((x1, y1), (x2, y1), (x2, y2), (x1, y2)):
-        o.Append(mm(OX + x), mm(OY + y))
-    board.Add(z)
-    return z
 
 
 def read_netlist():
@@ -105,7 +90,6 @@ RULES = {
     "min_hole_to_hole": 0.5,
     "min_copper_edge_clearance": 0.3,
 }
-POWER_NETS = ["5V", "3V3P", "GND", "DK_5V"]   # DK_5V: D1 -> DevKit 5V pin, carries the ESP32 supply
 
 
 def netclass(name, track, clearance, priority):
@@ -116,7 +100,26 @@ def netclass(name, track, clearance, priority):
             "priority": priority, "tuning_profile": ""}
 
 
+# Custom rules: the 0.5 mm pitch parts have 0.15-0.2 mm gaps between their own pads, below the
+# Default (0.2) / Power (0.25) clearances. Inside their courtyards the clearance drops to 0.15 mm
+# (JLCPCB minimum 0.127 mm), so the footprints themselves and the fan-out pass DRC.
+DRU = """(version 1)
+
+(rule "LIS3DH LGA-16 0.5 mm pitch"
+  (constraint clearance (min 0.15mm))
+  (condition "A.intersectsCourtyard('U8') && B.intersectsCourtyard('U8')"))
+
+(rule "USB-C 16P 0.5 mm pitch"
+  (constraint clearance (min 0.15mm))
+  (condition "A.intersectsCourtyard('J7') && B.intersectsCourtyard('J7')"))
+"""
+
+
 def write_project():
+    with open(os.path.join(KDIR, PROJECT + ".kicad_dru"), "w") as f:
+        f.write(DRU)
+    tw_d, cl_d = D.NETCLASS["Default"]
+    tw_p, cl_p = D.NETCLASS["Power"]
     pro = {
         "meta": {"filename": PROJECT + ".kicad_pro", "version": 3},
         "board": {
@@ -125,20 +128,20 @@ def write_project():
                 "rules": dict(RULES, allow_blind_buried_vias=False, allow_microvias=False,
                               min_hole_clearance=0.25, min_resolved_spokes=2, min_silk_clearance=0.0,
                               min_text_height=0.8, min_text_thickness=0.12, max_error=0.005),
-                "track_widths": [0.0, 0.25, 0.5, 0.8, 1.0],
+                "track_widths": [0.0, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0],
                 "via_dimensions": [{"diameter": 0.0, "drill": 0.0}, {"diameter": 0.6, "drill": 0.3}],
                 "diff_pair_dimensions": [],
             },
         },
         "net_settings": {
             "meta": {"version": 5},
-            "classes": [netclass("Default", 0.25, 0.2, 2147483647), netclass("Power", 0.8, 0.3, 0)],
+            "classes": [netclass("Default", tw_d, cl_d, 2147483647), netclass("Power", tw_p, cl_p, 0)],
             "net_colors": None,
             "netclass_assignments": None,
-            "netclass_patterns": [{"netclass": "Power", "pattern": n} for n in POWER_NETS],
+            "netclass_patterns": [{"netclass": "Power", "pattern": n} for n in D.POWER_NETS],
         },
         "schematic": {},
-        "sheets": [],
+        "sheets": [[uid("root"), "Root"]] + [[uid("sheet", k), v[0]] for k, v in D.SHEETS.items()],
         "text_variables": {},
     }
     with open(os.path.join(KDIR, PROJECT + ".kicad_pro"), "w") as f:
@@ -147,19 +150,17 @@ def write_project():
 
 
 def build():
-    write_project()
     board = pcbnew.CreateEmptyBoard()
     tb = board.GetTitleBlock()
-    tb.SetTitle("Defuse32 carrier")
-    tb.SetRevision("1b")
-    tb.SetDate("2026-10-22")
+    tb.SetTitle(D.TITLE)
+    tb.SetRevision(D.REV)
+    tb.SetDate(D.DATE)
     tb.SetCompany("ESP32 CTF / Defuse32")
-    tb.SetComment(0, "190 x 140 mm, 2 layers, 1.6 mm, THT only")
-    tb.SetComment(1, "rev 1b: placed, unrouted (ratsnest only); net classes + JLCPCB rules in .kicad_pro")
+    tb.SetComment(0, "100 x 70 mm, 2 layers, 1.6 mm, SMD (JLCPCB assembly) + THT headers")
+    tb.SetComment(1, "rev 2: footprints imported, rough placement, unrouted; net classes + JLCPCB rules in .kicad_pro")
     tb.SetComment(2, "Generated by kicad/gen/gen_pcb.py")
     ds = board.GetDesignSettings()
     ds.SetBoardThickness(mm(1.6))
-    # same minimums as the project file (used by the zone filler below)
     ds.m_CopperEdgeClearance = mm(RULES["min_copper_edge_clearance"])
     ds.m_MinClearance = mm(RULES["min_clearance"])
     ds.m_TrackMinWidth = mm(RULES["min_track_width"])
@@ -180,118 +181,47 @@ def build():
     # nets: taken from the schematic netlist so names (incl. unconnected-*) match exactly
     padnet, fields = read_netlist()
     for p in D.PARTS:
-        for pin, net in p["nets"].items():
+        for pin, net in D.pad_nets(p).items():
             got = padnet.get((p["ref"], pin))
             if net and got != net:
                 raise SystemExit("schematic netlist disagrees with design.py: %s.%s %s/%s" % (p["ref"], pin, net, got))
-    names = sorted(set(padnet.values()))
     nets = {}
-    for n in names:
+    for n in sorted(set(padnet.values())):
         ni = pcbnew.NETINFO_ITEM(board, n)
         board.Add(ni)
         nets[n] = ni
 
-    # footprints
     for p in D.PARTS:
-        if not p["pcb"]:
-            raise SystemExit("no placement for " + p["ref"])
         fp = load_fp(p["fp"])
         x, y, rot = p["pcb"]
         fp.SetReference(p["ref"])
         fp.SetValue(p["value"])
         fp.SetPosition(P(x, y))
         fp.SetOrientationDegrees(rot)
-        first_unit = 1 if not p["unit_pos"] else min(p["unit_pos"])
-        fp.SetPath(pcbnew.KIID_PATH("/%s" % uid("sym", p["ref"], first_unit)))
+        fp.SetPath(pcbnew.KIID_PATH("%s/%s" % (sheet_path(p["sheet"]), uid("sym", p["ref"], 1))))
         f = fields[p["ref"]]
         fp.SetSheetname(f.get("Sheetname", ""))
-        fp.SetSheetfile(f.get("Sheetfile", PROJECT + ".kicad_sch"))
-        fp.SetField("Datasheet", f.get("Datasheet", ""))
-        fp.SetField("Description", f.get("Description", ""))
+        fp.SetSheetfile(f.get("Sheetfile", ""))
+        for k in ("Datasheet", "Description", "LCSC", "MPN", "Manufacturer", "JLC"):
+            if k in f:
+                fp.SetField(k, f[k])
+                if k not in ("Datasheet", "Description"):
+                    fp.GetField(k).SetVisible(False)
+                    fp.GetField(k).SetLayer(pcbnew.F_Fab)
         for pad in fp.Pads():
             net = padnet.get((p["ref"], pad.GetNumber()))
             if net:
                 pad.SetNet(nets[net])
         board.Add(fp)
-        p["_fp"] = fp
-        if p["ref"] in D.REF_POS:
-            fp.Reference().SetPosition(P(*D.REF_POS[p["ref"]]))
-            fp.Reference().SetTextAngleDegrees(0)
 
-    # reference text tweaks: keep back-edge refs between the connector and the board edge,
-    # move refs that would sit on a neighbour
-    # silkscreen labels with the SPEC names
-    for p in D.PARTS:
-        if p["spec"] == p["ref"]:
-            continue
-        fp = p["_fp"]
-        fp.BuildCourtyardCaches()
-        bb = fp.GetCourtyard(pcbnew.F_CrtYd).BBox()
-        cx = pcbnew.ToMM(bb.Centre().x) - OX
-        top = pcbnew.ToMM(bb.GetTop()) - OY
-        bot = pcbnew.ToMM(bb.GetBottom()) - OY
-        label = p["spec"]
-        if p["spec"].startswith("J") and p["spec"][1].isdigit():
-            n = int(p["spec"][1])
-            if p["spec"].endswith("_A"):
-                label = "%s  M%d %s" % (p["spec"], n, D.PLATE_B[n][0].upper())
-            # back edge: below the connector; front edge: above the footprint reference
-            ly = bot + 1.4 if n <= 3 else top - 2.9
-            silk_text(board, label, cx, ly, 1.0)
-        elif p["spec"] == "J_PWR":
-            silk_text(board, "J_PWR 5V", cx - 7.5, pcbnew.ToMM(bb.Centre().y) - OY, 1.0, angle=90)
-        elif p["spec"] == "J_SERVO":
-            silk_text(board, "J_SERVO", cx - 3.3, pcbnew.ToMM(bb.Centre().y) - OY, 1.0, angle=90)
-        else:
-            silk_text(board, label, cx, top - 2.9, 1.0)
+    silk_text(board, "DEFUSE32 CARRIER  rev 2  2026-10-23", 50, 68.2, 1.2, bold=True, layer=pcbnew.B_SilkS).SetMirrored(True)
+    silk_text(board, "rough placement: the placement task moves every part; U1 antenna region beyond x = 0",
+              50, -3, 1.0, layer=pcbnew.F_Fab)
 
-    silk_text(board, "DEFUSE32 CARRIER  rev 1b  2026-10-22", 95, 112, 2.0, bold=True)
-    silk_text(board, "ESP32 CTF - THT, rev 1b", 95, 116, 1.2)
-    silk_text(board, "BACK EDGE (lid hinge): M1 M2 M3", 95, 20.5, 1.0, layer=pcbnew.F_Fab)
-    silk_text(board, "FRONT EDGE: M4 M5 M6", 95, 124, 1.0, layer=pcbnew.F_Fab)
-    # rev 1b: J_SPARE pin names right of the pads, "outputs only" under the header
-    sp = next(p for p in D.PARTS if p["spec"] == "J_SPARE")
-    for pad in sp["_fp"].Pads():
-        i = int(pad.GetNumber()) - 1
-        t = silk_text(board, D.SPARE_PINS[i], pcbnew.ToMM(pad.GetPosition().x) - OX + 2.0,
-                      pcbnew.ToMM(pad.GetPosition().y) - OY, 1.0)
-        t.SetHorizJustify(pcbnew.GR_TEXT_H_ALIGN_LEFT)
-    sx, sy = sp["pcb"][0], sp["pcb"][1] + 2.54 * (len(D.SPARE_PINS) - 1)
-    silk_text(board, "OUTPUTS ONLY", sx + 2.0, sy + 2.6, 1.0).SetHorizJustify(pcbnew.GR_TEXT_H_ALIGN_LEFT)
-    # rev 1b: the TM1637 pull-ups would put 5 V on GPIO32/33 if powered from 5V
-    j2 = D.PCB["J2_B"]
-    for layer in (pcbnew.F_SilkS, pcbnew.F_Fab):
-        silk_text(board, "TM1637: power from 3V3P", (D.PCB["J2_A"][0] + j2[0]) / 2, j2[1] + 7.6, 1.0, layer=layer)
-    k = D.KEEPOUT
-    silk_text(board, "ANTENNA KEEPOUT", (k[0] + k[2]) / 2 - 3, (k[1] + k[3]) / 2, 1.0, angle=90)
-
-    # GND pours on both layers (whole board; edge clearance is applied by the filler)
-    for layer, prio in ((pcbnew.F_Cu, 0), (pcbnew.B_Cu, 0)):
-        z = rect_zone(board, 0, 0, D.BOARD_W, D.BOARD_H, [layer])
-        z.SetNet(nets["GND"])
-        z.SetAssignedPriority(prio)
-        z.SetLocalClearance(mm(0.4))
-        z.SetMinThickness(mm(0.25))
-        z.SetThermalReliefGap(mm(0.5))
-        z.SetThermalReliefSpokeWidth(mm(0.5))
-        z.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
-        z.SetIslandRemovalMode(pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)
-        z.SetZoneName("GND_" + ("F" if layer == pcbnew.F_Cu else "B"))
-
-    # antenna keepout: no copper of any kind (tracks, vias, pads, pours)
-    z = rect_zone(board, k[0], k[1], k[2], k[3], [pcbnew.F_Cu, pcbnew.B_Cu])
-    z.SetIsRuleArea(True)
-    z.SetDoNotAllowTracks(True)
-    z.SetDoNotAllowVias(True)
-    z.SetDoNotAllowPads(True)
-    z.SetDoNotAllowZoneFills(True)
-    z.SetDoNotAllowFootprints(False)   # the DevKit antenna itself overhangs this area
-    z.SetZoneName("ANTENNA_KEEPOUT")
-
-    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     out = os.path.join(KDIR, PROJECT + ".kicad_pcb")
     pcbnew.SaveBoard(out, board)
-    print("wrote", out, "footprints:", len(board.GetFootprints()), "nets:", len(names))
+    write_project()      # after SaveBoard, which rewrites the .kicad_pro with defaults
+    print("wrote", out, "footprints:", len(board.GetFootprints()), "nets:", len(nets))
 
 
 def refuse_routed_board():
@@ -302,8 +232,8 @@ def refuse_routed_board():
     n = len(re.findall(r"^\s*\((?:segment|arc|via)\b", open(path).read(), re.M))
     if n:
         raise SystemExit(
-            "gen_pcb.py: %s is routed (%d tracks/vias) and edited by hand; refusing to overwrite it and\n"
-            "%s.kicad_pro. Change the schematic and use KiCad's Tools > Update PCB from Schematic.\n"
+            "gen_pcb.py: %s is routed (%d tracks/vias); refusing to overwrite it and %s.kicad_pro.\n"
+            "Change the schematic and use KiCad's Tools > Update PCB from Schematic.\n"
             "Run with --force to regenerate an unrouted board anyway (the routing is lost)."
             % (os.path.relpath(path), n, PROJECT))
 

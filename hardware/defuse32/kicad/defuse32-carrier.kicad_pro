@@ -27,8 +27,10 @@
       },
       "track_widths": [
         0.0,
-        0.25,
-        0.5,
+        0.2,
+        0.3,
+        0.4,
+        0.6,
         0.8,
         1.0
       ],
@@ -52,7 +54,7 @@
     "classes": [
       {
         "name": "Default",
-        "track_width": 0.25,
+        "track_width": 0.2,
         "clearance": 0.2,
         "via_diameter": 0.6,
         "via_drill": 0.3,
@@ -71,8 +73,8 @@
       },
       {
         "name": "Power",
-        "track_width": 0.8,
-        "clearance": 0.3,
+        "track_width": 0.6,
+        "clearance": 0.25,
         "via_diameter": 0.6,
         "via_drill": 0.3,
         "microvia_diameter": 0.3,
@@ -98,6 +100,10 @@
       },
       {
         "netclass": "Power",
+        "pattern": "3V3"
+      },
+      {
+        "netclass": "Power",
         "pattern": "3V3P"
       },
       {
@@ -106,11 +112,32 @@
       },
       {
         "netclass": "Power",
-        "pattern": "DK_5V"
+        "pattern": "VBUS"
       }
     ]
   },
   "schematic": {},
-  "sheets": [],
+  "sheets": [
+    [
+      "b97112e6-98e8-5640-b1a5-b74f74797421",
+      "Root"
+    ],
+    [
+      "f5c018ae-401a-54e1-8c6d-270bc5e6c986",
+      "Power, USB, UART"
+    ],
+    [
+      "3a4a36aa-3898-5067-86f7-21c778a2e3f0",
+      "ESP32 module"
+    ],
+    [
+      "bf999377-5e8d-5505-917e-f43aa91cc6e7",
+      "Expanders, tilt, microSD"
+    ],
+    [
+      "0834cdd5-28db-5367-b1d2-227d6cb57737",
+      "Plate connectors"
+    ]
+  ],
   "text_variables": {}
 }

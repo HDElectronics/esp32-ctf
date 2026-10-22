@@ -27,7 +27,7 @@ static const char *addr_name(uint8_t a)
     case BOARD_I2C_ADDR_OLED_M1: return "SSD1306 OLED (M1)";
     case BOARD_I2C_ADDR_OLED_M3: return "SH1106 OLED (M3)";
     case BOARD_I2C_ADDR_EEPROM: return "24C32 EEPROM (M5)";
-    case BOARD_I2C_ADDR_MPU: return "MPU-6050";
+    case BOARD_I2C_ADDR_LIS3DH: return "LIS3DH tilt";
     default: return "unknown";
     }
 }
@@ -249,12 +249,12 @@ static int cmd_tilt(int argc, char **argv)
     (void)argc;
     (void)argv;
     float g[3], tilt, pitch, roll;
-    esp_err_t err = board_mpu_accel(g);
+    esp_err_t err = board_lis3dh_accel(g);
     if (err == ESP_OK) {
-        err = board_mpu_tilt(&tilt, &pitch, &roll);
+        err = board_lis3dh_tilt(&tilt, &pitch, &roll);
     }
     if (err != ESP_OK) {
-        printf("MPU-6050: %s\n", esp_err_to_name(err));
+        printf("LIS3DH: %s\n", esp_err_to_name(err));
         return 1;
     }
     printf("  accel x %+.2f y %+.2f z %+.2f g\n", (double)g[0], (double)g[1], (double)g[2]);

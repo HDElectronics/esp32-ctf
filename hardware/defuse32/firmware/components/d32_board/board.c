@@ -30,7 +30,7 @@ esp_err_t board_init(void)
     board_oled_init();
     s_p.oled_m1 = board_oled_present(BOARD_OLED_M1);
     s_p.oled_m3 = board_oled_present(BOARD_OLED_M3);
-    s_p.mpu = board_mpu_init() == ESP_OK;
+    s_p.lis3dh = board_lis3dh_init() == ESP_OK;
     s_p.nfc = board_nfc_init() == ESP_OK;
     s_p.eeprom = board_i2c_probe(BOARD_I2C_ADDR_EEPROM) == ESP_OK;
     if (s_p.i2c_bus && !s_p.eeprom) {
@@ -62,7 +62,7 @@ void board_deinit(void)
     board_leds_deinit();
     board_tm1637_deinit();
     board_nfc_deinit();
-    board_mpu_deinit();
+    board_lis3dh_deinit();
     board_oled_deinit();
     board_mcp_deinit();
     board_i2c_deinit();
@@ -93,7 +93,7 @@ void board_print_presence(void)
     row("SSD1306 OLED (M1)", "0x3C", p->oled_m1, "ok", "missing");
     row("SH1106 OLED (M3)", "0x3D", p->oled_m3, "ok", "missing");
     row("24C32 EEPROM (M5)", "0x50", p->eeprom, "ok", "missing");
-    row("MPU-6050", "0x68", p->mpu, "ok", "missing");
+    row("LIS3DH tilt", "0x19", p->lis3dh, "ok", "missing");
     row("TM1637 display (M2)", "32/33", p->tm1637, "ok", "missing");
     row("WS2812 chain x15", "25", p->leds, "driver ok (not probed)", "driver failed");
     row("buzzer", "26", p->buzzer, "ok", "driver failed");

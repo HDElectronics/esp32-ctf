@@ -55,4 +55,5 @@ void run_wire_tests(void);
 void run_frag_tests(void);
 void run_event_tests(void);
 void run_modlogic_tests(void);
+void run_tilt_tests(void);
 void run_pack_tests(void);

@@ -1,249 +1,244 @@
-# Defuse32 carrier PCB, rev 1b (KiCad 10)
+# Defuse32 carrier PCB, rev 2 (KiCad 10)
 
-The carrier board sits on the case floor. It holds the ESP32-DevKitC socket, the two MCP23017 expanders, the WS2812 buffer, the buzzer driver, the on-board GY-521 IMU, the microSD socket and the peripheral 3.3 V regulator, plus the JST-XH harness connectors to the six plates. The source of truth is [`../SPEC.md`](../SPEC.md), sections "Rev 0 decisions", "Rev 1 changes (2026-10-22)", the "Rev 1b rule" and "Electronics (carrier PCB)".
+The carrier board sits on the case floor and connects to the six plates by ribbon cables. Rev 2 is an SMD board assembled by JLCPCB: ESP32-WROOM-32E module, USB-C programming port with a CH340C, two MCP23017 expanders, LIS3DH tilt sensor, push-push microSD, WS2812 buffer, buzzer driver and one keyed IDC box header per plate. The source of truth is [`../SPEC.md`](../SPEC.md), section "Rev 2 carrier (2026-10-23)", plus the sections it keeps: ESP32 pin map, MCP23017 allocation (rev 1b), WS2812 chain, I2C addresses and the plate signal sets (rev 1 Jn_B table).
 
-Status: **rev 1b, routed (2026-10-22).** Autorouted with Freerouting, GND pours stitched, fabrication files in [`out/jlcpcb/`](out/jlcpcb/README.md). ERC is clean, DRC reports 0 violations and 0 unconnected items with the zones refilled, and the schematic and PCB match. The board is now edited by hand in KiCad: see [Routing](#routing-2026-10-22) and [Workflow](#workflow-since-routing).
+**Status (2026-10-23): schematic, libraries, footprints and JLCPCB parts done; board outline, holes and all footprints in the PCB, roughly placed and unrouted.** Placement and routing are the next task.
 
-## Routing (2026-10-22)
+| Check | Result |
+|---|---|
+| `kicad-cli sch erc --severity-all` | 0 errors, 0 warnings |
+| `kicad-cli pcb drc --schematic-parity` | 0 parity issues; 262 unconnected (unrouted); 219 violations, all from the rough, stacked placement (58 courtyard overlap, 54 silk overlap, 47 silk over copper, 22 shorting, 19 clearance between neighbouring parts, 16 mask bridge, 2 silk to edge, 1 PTH in courtyard) |
+| `gen/check_netlist.py` | OK: netlist and board pads match `design.py`, plus the SPEC pin map, MCP23017 allocation, IDC pinout rule, rails, outline, holes and net classes |
 
-- **Router**: Freerouting 2.4.1, headless, through `gen/route_prep.py` (DSN export, Freerouting, SES import, clean-up; the docstring has the exact commands). KiCad 10.0.7 exports the GND pours as planes on the signal layers, so the script drops them from the DSN: Freerouting routes GND as an ordinary Power net, and the pours are refilled afterwards. The `ANTENNA_KEEPOUT` rule area stays a keepout for tracks and vias.
-- **First pass**: all 194 connections (Freerouting's count) routed in 7 passes, then 8 optimizer passes (`--router.optimizer.improvement_threshold=0`), which cut the signal vias from 72 to 29.
-- **Decoupling fix** (`route_prep.py decap`, after review): C3 and C4 moved next to the MCP23017 VDD/VSS pins 9/10 (pad 1 level with pin 9, pad 2 below), and C5 turned so its GND pad faces U4 pin 12. Each cap gets short, direct 0.8 mm tracks to the supply pins. The script ripped up only the two 3V3P segments the new copper hit and the 14 track pieces left dangling, locked everything else, and an incremental Freerouting pass reconnected 3V3P (7 tracks, 1 via). `gen/design.py` has the new positions.
+Rev 1b (THT, DevKitC socket, 190 x 140 mm, routed) is in git, tag `carrier-rev1b`. `gen/route_prep.py` and `out/jlcpcb/` still belong to rev 1b (the gerbers there are **not** rev 2).
 
-  | Cap | Supply pin | Track length |
-  |---|---|---|
-  | C3 (U2) | VDD pin 9 / VSS pin 10 | 4.0 mm / 5.0 mm |
-  | C4 (U3) | VDD pin 9 / VSS pin 10 | 5.4 mm / 6.4 mm |
-  | C5 (U4) | VCC pin 14 / GND pin 7 | 4.4 mm / 19.8 mm (4.4 mm to GND pin 12, then pins 12-9-7) |
+## Rev 2 overview
 
-  On the DIP-14, VCC (14) and GND (7) are diagonal and 17 mm apart, so a 5 mm-pitch cap cannot sit within 5 mm of both. C5 stays at pin 14, with its GND pad next to pin 12 (an unused input tied to GND). The U5 caps (C2, C6-C8) were already next to U5.
-- **Widths and length**: every Power track (5V, 3V3P, DK_5V, GND) is 0.8 mm and every signal track 0.25 mm. Track length: 3782 mm on F.Cu, 5343 mm on B.Cu, 846 segments.
-- **GND**: GND is routed with 0.8 mm tracks and also poured on both layers. Before stitching the router left 71 (F.Cu) and 101 (B.Cu) pour islands that island removal deletes, plus 13 pour pieces held by a single pad. `route_prep.py finish` puts a stitching via (0.6/0.3 mm) in every island of 50 mm² or more and in every single-pad piece, where a via fits inside both that piece and a connected pour on the other layer: 37 in all. Islands left, deleted by island removal: 61 on F.Cu (466 mm² in all, largest 65 mm²) and 86 on B.Cu (580 mm² in all, largest 48 mm²).
-- **Hand fix**: U1 pad 20 of the unpopulated clone row (GND) got a single thermal spoke on B.Cu (DRC `starved_thermal`). A 0.8 mm B.Cu stub from the pad and a via at (130, 70) (board coordinates) connect it to the pour (`HAND_FIXES` in `route_prep.py`).
-- **Totals**: 68 vias (30 signal, 37 stitching, 1 hand fix). The antenna keepout holds no copper.
+- **Board**: 100 x 70 mm, 2 layers, 1.6 mm, 4 x M3 (Ø3.2) non-plated holes 4 mm from the corners. SMD on the top side (JLCPCB assembly); the IDC box headers and the 2.54 mm pin headers are through-hole.
+- **ESP32**: U1 ESP32-WROOM-32E-N4 at the left edge, turned 90° so the antenna end points left. The antenna region (footprint y < -6.56 mm) lies beyond the board edge x = 0. The footprint keeps KiCad's antenna keep-out zone (no tracks, vias, pads, pours or footprints) and the antenna outline on F.Fab. EN (SW1) and BOOT (SW2) buttons; EN RC 10 kΩ + 1 µF; GPIO0 10 kΩ pull-up.
+- **USB-C** J7 (16-pin, HRO TYPE-C-31-M-12): power input and programming port only. CC1/CC2 5.1 kΩ to GND (5 V sink). VBUS -> F1 PTC (2 A hold, 4 A trip) -> `5V`. U9 USBLC6-2SC6 on D+/D-. Shield to GND.
+- **USB-UART**: U7 CH340C at 3.3 V (V3 tied to VCC), no crystal, on UART0: CH340C TXD -> `U0RXD` (GPIO3), RXD <- `U0TXD` (GPIO1). Auto-reset with two MMBT3904 (Q2 DTR -> EN, Q3 RTS -> IO0, 10 kΩ base resistors).
+- **Power**: C1 220 µF bulk on `5V`. U6 AMS1117-3.3 (SOT-223) `5V` -> `3V3` for the ESP32 and the CH340C (C7 10 µF in, C8 22 µF out, C9 10 µF + C10 100 nF at the module's 3V3 pin). U5 AP2112K-3.3 (SOT-23-5, 600 mA) `5V` -> `3V3P` for the plates, U2/U3, LIS3DH, microSD and all pull-ups (C6 1 µF in, C2 10 µF + C19 100 nF out).
+- **Expanders**: U2/U3 MCP23017-E/SO at 0x20/0x21, rev 1b allocation unchanged, 100 nF each (C3/C4). INTA/INTB mirrored, open-drain, wired-OR to GPIO35.
+- **Tilt sensor**: U8 LIS3DH (LGA-16) in I2C mode (CS high) at 0x19: SA0 high through R20 (10 kΩ, keeps ERC clean: SDO is an output pin in the symbol). INT1/INT2 not connected (polled). C14/C16 100 nF on VDD/VDD_IO, C15 10 µF.
+- **microSD**: J11 Hirose DM3AT push-push socket, SPI mode on SCK 18 / MOSI 23 / MISO 19, `SD_CS` = GPIO2 (R8 10 kΩ pull-down kept). DAT0/DAT1/DAT2 10 kΩ pull-ups (R16-R18). Card detect: DET_A to GND, DET_B -> `SD_DET` (U2 GPB5) with R19 10 kΩ pull-up, so a card pulls it low (`CONFIG_D32_SD_DET_ACTIVE_HIGH=n`). C17 100 nF + C18 10 µF.
+- **WS2812 buffer**: U4 74AHCT1G125 (SOT-23-5) at 5 V, OE low, R1 330 Ω in series -> `LDI`. Chain: LDI -> M1 -> LDO1 -> M2 -> LDO2 -> M3 -> LDO3 -> M4 -> LDO4 -> M5 -> LDO5 -> M6 (end).
+- **Buzzer**: Q1 MMBT3904 low side, R7 1 kΩ base from GPIO26, D1 1N4148WS across the buzzer (BUZZ+ = 5V on J2 pin 11, BUZZ- on J2 pin 10).
+- **Pull-ups / pull-downs** (unchanged): R2/R3 4.7 kΩ I2C, R4 GPIO35, R5 GPIO34, R9 GPIO39 10 kΩ to 3V3P; R6 GPIO36 (LDR divider) and R8 GPIO2 10 kΩ to GND.
 
-## Rev 1b changes (2026-10-22)
+### ESP32 pin map (unchanged from SPEC)
 
-MCP23017 GPA7/GPB7 are output-only and cannot go high-impedance, so no keypad or wire-matrix line may use them (SPEC "Rev 1b rule"):
+GPIO21/22 SDA/SCL, 35 MCP_INT, 39 ENC_SW, 34 IR, 36 LDR, 32/33 TM_CLK/TM_DIO, 25 WS_DATA, 26 BUZZ, 27 SERVO_SIG, 4/13/14/15 T0/T4/T6/T3, 18/23/19/5 SCK/MOSI/MISO/CS, 17/16 U2TX/U2RX, 2 SD_CS, 12 NC. New in rev 2: GPIO0 = `IO0` (BOOT button + auto-reset), GPIO1/3 = `U0TXD`/`U0RXD` to the CH340C.
 
-- **Keypad COL4**: U2 GPA7 -> **U2 GPB6** (pin 7).
-- **Wire post WA6**: U3 GPA7 -> **U3 GPB6** (pin 7).
-- **ENC_SW**: U3 GPB6 -> **ESP32 GPIO39** (U1 pin 4), with the new **R9** (10 kΩ) pull-up to 3V3P. J1_B pin 3 still carries `ENC_SW`. On the board R9 stands vertical at (137.6, 102.2), pad 2 (ENC_SW) 4 mm below U1 pin 4, pad 1 (3V3P) next to C8/C2.
-- **MPU-6050 INT**: no longer connected (net `MPU_INT` removed). The GY-521 INT pin (A1 pin 8) has a no-connect flag; firmware polls the MPU over I2C.
-- **J_SPARE (J10)**: now a 1x5 header with `U2_GPA7`, `U2_GPB7`, `U3_GPA7`, `U3_GPB7`, GND (nets `SPARE2`/`SPARE3` removed). The pin names and "OUTPUTS ONLY" are on the silkscreen. Same place, pins at y 52-62.2.
-- **M2 note**: "TM1637: power from 3V3P" on F.Silkscreen and F.Fab under J2_A/J2_B (and in the schematic under the M2 connectors).
-- **Rev and date**: title blocks and board silkscreen say rev 1b, 2026-10-22.
+## Schematic
 
-## Rev 1 changes (2026-10-22)
+Root sheet (A4, sheet symbols and overview) plus four A3 sub-sheets. Nets cross sheets through global labels and power symbols. Every part carries the fields `LCSC`, `MPN`, `Manufacturer` and `JLC` (Basic/Extended).
 
-- **microSD (A2)**: a 1x7 female 2.54 mm socket for a 3.3 V-only microSD breakout (Adafruit 4682 style). Pin order `3V GND CLK SO SI CS DET`, with the names on the silkscreen. Nets: 3V3P, GND, SCK (GPIO18), MISO (GPIO19), MOSI (GPIO23), `SD_CS` (GPIO2, U1 pin 34) and `SD_DET` (U2 GPB5, was SPARE1). R8 (10 kΩ) pulls GPIO2 to GND, so the strapping stays valid. The footprint `defuse32:MicroSD_Breakout_Socket` draws the module (25.4 x 22.8 mm, typical) to the left of the header. It sits at the left board edge with the card slot facing outward.
-- **Peripheral 3.3 V rail**: U5 LD1117V33 (TO-220 upright, official symbol and footprint) takes `5V` and makes the new net `3V3P`. Input: C6 10 µF + C7 100 nF. Output: C2 10 µF (reused, moved off the old `3V3` net) + C8 100 nF. Every peripheral 3.3 V pin is now on 3V3P:
-  - plate connector pin 2 (Jn_A)
-  - U2/U3 VDD and RESET, and U3 A0
-  - GY-521 VCC and the SD socket
-  - the I2C pull-ups R2/R3 and the GPIO35/34 pull-ups R4/R5
+| Page | File | Content |
+|---|---|---|
+| 1 | `defuse32-carrier.kicad_sch` | Root: sheet symbols, overview, I2C addresses |
+| 2 | `power_usb.kicad_sch` | USB-C, CC resistors, USBLC6, PTC, bulk, AMS1117, AP2112K, power flags, CH340C, auto-reset |
+| 3 | `esp32.kicad_sch` | WROOM-32E + decoupling, EN/BOOT, pull-ups/pull-downs, WS2812 buffer, buzzer driver |
+| 4 | `io.kicad_sch` | MCP23017 x2, LIS3DH, microSD |
+| 5 | `connectors.kicad_sch` | IDC headers J1-J6, J_KEY, J_SERVO, J_SPARE, mounting holes |
 
-  The net `3V3` no longer exists, and the DevKit 3V3 pin (U1 pin 1) carries a no-connect flag. The LDR on M6 is fed from J6_A pin 2 (3V3P), and R6 (GPIO36 to GND) is unchanged. The modules run only when 5 V is on J_PWR.
-- **J_SPARE (J10)** became a 1x2 header (SPARE2, SPARE3 = U2 GPB6-7); superseded by rev 1b.
-- **Q1** now uses `TO-92_Inline_Wide` (2.54 mm pitch) instead of `TO-92_Inline`. The 1.27 mm pitch pads leave a 0.22 mm gap, which broke the 0.3 mm Power clearance of the GND pad.
-- **Routing prep**: the net classes, via size and JLCPCB rules are in `defuse32-carrier.kicad_pro`, which `gen_pcb.py` writes. See [Design rules](#design-rules-for-hand-edits).
-- **Rev and date**: title blocks and board silkscreen now say rev 1, 2026-10-22.
+SPEC connector names -> references (the SPEC name starts the Value): plate `Jn` = Jn, `J_USB` = J7, `J_KEY` = J8, `J_SERVO` = J9, `J_SPARE` = J10, `J_SD` = J11.
 
-## Open it
+## Plate connectors (2.54 mm keyed IDC box headers)
 
-Open `defuse32-carrier.kicad_pro` in KiCad 10. The project-local libraries are registered in `sym-lib-table` and `fp-lib-table` through `${KIPRJMOD}`:
+Rule (SPEC rev 2): pin 1 `5V`, pin 2 `GND`, pin 3 `3V3P`, pin 4 `SDA`, pin 5 `SCL`, pin 6 LDI, pin 7 LDO, then the plate's signals in the order of the rev 1 Jn_B table, spare positions `GND`. Pins are numbered as on the ribbon (odd row 1, 3, 5 ...; even row 2, 4, 6 ...), so ribbon wire n = pin n. LDI/LDO carry the chain nets: the LDI of plate n is the LDO of plate n-1.
 
-- `defuse32.kicad_sym` holds three symbols:
-  - `ESP32-DevKitC-32E` has 38 pins. Pins 1-19 are header J2 and pins 20-38 are header J3, both counted from the antenna end.
-  - `GY-521` has 8 pins: VCC GND SCL SDA XDA XCL AD0 INT.
-  - `MicroSD_Breakout_3V3` has 7 pins: 3V GND CLK SO SI CS DET.
-- `defuse32.pretty` holds three footprints:
-  - `ESP32-DevKitC_Socket`: two 1x19 rows 25.40 mm apart, plus an unpopulated third row 22.86 mm from row 1 for narrow clones. The third row reuses pad numbers 20-38, so it carries the same nets as row 2. The silkscreen shows the DevKit outline, the hatched antenna overhang, the USB arrow and a "clone row" label. The USB edge faces +X. Pin 19 (5V) is 1.29 mm from the USB edge, which is the verified value in `../data/parts.json`.
-  - `GY-521_Socket`: a 1x8 female header, with the module outline and its pin names on the silkscreen.
-  - `MicroSD_Breakout_Socket`: a 1x7 female header with pin 1 (3V) at the top. The pin names sit to the right of the pads, and the module outline (25.4 x 22.8 mm, typical) and a `CARD` arrow to the left. The courtyard covers the module.
+**J1, M1 Radio**: 2x5 (10 pins), C19193807 XDFH-0254-2*5P
 
-Every other part uses the official KiCad symbols and footprints, so the 3D models come from `${KICAD10_3DMODEL_DIR}`.
+| Pin | Net | Pin | Net |
+|---|---|---|---|
+| 1 | 5V | 2 | GND |
+| 3 | 3V3P | 4 | SDA |
+| 5 | SCL | 6 | LDI (net `LDI`, from R1) |
+| 7 | LDO (net `LDO1`) | 8 | ENC_A |
+| 9 | ENC_B | 10 | ENC_SW |
+
+**J2, M2 Timer**: 2x6 (12 pins), C18202143 XDFH-0254-2*6P. TM1637 powered from pin 3 (3V3P).
+
+| Pin | Net | Pin | Net |
+|---|---|---|---|
+| 1 | 5V | 2 | GND |
+| 3 | 3V3P | 4 | SDA |
+| 5 | SCL | 6 | LDI (net `LDO1`) |
+| 7 | LDO (net `LDO2`) | 8 | TM_CLK |
+| 9 | TM_DIO | 10 | BUZZ- |
+| 11 | BUZZ+ (5V) | 12 | GND (spare) |
+
+**J3, M3 Keypad**: 2x8 (16 pins), C18202144 XDFH-0254-2*8P
+
+| Pin | Net | Pin | Net |
+|---|---|---|---|
+| 1 | 5V | 2 | GND |
+| 3 | 3V3P | 4 | SDA |
+| 5 | SCL | 6 | LDI (net `LDO2`) |
+| 7 | LDO (net `LDO3`) | 8 | ROW1 |
+| 9 | ROW2 | 10 | ROW3 |
+| 11 | ROW4 | 12 | COL1 |
+| 13 | COL2 | 14 | COL3 |
+| 15 | COL4 | 16 | GND (spare) |
+
+**J4, M4 Wires**: 2x10 (20 pins), C18202145 XDFH-0254-2*10P
+
+| Pin | Net | Pin | Net |
+|---|---|---|---|
+| 1 | 5V | 2 | GND |
+| 3 | 3V3P | 4 | SDA |
+| 5 | SCL | 6 | LDI (net `LDO3`) |
+| 7 | LDO (net `LDO4`) | 8 | WA1 |
+| 9 | WA2 | 10 | WA3 |
+| 11 | WA4 | 12 | WA5 |
+| 13 | WA6 | 14 | WB1 |
+| 15 | WB2 | 16 | WB3 |
+| 17 | WB4 | 18 | WB5 |
+| 19 | WB6 | 20 | GND (spare) |
+
+**J5, M5 Probe**: 2x7 (14 pins), C19193808 XDFH-0254-2*7P
+
+| Pin | Net | Pin | Net |
+|---|---|---|---|
+| 1 | 5V | 2 | GND |
+| 3 | 3V3P | 4 | SDA |
+| 5 | SCL | 6 | LDI (net `LDO4`) |
+| 7 | LDO (net `LDO5`) | 8 | U2TX |
+| 9 | U2RX | 10 | SCK |
+| 11 | MOSI | 12 | MISO |
+| 13 | CS | 14 | GND (spare) |
+
+**J6, M6 Sensors**: 2x10 (20 pins), C18202145 XDFH-0254-2*10P
+
+| Pin | Net | Pin | Net |
+|---|---|---|---|
+| 1 | 5V | 2 | GND |
+| 3 | 3V3P | 4 | SDA |
+| 5 | SCL | 6 | LDI (net `LDO5`) |
+| 7 | LDO (chain end, NC) | 8 | T0 |
+| 9 | T4 | 10 | T6 |
+| 11 | T3 | 12 | LDR |
+| 13 | IR | 14 | SIM1 |
+| 15 | SIM2 | 16 | SIM3 |
+| 17 | SIM4 | 18 | SERVO_SIG |
+| 19 | GND (spare) | 20 | GND (spare) |
+
+**Carrier headers** (2.54 mm pin headers): J8 `J_KEY` 1x2: KEY (U2 GPB4), GND. J9 `J_SERVO` 1x3: GND, 5V, SERVO_SIG (SG90 order; same net as J6 pin 18). J10 `J_SPARE` 1x5: U2_GPA7, U2_GPB7, U3_GPA7, U3_GPB7, GND (output-only MCP pins).
+
+## Parts (JLCPCB / LCSC)
+
+Checked 2026-10-23 on the JLCPCB parts API: every part in stock, package matches the footprint. 66 placed parts (57 SMD, 9 THT) plus 4 mounting holes; `out/bom.csv` has the grouped BOM with the same fields.
+
+| Refs | Qty | Value | Footprint | LCSC | MPN | JLC |
+|---|---|---|---|---|---|---|
+| C3-C5, C10, C12-C14, C16, C17, C19 | 10 | 100 nF | C_0603 | C14663 | CC0603KRX7R9BB104 | Basic |
+| C6, C11 | 2 | 1 µF | C_0603 | C15849 | CL10A105KB8NNNC | Basic |
+| C2, C7, C9, C15, C18 | 5 | 10 µF | C_0805 | C15850 | CL21A106KAYNNNE | Basic |
+| C8 | 1 | 22 µF | C_0805 | C45783 | CL21A226MAQNNNE | Basic |
+| C1 | 1 | 220 µF 10 V | CP_Elec_6.3x5.4 | C72494 | RVT1A221M0605 | Extended |
+| R4-R6, R8-R13, R16-R20 | 14 | 10 kΩ | R_0603 | C25804 | 0603WAF1002T5E | Basic |
+| R14, R15 | 2 | 5.1 kΩ | R_0603 | C23186 | 0603WAF5101T5E | Basic |
+| R2, R3 | 2 | 4.7 kΩ | R_0603 | C23162 | 0603WAF4701T5E | Basic |
+| R7 | 1 | 1 kΩ | R_0603 | C21190 | 0603WAF1001T5E | Basic |
+| R1 | 1 | 330 Ω | R_0603 | C23138 | 0603WAF3300T5E | Basic |
+| Q1-Q3 | 3 | MMBT3904 | SOT-23 | C20526 | MMBT3904 | Basic |
+| D1 | 1 | 1N4148WS | SOD-323 | C2128 | 1N4148WS | Basic |
+| SW1, SW2 | 2 | EN, BOOT | SW_Push_1P1T_XKB_TS-1187A | C318884 | TS-1187A-B-A-B | Basic |
+| U6 | 1 | AMS1117-3.3 | SOT-223-3_TabPin2 | C6186 | AMS1117-3.3 | Basic |
+| U5 | 1 | AP2112K-3.3 | SOT-23-5 | C51118 | AP2112K-3.3TRG1 | Extended |
+| U1 | 1 | ESP32-WROOM-32E-N4 | defuse32:ESP32-WROOM-32E_JLC | C701341 | ESP32-WROOM-32E-N4 | Extended |
+| U7 | 1 | CH340C | SOIC-16 | C84681 | CH340C | Extended |
+| U2, U3 | 2 | MCP23017-E/SO | SOIC-28W | C47023 | MCP23017-E/SO | Extended |
+| U8 | 1 | LIS3DH | LGA-16 3x3 | C15134 | LIS3DHTR | Extended |
+| U4 | 1 | 74AHCT1G125 | SOT-23-5 | C7484 | SN74AHCT1G125DBVR | Extended |
+| U9 | 1 | USBLC6-2SC6 | SOT-23-6 | C7519 | USBLC6-2SC6 | Extended |
+| F1 | 1 | PTC 2 A hold | Fuse_1812 | C18198338 | 1812L200/8GR | Extended |
+| J7 | 1 | USB-C 16P | USB_C_Receptacle_HRO_TYPE-C-31-M-12 | C165948 | TYPE-C-31-M-12 | Extended |
+| J11 | 1 | microSD push-push | microSD_HC_Hirose_DM3AT-SF-PEJM5 | C114218 | DM3AT-SF-PEJM5 | Extended |
+| J1 | 1 | IDC 2x5 | IDC-Header_2x05 (THT) | C19193807 | XDFH-0254-2*5P | Extended |
+| J2 | 1 | IDC 2x6 | IDC-Header_2x06 (THT) | C18202143 | XDFH-0254-2*6P | Extended |
+| J5 | 1 | IDC 2x7 | IDC-Header_2x07 (THT) | C19193808 | XDFH-0254-2*7P | Extended |
+| J3 | 1 | IDC 2x8 | IDC-Header_2x08 (THT) | C18202144 | XDFH-0254-2*8P | Extended |
+| J4, J6 | 2 | IDC 2x10 | IDC-Header_2x10 (THT) | C18202145 | XDFH-0254-2*10P | Extended |
+| J8 | 1 | 1x2 header | PinHeader_1x02 (THT) | C32713268 | HX PZ2.54-1x2P ZZ | Extended |
+| J9 | 1 | 1x3 header | PinHeader_1x03 (THT) | C32713269 | HX PZ2.54-1x3P ZZ | Extended |
+| J10 | 1 | 1x5 header | PinHeader_1x05 (THT) | C32713271 | HX PZ2.54-1x5P ZZ | Extended |
+
+**Extended SMD parts (11 line items) and why**: the JLCPCB Basic library has no part of these kinds, so each is the SPEC part or the best-stocked match:
+
+- C701341 ESP32-WROOM-32E-N4, C84681 CH340C, C47023 MCP23017-E/SO, C15134 LIS3DHTR, C7484 SN74AHCT1G125DBVR, C7519 USBLC6-2SC6: the SPEC names these chips; no Basic part exists for any of them.
+- C51118 AP2112K-3.3TRG1: named in SPEC. The Basic 3.3 V LDOs are XC6206 (200 mA) and HT7533 (100 mA), too small for the plates, and AMS1117-3.3 (SOT-223, C6186). A second AMS1117 on 3V3P would make U5 Basic too, at the cost of a SOT-223 footprint and the higher dropout/quiescent current; kept as SPEC says.
+- C72494 220 µF 10 V electrolytic: no Basic aluminium or polymer capacitor; the Basic search finds 100 µF at most (C15008 ceramic, C16133 tantalum), below the SPEC's ≥ 220 µF.
+- C18198338 1812L200/8GR PTC (2 A hold, 8 V): no Basic resettable fuse.
+- C165948 HRO TYPE-C-31-M-12: no Basic USB-C receptacle; this one has an official KiCad footprint and 330 k in stock.
+- C114218 Hirose DM3AT-SF-PEJM5: no Basic microSD socket; chosen over cheaper push-push sockets (e.g. C91145 TF-01A) because it has an official KiCad symbol (with card-detect pins) and footprint.
+
+Lowest stock among the SMD parts: MCP23017-E/SO (2085), LIS3DHTR (8205), AP2112K (14983), DM3AT (15953), 1812L200/8GR (17140). The THT box headers are low-stock (C19193807 2x5: 304); any keyed 2.54 mm box header with the KiCad IDC-Header footprint fits.
+
+## Local library
+
+Rev 2 uses official KiCad symbols and footprints except:
+
+- `defuse32.kicad_sym` / `CH340C_3V3`: copy of `Interface_USB:CH340C` with pin 4 (V3) typed `power_in`. At 3.3 V the datasheet ties V3 to VCC; with the official `power_out` type ERC reports two power outputs on `3V3` (V3 and the AMS1117).
+- `defuse32.pretty` / `ESP32-WROOM-32E_JLC`: copy of `RF_Module:ESP32-WROOM-32E` with the 12 GND thermal vias drilled 0.3 mm instead of 0.2 mm (0.6 mm pad, 0.15 mm ring), because JLCPCB's 2-layer minimum hole is 0.3 mm. Pads, antenna keep-out zone, outline and 3D model are unchanged.
+
+Both are written by `gen/gen_lib.py` from the installed KiCad libraries.
+
+## Board and design rules
+
+- `defuse32-carrier.kicad_pcb`: 100 x 70 mm Edge.Cuts rectangle, H1-H4 (MountingHole_3.2mm_M3) at 4 mm from the corners, all 70 footprints with their nets, rough placement after the approved preview (module left, expanders middle, CH340C + USB-C bottom right, regulators near the USB path, microSD bottom right), many footprints overlapping. Only U1 (antenna region beyond x = 0) and the holes are meant to stay. No tracks, no zones.
+- Net classes (in `defuse32-carrier.kicad_pro`): **Power** = `5V`, `3V3`, `3V3P`, `GND`, `VBUS`: 0.6 mm track, 0.25 mm clearance. **Default**: 0.2 mm track, 0.2 mm clearance. Vias 0.6/0.3 mm.
+- Board minimums = JLCPCB 2-layer standard: track/space 0.127 mm, hole 0.3 mm, via ring 0.13 mm, via 0.56 mm, hole-to-hole 0.5 mm, copper to edge 0.3 mm.
+- Custom rules (`defuse32-carrier.kicad_dru`): clearance 0.15 mm between items inside the U8 (LIS3DH, 0.5 mm pitch) and J7 (USB-C, 0.5 mm pitch) courtyards. Their own pad gaps (0.15 mm and 0.2 mm) are below the Default/Power clearances.
 
 ## Files
 
 | Path | What |
 |---|---|
-| `defuse32-carrier.kicad_pro/.kicad_sch/.kicad_pcb` | The project (one A3 schematic sheet; 190 x 140 mm board). The `.kicad_pro` holds the net classes and design rules |
-| `defuse32.kicad_sym`, `defuse32.pretty/` | Local symbol and footprint libraries |
-| `gen/design.py` | Single source of truth: parts, pin-to-net map, schematic and PCB placement |
-| `gen/gen_lib.py` | Writes the local libraries (geometry from `../data/parts.json`) |
-| `gen/gen_sch.py` | Writes the schematic: power symbols and global labels on short stubs at the pin ends |
-| `gen/gen_pcb.py` | Wrote the project file (net classes, rules) and the unrouted board: footprints, nets from the schematic netlist, GND pours, antenna keepout. **Refuses to run on the routed board** (`--force` overrides and loses the routing) |
-| `gen/route_prep.py` | The 2026-10-22 autorouting: DSN export with the KiCad 10.0.7 quirks fixed, SES import, decoupling-cap move with local rip-up, GND stitching vias, hand fix, island report |
-| `gen/check_netlist.py` | Checks the schematic netlist (and the PCB pads) against `design.py`, plus the rev 1 rail and microSD nets, the rev 1b pin moves and the net classes |
+| `defuse32-carrier.kicad_pro/.kicad_sch/.kicad_pcb/.kicad_dru` | The project: root sheet, net classes, rules, board |
+| `power_usb.kicad_sch`, `esp32.kicad_sch`, `io.kicad_sch`, `connectors.kicad_sch` | Sub-sheets (pages 2-5) |
+| `defuse32.kicad_sym`, `defuse32.pretty/` | Local library (CH340C_3V3, ESP32-WROOM-32E_JLC) |
+| `gen/design.py` | Single source of truth: parts, pin-to-net map, LCSC data, sheet layout, rough PCB placement, net classes |
+| `gen/gen_lib.py` | Writes the local library from the installed KiCad libraries |
+| `gen/gen_sch.py` | Writes the five schematic files: power symbols and global labels on short pin stubs |
+| `gen/gen_pcb.py` | Writes the board (outline, footprints, nets from the schematic netlist, LCSC fields), the `.kicad_pro` and the `.kicad_dru`. Refuses to overwrite a routed board (`--force` overrides) |
+| `gen/check_netlist.py` | Rev 2 checks (see Status) |
+| `gen/route_prep.py` | Rev 1b autorouting record (Freerouting round trip); not used for rev 2 |
 | `gen/sexp.py`, `gen/symlib.py` | S-expression reader/writer; symbol flattening (`extends`) |
-| `out/defuse32-carrier.pdf` | Schematic PDF |
-| `out/bom.csv` | BOM grouped by value and footprint (mounting holes excluded) |
-| `out/defuse32-carrier.net` | Schematic netlist (`kicad-cli sch export netlist`), input of `check_netlist.py` |
+| `out/defuse32-carrier.pdf` | Schematic PDF (5 pages) |
+| `out/bom.csv` | BOM grouped by value, footprint and LCSC number, with MPN, manufacturer and Basic/Extended |
+| `out/defuse32-carrier.net` | Schematic netlist, input of `check_netlist.py` |
 | `out/erc.rpt`, `out/drc.rpt` | Latest check reports |
-| `out/jlcpcb/` | Gerbers + Excellon drill files (`gerber/`), the zip to upload, and the JLCPCB order settings ([README](out/jlcpcb/README.md)) |
-| `../cad/carrier.step` | STEP of the board with components, for FreeCAD (git-ignored, regenerate) |
-| `../renders/carrier-top.png`, `../renders/carrier-iso.png` | 3D renders |
-
-## Workflow since routing
-
-The board is routed and hand-editable, so the generators no longer touch it:
-
-- **Board changes** (moves, track edits): in KiCad's PCB editor. Press `B` to refill the zones before checking.
-- **Circuit changes**: edit the schematic (by hand, or `gen/design.py` + `gen_sch.py`), then *Tools > Update PCB from Schematic* in the PCB editor, then route the new connections by hand.
-- **Generators**: `gen_lib.py` and `gen_sch.py` are for the library and the schematic only. `gen_pcb.py` stops with a message when the board has tracks; `--force` would regenerate an unrouted board and the default project file, and the routing would be lost. `route_prep.py` documents the autorouting run and starts from an unrouted board.
+| `out/jlcpcb/` | **Rev 1b** fabrication files (stale until rev 2 is routed) |
 
 ## Regenerate
 
-Run these from `hardware/defuse32/kicad/`. Scripts that import `pcbnew` need KiCad's Python, which is `/usr/bin/python3`, not conda.
+From `hardware/defuse32/kicad/`. Scripts that import `pcbnew` need KiCad's Python (`/usr/bin/python3`, not conda).
 
 ```sh
-# library and schematic (only when design.py or parts.json change)
-/usr/bin/python3 gen/gen_lib.py && kicad-cli sym upgrade --force defuse32.kicad_sym && kicad-cli fp upgrade --force defuse32.pretty
-# fp upgrade gives every footprint new random UUIDs: restore (git) the ones whose geometry you did not change
-/usr/bin/python3 gen/gen_sch.py
-# then KiCad: Tools > Update PCB from Schematic (do not run gen_pcb.py on the routed board)
+python3 gen/gen_lib.py                      # local symbol + footprint
+python3 gen/gen_sch.py                      # five schematic files
+/usr/bin/python3 gen/gen_pcb.py             # board + .kicad_pro + .kicad_dru (stops on a routed board)
 
 # checks
 kicad-cli sch export netlist -o out/defuse32-carrier.net defuse32-carrier.kicad_sch
 kicad-cli sch erc --severity-all -o out/erc.rpt defuse32-carrier.kicad_sch
-kicad-cli pcb drc --schematic-parity --severity-all --refill-zones -o out/drc.rpt defuse32-carrier.kicad_pcb
+kicad-cli pcb drc --schematic-parity --severity-all -o out/drc.rpt defuse32-carrier.kicad_pcb
 /usr/bin/python3 gen/check_netlist.py out/defuse32-carrier.net defuse32-carrier.kicad_pcb
 
 # exports
 kicad-cli sch export pdf -o out/defuse32-carrier.pdf defuse32-carrier.kicad_sch
-kicad-cli sch export bom --fields 'Reference,Value,Footprint,${QUANTITY},Description' \
-  --labels 'Refs,Value,Footprint,Qty,Description' --group-by 'Value,Footprint' -o out/bom.csv defuse32-carrier.kicad_sch
-kicad-cli pcb export step --force --subst-models -o ../cad/carrier.step defuse32-carrier.kicad_pcb
-kicad-cli pcb render --side top --width 1600 --height 1200 --quality high --background opaque \
-  -o ../renders/carrier-top.png defuse32-carrier.kicad_pcb
-kicad-cli pcb render --perspective --rotate '-55,0,-25' --zoom 0.85 --width 1600 --height 1100 --quality high \
-  --background opaque -o ../renders/carrier-iso.png defuse32-carrier.kicad_pcb
-# fabrication files: commands in out/jlcpcb/README.md
+kicad-cli sch export bom --fields 'Reference,Value,Footprint,${QUANTITY},LCSC,MPN,Manufacturer,JLC' \
+  --labels 'Refs,Value,Footprint,Qty,LCSC,MPN,Manufacturer,JLC' --group-by 'Value,Footprint,LCSC' \
+  --sort-field 'Reference' -o out/bom.csv defuse32-carrier.kicad_sch
 ```
 
-`gen_sch.py` overwrites the `.kicad_sch` file. UUIDs are deterministic, so footprints stay linked to their symbols and *Update PCB from Schematic* matches them.
+Once the board is placed by hand, circuit changes go through `design.py` + `gen_sch.py`, then KiCad *Tools > Update PCB from Schematic*; do not rerun `gen_pcb.py` (it would reset the placement).
 
-Last results (rev 1b, routed, zones refilled):
+## Notes for the placement task
 
-- ERC: `ERC messages: 0 Errors 0 Warnings 0`.
-- DRC: `Found 0 violations / Found 0 unconnected items / Found 0 schematic parity issues`.
-- `check_netlist.py`: `RESULT: OK` for 47 components and 67 named nets (`netclass Power: 3V3P 5V DK_5V GND`).
-
-## Board
-
-- The outline is 190 x 140 mm, with its top-left corner at page coordinates (50, 40). There are four Ø3.2 NPTH mounting holes (`MountingHole_3.2mm_M3`) 5 mm from the corners.
-- The **back edge** (top of the board in KiCad, toward the lid hinge) carries J11/J12, J21/J22 and J31/J32 for plates M1, M2 and M3, left to right. The **front edge** carries J41/J42, J51/J52 and J61/J62 for M4, M5 and M6. Each connector has its SPEC name on the silkscreen (`J1_A  M1 RADIO`, `J1_B`, ...).
-- U1 (the DevKit socket) has its USB edge facing the board's right edge, about 13 mm in from it. J7 (J_PWR, wire entry toward the right edge), J9 (J_SERVO) and J8 (J_KEY) sit along the right edge. C1 (470 µF) is near J_SERVO.
-- U5 (LD1117V33) stands upright at (158, 100), with its tab toward U1, between U1 and D1 and about 15 mm from J_PWR. The input caps C6/C7 are on the J_PWR side (right) and the output caps C2/C8 on the left. R8 (GPIO2 pull-down) is just above U1 pin 34 (GPIO2).
-- A2 (microSD socket) is at the left edge, below A1, with its header at x = 28 and pins at y 92-107. The module body covers about x 6-29, y 87-112. The card slot faces the left board edge, so a card goes in and out without removing anything. It is about 75 mm from the antenna keepout.
-- The `ANTENNA_KEEPOUT` rule area covers x 104-129 mm, y 58-92 mm (board coordinates) on both copper layers. It allows no tracks, vias, pads or pour, and covers the overhang plus about 15 mm beyond it. A1 (GY-521) sits at the far left, away from the antenna.
-- `GND_F` and `GND_B` pours cover the whole board (0.4 mm clearance, thermal reliefs, island removal "always"), tied together by the GND tracks, the GND pads, 37 stitching vias and the hand-fix via. They are **filled**. Refill them (`B`) after any edit.
-
-### Left to do
-
-1. Review the autorouted board and tweak by hand where wanted. Refill, run DRC, and regenerate `out/jlcpcb/` after any change.
-2. Check the T (typical) dimensions against real parts, especially the GY-521 and microSD breakout outlines and the pin positions of narrow DevKit clones.
-3. Settle the open questions below.
-
-## Design rules (for hand edits)
-
-Everything is set in `defuse32-carrier.kicad_pro` (*File > Board Setup*). Do not run `gen_pcb.py` again: it would rewrite both the board and the project file.
-
-**Net classes** (*Board Setup > Net Classes*, assigned by pattern):
-
-| Class | Nets | Track | Clearance | Via |
-|---|---|---|---|---|
-| Power | 5V, 3V3P, GND, DK_5V | 0.8 mm | 0.3 mm | 0.6 / 0.3 mm |
-| Default | everything else | 0.25 mm | 0.2 mm | 0.6 / 0.3 mm |
-
-**Design rules** (*Board Setup > Constraints*), matching JLCPCB 2-layer standard capabilities:
-
-| Rule | Minimum |
-|---|---|
-| Track width | 0.127 mm |
-| Clearance | 0.127 mm |
-| Through-hole diameter | 0.3 mm |
-| Annular ring | 0.13 mm (so the smallest via is 0.56 mm) |
-| Hole to hole | 0.5 mm |
-| Copper to board edge | 0.3 mm |
-
-The net class values sit well above these minimums. Neck a track down only where a pad row forces it.
-
-**Keepouts**
-
-- The `ANTENNA_KEEPOUT` rule area (x 104-129, y 58-92 in board coordinates) allows no tracks, vias, pads or pour on either layer. Route around the left end of U1.
-- Keep the A2 module area (silk outline) free of tall parts.
-
-**Before ordering at JLCPCB**
-
-- Press `B` to refill all zones. Then run DRC with *Refill all zones before performing DRC* and *Test for parity between PCB and schematic* turned on. The target is 0 violations, 0 unconnected items and 0 parity issues.
-- Regenerate the Gerbers, drill files and zip with the commands in [`out/jlcpcb/README.md`](out/jlcpcb/README.md), which also lists the order settings (2 layers, 1.6 mm, 1 oz, lead-free HASL, tented vias).
-
-## Pin and connector table (cross-checked against SPEC.md)
-
-KiCad's annotation check rejects references that don't end in a digit (`J1_A`, `J_PWR`), and *Update PCB* refuses an unannotated schematic. The connectors therefore use numeric references, and the SPEC name is the first word of each Value and appears on the silkscreen:
-
-| SPEC | KiCad ref | Footprint | Pins (1 to n) |
-|---|---|---|---|
-| J1_A ... J6_A | J11, J21, J31, J41, J51, J61 | JST-XH B7B | 5V, 3V3P, GND, SDA, SCL, LDI, LDO |
-| J1_B (M1 Radio) | J12 | XH B3B | ENC_A, ENC_B, ENC_SW (GPIO39 since rev 1b) |
-| J2_B (M2 Timer) | J22 | XH B4B | TM_CLK, TM_DIO, BUZZ-, BUZZ+ (= 5V) |
-| J3_B (M3 Keypad) | J32 | XH B8B | ROW1-4, COL1-4 |
-| J4_B (M4 Wires) | J42 | XH B12B | WA1-6, WB1-6 |
-| J5_B (M5 Probe) | J52 | XH B6B | U2TX, U2RX, SCK, MOSI, MISO, CS |
-| J6_B (M6 Sensors) | J62 | XH B11B | T0, T4, T6, T3, LDR, IR, SIM1-4, SERVO_SIG |
-| J_PWR | J7 | Phoenix MKDS 5.08 2-pin | 5V, GND |
-| J_KEY | J8 | XH B2B | KEY (U2 GPB4), GND |
-| J_SERVO | J9 | 1x3 2.54 header | GND, 5V, SERVO_SIG (see question 2) |
-| J_SPARE | J10 | 1x5 2.54 header | U2_GPA7, U2_GPB7, U3_GPA7, U3_GPB7, GND (rev 1b; outputs only) |
-| microSD (rev 1) | A2 | 1x7 2.54 female socket | 3V (3V3P), GND, CLK (SCK), SO (MISO), SI (MOSI), CS (SD_CS), DET (SD_DET) |
-| 3V3P regulator (rev 1) | U5 | TO-220-3 vertical | 1 GND, 2 VO (3V3P), 3 VI (5V) |
-
-WS2812 chain: U4 gate 1 (1A = WS_DATA from GPIO25, ~1OE to GND) → 1Y (WS_5V) → R1 330 Ω → `LDI` (J11 pin 6). After that, M1 LDO = `LDO1` → M2 LDI, and so on up to `LDO5` → M6 LDI. M6 LDO (J61 pin 7) is the end of the chain and carries a no-connect flag.
-
-ESP32 (U1) pin numbers: J2 header = 1-19, J3 header = 20-38.
-
-| GPIO | Net | U1 pin | | GPIO | Net | U1 pin |
-|---|---|---|---|---|---|---|
-| 21 | SDA | 25 (J3-6) | | 4 | T0 | 32 (J3-13) |
-| 22 | SCL | 22 (J3-3) | | 13 | T4 | 15 (J2-15) |
-| 35 | MCP_INT (10k pull-up R4) | 6 (J2-6) | | 14 | T6 | 12 (J2-12) |
-| 39 | ENC_SW (10k pull-up R9, rev 1b) | 4 (J2-4) | | 15 | T3 | 35 (J3-16) |
-| 34 | IR (10k pull-up R5) | 5 (J2-5) | | 18 | SCK | 28 (J3-9) |
-| 36 | LDR (10k R6 to GND) | 3 (J2-3) | | 23 | MOSI | 21 (J3-2) |
-| 32 | TM_CLK | 7 (J2-7) | | 19 | MISO | 27 (J3-8) |
-| 33 | TM_DIO | 8 (J2-8) | | 5 | CS | 29 (J3-10) |
-| 25 | WS_DATA (to U4) | 9 (J2-9) | | 17 | U2TX | 30 (J3-11) |
-| 26 | BUZZ (R7 1k to Q1) | 10 (J2-10) | | 16 | U2RX | 31 (J3-12) |
-| 27 | SERVO_SIG | 11 (J2-11) | | 2 | SD_CS (10k pull-down R8) | 34 (J3-15) |
-| | | | | 3V3 / 5V / GND | NC / DK_5V / GND | 1 / 19 / 14, 20, 26 |
-
-These pins have no-connect flags: GPIO 12 (strapping), EN, GPIO 0, 1, 3, GPIO 6-11 and the DevKit 3V3 pin. GPIO2 is SD_CS with R8 to GND, so it is low at reset, as the strapping needs. D1 (1N5822) runs from the 5V rail (anode) to `DK_5V` (cathode, DevKit 5V pin). The DevKit's own LDO powers only the ESP32. U5 makes `3V3P` for everything else on the carrier and the plates.
-
-MCP23017:
-
-- **U2 (0x20)**: A0-A2 to GND. GPA0-3 = ROW1-4, GPA4-6 = COL1-3, GPB6 = COL4 (rev 1b), GPB0-3 = SIM1-4, GPB4 = KEY, GPB5 = SD_DET, GPA7 / GPB7 = `U2_GPA7` / `U2_GPB7` to J_SPARE.
-- **U3 (0x21)**: A0 to 3V3P, A1-A2 to GND. GPA0-4 = WA1-5, GPB6 = WA6 (rev 1b), GPA6 = ENC_A, GPA5 = ENC_B, GPB0-5 = WB1-6, GPA7 / GPB7 = `U3_GPA7` / `U3_GPB7` to J_SPARE. ENC_SW is on GPIO39 since rev 1b.
-- **Rev 1b rule**: GPA7/GPB7 are output-only on current MCP23017 silicon and cannot go high-impedance, so no keypad or wire-matrix line uses them; all four go to J_SPARE.
-- **Both**: VDD and RESET are on 3V3P. INTA and INTB go to MCP_INT, and firmware sets them to mirrored, open-drain.
-
-Passives:
-
-- **Decoupling**: C3 and C4 (100 nF, 3V3P) for U2 and U3, C5 (100 nF, 5V) for U4, C1 (470 µF/10 V) on 5V.
-- **U5 rail**: C6 (10 µF) + C7 (100 nF) on the 5V input, C2 (10 µF) + C8 (100 nF) on the 3V3P output.
-- **Pull-ups and pull-downs**: R2 and R3 (4.7 kΩ) pull SDA and SCL up to 3V3P. R4, R5 and R9 (10 kΩ) pull MCP_INT (GPIO35), IR (GPIO34) and ENC_SW (GPIO39, rev 1b) up to 3V3P. R8 (10 kΩ) pulls SD_CS (GPIO2) down.
-- **Unused U4 gates 2-4**: A inputs to GND, ~OE to 5V (outputs disabled).
-- **Buzzer driver**: Q1 2N3904, emitter to GND, collector to BUZZ-. D2 1N4148 has its anode on BUZZ- and its cathode on 5V.
-
-A1 (GY-521) takes VCC from 3V3P. Its own LDO and I2C pull-ups still work at that voltage, and it never sees the 5 V rail. AD0 goes to GND, so the address is 0x68. INT, XDA and XCL have no-connect flags (INT since rev 1b: firmware polls the MPU over I2C).
-
-## Open questions and SPEC deviations
-
-1. **MCP23017 GPA7/GPB7 output-only** (current datasheet DS20001952): resolved in rev 1b. No keypad or wire-matrix line uses GPA7/GPB7 (COL4 and WA6 on GPB6, ENC_SW on GPIO39); all four go to J_SPARE as outputs.
-2. **Servo pin order.** SPEC lists J_SERVO as "5V, GND, SIG". A standard SG90 plug is GND-5V-SIG, with V+ in the middle, so J9 uses GND, 5V, SIG to let the plug fit without swapping pins. Please confirm.
-3. **References**: SPEC names map to numeric references, as shown in the connector table above.
-4. **J_SPARE**: since rev 1b, four output-only signals (U2/U3 GPA7, GPB7) plus GND, no 3V3P.
-5. **DK_5V in the Power class (rev 1)**: SPEC lists 5V, 3V3P and GND. `DK_5V` (D1 cathode to the DevKit 5V pin) carries the whole ESP32 supply, so it is in `Power` too. To undo this, remove its pattern in *Board Setup > Net Classes*, or from `POWER_NETS` in `gen/gen_pcb.py`.
-6. **microSD module outline (rev 1)**: the 25.4 x 22.8 mm size comes from a distributor listing for Adafruit 4682, not from Adafruit. Before ordering, check that the card slot is on the side away from the header. If it is not, turn A2 by 180° and move it so the slot still faces the edge.
-7. **U5 heat (rev 1)**: U5 dissipates (5 - 3.3) V x the load current. At about 300 mA (PN532, two OLEDs, SD writes) that is about 0.5 W, which an upright TO-220 handles without a heatsink (about +25 °C).
+- U1 stays at (6.56, 35) rotation 90 (board coordinates, origin top-left): the footprint line y = -6.56 (antenna-region boundary) on the board edge. Keep copper out of the keep-out zone; it extends 15 mm beyond the module tip, all outside the board.
+- Decoupling: C9/C10 at U1 pin 2; C3/C4 within 3 mm of the MCP23017 VDD pins (SPEC); C12/C13 at U7 pins 16/4; C14-C16 at U8; C5 at U4; C17/C18 at J11.
+- SPEC placement: J1-J3 top edge, J4-J5 bottom edge, J6 vertical on the right edge above the USB-C, CH340C + USB-C bottom right, microSD bottom right edge, regulators near the USB path.
+- GND pours on both layers are left to the routing task.
