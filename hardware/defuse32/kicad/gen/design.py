@@ -192,12 +192,13 @@ PCB = {
     "R9": (137.62, 102.16, 90),
     "J_KEY": (180, 122, 0),
     "U4": (16, 22, 0),
-    "C5": (28, 22, 90),
+    # decoupling (2026-10-22 review): C5 pad 2 (GND) toward U4 pin 12; C3/C4 next to MCP23017 pins 9/10
+    "C5": (28, 22, 270),
     "R1": (12, 42, 0),
     "U3": (40, 40, 0),
-    "C4": (52, 40, 90),
+    "C4": (34.6, 60.32, 270),
     "U2": (76, 40, 0),
-    "C3": (88, 40, 90),
+    "C3": (72, 60.32, 270),
     "J_SPARE": (92, 52, 0),
     "R2": (52, 82, 0), "R3": (52, 87.08, 0),
     "R4": (70, 82, 0), "R5": (70, 87.08, 0), "R6": (70, 92.16, 0),
@@ -210,7 +211,7 @@ for p in PARTS:
 
 # Reference text positions (board coords) where the footprint default would hit a neighbour
 REF_POS = {"C2": (151.5, 104.4), "C8": (146.5, 104.6), "C6": (169.5, 104.4), "C7": (174, 95.2),
-           "U5": (160.54, 94.6)}
+           "U5": (160.54, 94.6), "C3": (69.6, 62.82), "C4": (32.2, 62.82), "C5": (30.4, 24.5)}
 
 BOARD_W, BOARD_H = 190.0, 140.0
 # Antenna keepout (board coords): under and beyond the DevKit antenna overhang (left of U1)

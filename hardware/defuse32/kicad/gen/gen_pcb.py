@@ -2,12 +2,19 @@
 """Generate defuse32-carrier.kicad_pcb (placement + nets + GND zones, unrouted) and the
 project file (net classes and JLCPCB 2-layer design rules).
 
-Needs KiCad's Python:  /usr/bin/python3 kicad/gen/gen_pcb.py
+Needs KiCad's Python:  /usr/bin/python3 kicad/gen/gen_pcb.py [--force]
 Footprint-to-symbol links use the same deterministic UUIDs as gen_sch.py.
+
+The board has been routed (2026-10-22) and is edited by hand since. This script would replace it
+with an unrouted one, so it refuses to run when the existing board has tracks or vias; --force
+overwrites anyway (the routing is lost). Board changes go schematic -> KiCad "Update PCB from
+Schematic" instead.
 """
 import json
 import os
+import re
 import subprocess
+import sys
 
 import pcbnew
 
@@ -287,5 +294,20 @@ def build():
     print("wrote", out, "footprints:", len(board.GetFootprints()), "nets:", len(names))
 
 
+def refuse_routed_board():
+    """Stop unless the existing board is unrouted (no segment/arc/via) or --force was given."""
+    path = os.path.join(KDIR, PROJECT + ".kicad_pcb")
+    if "--force" in sys.argv[1:] or not os.path.exists(path):
+        return
+    n = len(re.findall(r"^\s*\((?:segment|arc|via)\b", open(path).read(), re.M))
+    if n:
+        raise SystemExit(
+            "gen_pcb.py: %s is routed (%d tracks/vias) and edited by hand; refusing to overwrite it and\n"
+            "%s.kicad_pro. Change the schematic and use KiCad's Tools > Update PCB from Schematic.\n"
+            "Run with --force to regenerate an unrouted board anyway (the routing is lost)."
+            % (os.path.relpath(path), n, PROJECT))
+
+
 if __name__ == "__main__":
+    refuse_routed_board()
     build()

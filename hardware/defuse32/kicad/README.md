@@ -2,7 +2,25 @@
 
 The carrier board sits on the case floor. It holds the ESP32-DevKitC socket, the two MCP23017 expanders, the WS2812 buffer, the buzzer driver, the on-board GY-521 IMU, the microSD socket and the peripheral 3.3 V regulator, plus the JST-XH harness connectors to the six plates. The source of truth is [`../SPEC.md`](../SPEC.md), sections "Rev 0 decisions", "Rev 1 changes (2026-10-22)", the "Rev 1b rule" and "Electronics (carrier PCB)".
 
-Status: **rev 1b. Schematic complete, all parts placed, board unrouted (ratsnest only), net classes and JLCPCB design rules set.** ERC is clean, DRC reports only unconnected items, and the schematic and PCB match. The owner routes the board by hand: see the [routing guide](#routing-guide).
+Status: **rev 1b, routed (2026-10-22).** Autorouted with Freerouting, GND pours stitched, fabrication files in [`out/jlcpcb/`](out/jlcpcb/README.md). ERC is clean, DRC reports 0 violations and 0 unconnected items with the zones refilled, and the schematic and PCB match. The board is now edited by hand in KiCad: see [Routing](#routing-2026-10-22) and [Workflow](#workflow-since-routing).
+
+## Routing (2026-10-22)
+
+- **Router**: Freerouting 2.4.1, headless, through `gen/route_prep.py` (DSN export, Freerouting, SES import, clean-up; the docstring has the exact commands). KiCad 10.0.7 exports the GND pours as planes on the signal layers, so the script drops them from the DSN: Freerouting routes GND as an ordinary Power net, and the pours are refilled afterwards. The `ANTENNA_KEEPOUT` rule area stays a keepout for tracks and vias.
+- **First pass**: all 194 connections (Freerouting's count) routed in 7 passes, then 8 optimizer passes (`--router.optimizer.improvement_threshold=0`), which cut the signal vias from 72 to 29.
+- **Decoupling fix** (`route_prep.py decap`, after review): C3 and C4 moved next to the MCP23017 VDD/VSS pins 9/10 (pad 1 level with pin 9, pad 2 below), and C5 turned so its GND pad faces U4 pin 12. Each cap gets short, direct 0.8 mm tracks to the supply pins. The script ripped up only the two 3V3P segments the new copper hit and the 14 track pieces left dangling, locked everything else, and an incremental Freerouting pass reconnected 3V3P (7 tracks, 1 via). `gen/design.py` has the new positions.
+
+  | Cap | Supply pin | Track length |
+  |---|---|---|
+  | C3 (U2) | VDD pin 9 / VSS pin 10 | 4.0 mm / 5.0 mm |
+  | C4 (U3) | VDD pin 9 / VSS pin 10 | 5.4 mm / 6.4 mm |
+  | C5 (U4) | VCC pin 14 / GND pin 7 | 4.4 mm / 19.8 mm (4.4 mm to GND pin 12, then pins 12-9-7) |
+
+  On the DIP-14, VCC (14) and GND (7) are diagonal and 17 mm apart, so a 5 mm-pitch cap cannot sit within 5 mm of both. C5 stays at pin 14, with its GND pad next to pin 12 (an unused input tied to GND). The U5 caps (C2, C6-C8) were already next to U5.
+- **Widths and length**: every Power track (5V, 3V3P, DK_5V, GND) is 0.8 mm and every signal track 0.25 mm. Track length: 3782 mm on F.Cu, 5343 mm on B.Cu, 846 segments.
+- **GND**: GND is routed with 0.8 mm tracks and also poured on both layers. Before stitching the router left 71 (F.Cu) and 101 (B.Cu) pour islands that island removal deletes, plus 13 pour pieces held by a single pad. `route_prep.py finish` puts a stitching via (0.6/0.3 mm) in every island of 50 mm² or more and in every single-pad piece, where a via fits inside both that piece and a connected pour on the other layer: 37 in all. Islands left, deleted by island removal: 61 on F.Cu (466 mm² in all, largest 65 mm²) and 86 on B.Cu (580 mm² in all, largest 48 mm²).
+- **Hand fix**: U1 pad 20 of the unpopulated clone row (GND) got a single thermal spoke on B.Cu (DRC `starved_thermal`). A 0.8 mm B.Cu stub from the pad and a via at (130, 70) (board coordinates) connect it to the pour (`HAND_FIXES` in `route_prep.py`).
+- **Totals**: 68 vias (30 signal, 37 stitching, 1 hand fix). The antenna keepout holds no copper.
 
 ## Rev 1b changes (2026-10-22)
 
@@ -28,7 +46,7 @@ MCP23017 GPA7/GPB7 are output-only and cannot go high-impedance, so no keypad or
   The net `3V3` no longer exists, and the DevKit 3V3 pin (U1 pin 1) carries a no-connect flag. The LDR on M6 is fed from J6_A pin 2 (3V3P), and R6 (GPIO36 to GND) is unchanged. The modules run only when 5 V is on J_PWR.
 - **J_SPARE (J10)** became a 1x2 header (SPARE2, SPARE3 = U2 GPB6-7); superseded by rev 1b.
 - **Q1** now uses `TO-92_Inline_Wide` (2.54 mm pitch) instead of `TO-92_Inline`. The 1.27 mm pitch pads leave a 0.22 mm gap, which broke the 0.3 mm Power clearance of the GND pad.
-- **Routing prep**: the net classes, via size and JLCPCB rules are in `defuse32-carrier.kicad_pro`, which `gen_pcb.py` writes. See the routing guide.
+- **Routing prep**: the net classes, via size and JLCPCB rules are in `defuse32-carrier.kicad_pro`, which `gen_pcb.py` writes. See [Design rules](#design-rules-for-hand-edits).
 - **Rev and date**: title blocks and board silkscreen now say rev 1, 2026-10-22.
 
 ## Open it
@@ -55,29 +73,41 @@ Every other part uses the official KiCad symbols and footprints, so the 3D model
 | `gen/design.py` | Single source of truth: parts, pin-to-net map, schematic and PCB placement |
 | `gen/gen_lib.py` | Writes the local libraries (geometry from `../data/parts.json`) |
 | `gen/gen_sch.py` | Writes the schematic: power symbols and global labels on short stubs at the pin ends |
-| `gen/gen_pcb.py` | Writes the project file (net classes, rules) and the board: places the footprints, takes the nets from the schematic netlist, adds the GND pours and the antenna keepout, fills the zones |
+| `gen/gen_pcb.py` | Wrote the project file (net classes, rules) and the unrouted board: footprints, nets from the schematic netlist, GND pours, antenna keepout. **Refuses to run on the routed board** (`--force` overrides and loses the routing) |
+| `gen/route_prep.py` | The 2026-10-22 autorouting: DSN export with the KiCad 10.0.7 quirks fixed, SES import, decoupling-cap move with local rip-up, GND stitching vias, hand fix, island report |
 | `gen/check_netlist.py` | Checks the schematic netlist (and the PCB pads) against `design.py`, plus the rev 1 rail and microSD nets, the rev 1b pin moves and the net classes |
 | `gen/sexp.py`, `gen/symlib.py` | S-expression reader/writer; symbol flattening (`extends`) |
 | `out/defuse32-carrier.pdf` | Schematic PDF |
 | `out/bom.csv` | BOM grouped by value and footprint (mounting holes excluded) |
-| `out/defuse32-carrier.net` | Netlist exported by `gen_pcb.py` |
+| `out/defuse32-carrier.net` | Schematic netlist (`kicad-cli sch export netlist`), input of `check_netlist.py` |
 | `out/erc.rpt`, `out/drc.rpt` | Latest check reports |
+| `out/jlcpcb/` | Gerbers + Excellon drill files (`gerber/`), the zip to upload, and the JLCPCB order settings ([README](out/jlcpcb/README.md)) |
 | `../cad/carrier.step` | STEP of the board with components, for FreeCAD (git-ignored, regenerate) |
 | `../renders/carrier-top.png`, `../renders/carrier-iso.png` | 3D renders |
 
+## Workflow since routing
+
+The board is routed and hand-editable, so the generators no longer touch it:
+
+- **Board changes** (moves, track edits): in KiCad's PCB editor. Press `B` to refill the zones before checking.
+- **Circuit changes**: edit the schematic (by hand, or `gen/design.py` + `gen_sch.py`), then *Tools > Update PCB from Schematic* in the PCB editor, then route the new connections by hand.
+- **Generators**: `gen_lib.py` and `gen_sch.py` are for the library and the schematic only. `gen_pcb.py` stops with a message when the board has tracks; `--force` would regenerate an unrouted board and the default project file, and the routing would be lost. `route_prep.py` documents the autorouting run and starts from an unrouted board.
+
 ## Regenerate
 
-Run these from `hardware/defuse32/kicad/`. The PCB script needs KiCad's Python, which is `/usr/bin/python3`, not conda.
+Run these from `hardware/defuse32/kicad/`. Scripts that import `pcbnew` need KiCad's Python, which is `/usr/bin/python3`, not conda.
 
 ```sh
+# library and schematic (only when design.py or parts.json change)
 /usr/bin/python3 gen/gen_lib.py && kicad-cli sym upgrade --force defuse32.kicad_sym && kicad-cli fp upgrade --force defuse32.pretty
 # fp upgrade gives every footprint new random UUIDs: restore (git) the ones whose geometry you did not change
 /usr/bin/python3 gen/gen_sch.py
-/usr/bin/python3 gen/gen_pcb.py            # also writes the .kicad_pro and exports out/defuse32-carrier.net
+# then KiCad: Tools > Update PCB from Schematic (do not run gen_pcb.py on the routed board)
 
 # checks
+kicad-cli sch export netlist -o out/defuse32-carrier.net defuse32-carrier.kicad_sch
 kicad-cli sch erc --severity-all -o out/erc.rpt defuse32-carrier.kicad_sch
-kicad-cli pcb drc --schematic-parity --severity-all -o out/drc.rpt defuse32-carrier.kicad_pcb
+kicad-cli pcb drc --schematic-parity --severity-all --refill-zones -o out/drc.rpt defuse32-carrier.kicad_pcb
 /usr/bin/python3 gen/check_netlist.py out/defuse32-carrier.net defuse32-carrier.kicad_pcb
 
 # exports
@@ -89,14 +119,15 @@ kicad-cli pcb render --side top --width 1600 --height 1200 --quality high --back
   -o ../renders/carrier-top.png defuse32-carrier.kicad_pcb
 kicad-cli pcb render --perspective --rotate '-55,0,-25' --zoom 0.85 --width 1600 --height 1100 --quality high \
   --background opaque -o ../renders/carrier-iso.png defuse32-carrier.kicad_pcb
+# fabrication files: commands in out/jlcpcb/README.md
 ```
 
-`gen_sch.py` and `gen_pcb.py` overwrite the `.kicad_sch`, `.kicad_pcb` and `.kicad_pro` files. UUIDs are deterministic, so footprints stay linked to their symbols. Once routing starts in the GUI, stop running `gen_pcb.py`. Change the schematic (or `design.py` + `gen_sch.py`) and use *Tools > Update PCB from Schematic* instead.
+`gen_sch.py` overwrites the `.kicad_sch` file. UUIDs are deterministic, so footprints stay linked to their symbols and *Update PCB from Schematic* matches them.
 
-Last results (rev 1b):
+Last results (rev 1b, routed, zones refilled):
 
 - ERC: `ERC messages: 0 Errors 0 Warnings 0`.
-- DRC: `Found 0 violations / Found 153 unconnected items / Found 0 schematic parity issues`.
+- DRC: `Found 0 violations / Found 0 unconnected items / Found 0 schematic parity issues`.
 - `check_netlist.py`: `RESULT: OK` for 47 components and 67 named nets (`netclass Power: 3V3P 5V DK_5V GND`).
 
 ## Board
@@ -107,18 +138,17 @@ Last results (rev 1b):
 - U5 (LD1117V33) stands upright at (158, 100), with its tab toward U1, between U1 and D1 and about 15 mm from J_PWR. The input caps C6/C7 are on the J_PWR side (right) and the output caps C2/C8 on the left. R8 (GPIO2 pull-down) is just above U1 pin 34 (GPIO2).
 - A2 (microSD socket) is at the left edge, below A1, with its header at x = 28 and pins at y 92-107. The module body covers about x 6-29, y 87-112. The card slot faces the left board edge, so a card goes in and out without removing anything. It is about 75 mm from the antenna keepout.
 - The `ANTENNA_KEEPOUT` rule area covers x 104-129 mm, y 58-92 mm (board coordinates) on both copper layers. It allows no tracks, vias, pads or pour, and covers the overhang plus about 15 mm beyond it. A1 (GY-521) sits at the far left, away from the antenna.
-- `GND_F` and `GND_B` pours cover the whole board (0.4 mm clearance, thermal reliefs). They are **filled**, as in rev 0. Refill them (`B`) after routing.
+- `GND_F` and `GND_B` pours cover the whole board (0.4 mm clearance, thermal reliefs, island removal "always"), tied together by the GND tracks, the GND pads, 37 stitching vias and the hand-fix via. They are **filled**. Refill them (`B`) after any edit.
 
 ### Left to do
 
-1. Route the board by hand, following the [routing guide](#routing-guide). The 19 clone-row links are part of the 153 unconnected items.
-2. Refill the zones, run DRC again, then make the fab outputs (Gerbers and drill files).
-3. Check the T (typical) dimensions against real parts, especially the GY-521 and microSD breakout outlines and the pin positions of narrow DevKit clones.
-4. Settle the open questions below.
+1. Review the autorouted board and tweak by hand where wanted. Refill, run DRC, and regenerate `out/jlcpcb/` after any change.
+2. Check the T (typical) dimensions against real parts, especially the GY-521 and microSD breakout outlines and the pin positions of narrow DevKit clones.
+3. Settle the open questions below.
 
-## Routing guide
+## Design rules (for hand edits)
 
-Everything is set in `defuse32-carrier.kicad_pro` (*File > Board Setup*). Once routing has started, do not run `gen_pcb.py` again: it rewrites both the board and the project file.
+Everything is set in `defuse32-carrier.kicad_pro` (*File > Board Setup*). Do not run `gen_pcb.py` again: it would rewrite both the board and the project file.
 
 **Net classes** (*Board Setup > Net Classes*, assigned by pattern):
 
@@ -140,21 +170,6 @@ Everything is set in `defuse32-carrier.kicad_pro` (*File > Board Setup*). Once r
 
 The net class values sit well above these minimums. Neck a track down only where a pad row forces it.
 
-**Suggested order**
-
-1. **Power and GND first.**
-   - 5V: J7 pin 1 to C1, J9, plate connector pin 1, U4, D2, D1 anode and U5 VI (through C6/C7).
-   - DK_5V: D1 cathode to U1 pin 19. Keep it short.
-   - 3V3P: U5 VO to C2/C8, then U2/U3 (C3/C4 right at their VDD pins), then A1, A2, R2-R5 and plate connector pin 2.
-   - GND: use the bottom pour as the main GND plane, and tie GND pads to the top pour with vias next to the pad. Keep the 5V and 3V3P trunks on the top side so the bottom pour stays unbroken.
-2. **I2C** (SDA, SCL): U1 to R2/R3, U2, U3 and A1, then to the six Jn_A connectors. A daisy-chain along the back edge and then the front edge is fine at 100-400 kHz.
-3. **Plate connectors and the rest**, in this order:
-   - Jn_B signals.
-   - The WS2812 chain: R1 to LDI, then LDO1-LDO5.
-   - The SPI bus: U1 to J52 and A2, and SD_CS to A2 pin 6 and R8.
-   - MCP_INT, the buzzer driver, the servo, J_KEY and J_SPARE.
-4. **Clone row**: link each clone-row pad (22.86 mm row) to the row-2 pad with the same number.
-
 **Keepouts**
 
 - The `ANTENNA_KEEPOUT` rule area (x 104-129, y 58-92 in board coordinates) allows no tracks, vias, pads or pour on either layer. Route around the left end of U1.
@@ -162,12 +177,8 @@ The net class values sit well above these minimums. Neck a track down only where
 
 **Before ordering at JLCPCB**
 
-- Press `B` to refill all zones. Then run DRC with *Refill all zones before performing DRC* and *Test for parity between PCB and schematic* turned on. The target is 0 violations, 0 unconnected items and 0 parity issues. Check that no GND island is left (island removal is set to "always").
-- Gerbers (*File > Plot*):
-  - Layers: F.Cu, B.Cu, F.Mask, B.Mask, F.Silkscreen, B.Silkscreen, Edge.Cuts. Paste layers are not needed (THT only).
-  - Options: "Use Protel filename extensions", "Subtract soldermask from silkscreen", "Check zone fills before plotting"; coordinate format 4.6, mm.
-- Drill files: Excellon, mm, PTH and NPTH in separate files, absolute origin. Put them in the same folder as the Gerbers and zip the folder.
-- Order options: 2 layers, 1.6 mm, 190 x 140 mm, 1 oz copper. Lead-free HASL is fine for THT.
+- Press `B` to refill all zones. Then run DRC with *Refill all zones before performing DRC* and *Test for parity between PCB and schematic* turned on. The target is 0 violations, 0 unconnected items and 0 parity issues.
+- Regenerate the Gerbers, drill files and zip with the commands in [`out/jlcpcb/README.md`](out/jlcpcb/README.md), which also lists the order settings (2 layers, 1.6 mm, 1 oz, lead-free HASL, tented vias).
 
 ## Pin and connector table (cross-checked against SPEC.md)
 
