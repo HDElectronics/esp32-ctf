@@ -20,10 +20,15 @@
         "allow_microvias": false,
         "min_hole_clearance": 0.25,
         "min_resolved_spokes": 2,
-        "min_silk_clearance": 0.0,
+        "min_silk_clearance": 0.15,
         "min_text_height": 0.8,
-        "min_text_thickness": 0.12,
+        "min_text_thickness": 0.15,
         "max_error": 0.005
+      },
+      "rule_severities": {
+        "silk_over_copper": "error",
+        "silk_overlap": "error",
+        "silk_edge_clearance": "error"
       },
       "track_widths": [
         0.0,

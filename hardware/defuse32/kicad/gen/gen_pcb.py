@@ -83,6 +83,8 @@ def read_netlist():
 # ---------------------------------------------------------------- project: net classes + rules
 # JLCPCB 2-layer standard capabilities (mm): track/space 0.127, drill 0.3, annular ring 0.13,
 # hole-to-hole 0.5, copper to board edge 0.3.
+# Silkscreen (JLCPCB legible minimum): clearance to pads / mask / other silk, text height, stroke.
+SILK_RULES = (0.15, 0.8, 0.15)
 RULES = {
     "min_clearance": 0.127,
     "min_track_width": 0.127,
@@ -140,8 +142,11 @@ def write_project():
             "design_settings": {
                 "meta": {"version": 2},
                 "rules": dict(RULES, allow_blind_buried_vias=False, allow_microvias=False,
-                              min_hole_clearance=0.25, min_resolved_spokes=2, min_silk_clearance=0.0,
-                              min_text_height=0.8, min_text_thickness=0.12, max_error=0.005),
+                              min_hole_clearance=0.25, min_resolved_spokes=2, min_silk_clearance=SILK_RULES[0],
+                              min_text_height=SILK_RULES[1], min_text_thickness=SILK_RULES[2], max_error=0.005),
+                # silkscreen problems are errors (rev 2.1): text over pads / mask openings, text over
+                # text or footprint silk, silk clipped by the board edge
+                "rule_severities": {"silk_over_copper": "error", "silk_overlap": "error", "silk_edge_clearance": "error"},
                 "track_widths": [0.0, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0],
                 "via_dimensions": [{"diameter": 0.0, "drill": 0.0}, {"diameter": 0.6, "drill": 0.3}],
                 "diff_pair_dimensions": [],
@@ -242,7 +247,8 @@ def build():
 
 
 # ---------------------------------------------------------------- silkscreen reference designators
-REF_SIZE, REF_THICK = 0.8, 0.12      # mm (JLCPCB: 0.8 mm text height, 0.15 mm line is the minimum legible)
+REF_SIZE, REF_THICK = 0.8, 0.15      # mm (JLCPCB: 0.8 mm text height, 0.15 mm line is the minimum legible);
+                                     # the routed board's final references come from polish.py
 SILK_GAP = 0.15                      # text box to pads, silk lines, other references
 EDGE_GAP = 0.3
 

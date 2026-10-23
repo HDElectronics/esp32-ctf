@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "/home/ibrahim/ESP32-CTF.defuse32-hw/hardware/defuse32/kicad/defuse32-carrier.kicad_sch")
-		(date "2026-10-23T03:57:13")
+		(date "2026-10-23T15:51:38")
 		(tool "Eeschema 10.0.7-10.0.7~ubuntu26.04.1")
 		(sheet
 			(number "1")

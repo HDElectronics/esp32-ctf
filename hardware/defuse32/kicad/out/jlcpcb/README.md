@@ -1,6 +1,6 @@
-# Defuse32 carrier, rev 2: JLCPCB fabrication and assembly files
+# Defuse32 carrier, rev 2.1: JLCPCB fabrication and assembly files
 
-Written by `../../gen/gen_jlcpcb.py` from the routed board (DRC clean). Rev 1b files are in git (tag `carrier-rev1b`).
+Written by `../../gen/gen_jlcpcb.py` from the routed and finished board (rev 2.1: `gen/polish.py`; DRC clean, silkscreen rules included). Rev 1b files are in git (tag `carrier-rev1b`).
 
 | File | Use |
 |---|---|
@@ -18,14 +18,14 @@ Written by `../../gen/gen_jlcpcb.py` from the routed board (DRC clean). Rev 1b f
 | Dimensions | 100 x 70 mm (detected from Edge.Cuts) |
 | Different designs / delivery format | 1 / single PCB |
 | PCB thickness | 1.6 mm |
-| Solder mask / silkscreen | Green / white (any colour works) |
+| Solder mask / silkscreen | Green / white (any colour works); silkscreen on both sides (7 references are on the bottom) |
 | Surface finish | HASL lead-free (ENIG is nicer for the 0.5 mm-pitch LIS3DH and USB-C, optional) |
 | Outer copper weight | 1 oz |
 | Via covering | Tented |
 | Min via hole / diameter | 0.3 / 0.6 mm (standard, no extra charge) |
 | Board outline tolerance | ±0.2 mm (regular) |
 | Gold fingers, castellated holes, edge plating, impedance control | No |
-| Mark on PCB (order number) | "Remove" if offered, otherwise JLCPCB picks a free spot |
+| Mark on PCB (order number) | "Specify a location": the top silkscreen carries the placeholder `JLCJLCJLCJLC` (top left, above the board name); otherwise "Remove" if offered |
 
 Design rules used: tracks 0.2 mm (signals) and 0.6 mm (5V, 3V3, 3V3P, VBUS, GND; 0.25 mm inside the LIS3DH pad field), clearances 0.2 / 0.25 mm (0.15 mm only between items inside the LIS3DH and USB-C courtyards, as their own pads), smallest hole 0.3 mm (vias), via ring 0.15 mm, copper 0.3 mm or more from the board edge. All inside JLCPCB's standard 2-layer capabilities.
 
@@ -65,7 +65,7 @@ The box-header keys face the nearest board edge (silkscreen outline and pin-1 ma
 
 ## Regenerate
 
-From `hardware/defuse32/kicad/`, after `gen/route_prep.py finish` and a clean DRC:
+From `hardware/defuse32/kicad/`, after `gen/polish.py all` (or `gen/route_prep.py finish`) and a clean DRC:
 
 ```sh
 /usr/bin/python3 gen/gen_jlcpcb.py

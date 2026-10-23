@@ -1,14 +1,15 @@
-# Defuse32 carrier PCB, rev 2 (KiCad 10)
+# Defuse32 carrier PCB, rev 2.1 (KiCad 10)
 
 The carrier board sits on the case floor and connects to the six plates by ribbon cables. Rev 2 is an SMD board assembled by JLCPCB: ESP32-WROOM-32E module, USB-C programming port with a CH340C, two MCP23017 expanders, LIS3DH tilt sensor, push-push microSD, WS2812 buffer, buzzer driver and one keyed IDC box header per plate. The source of truth is [`../SPEC.md`](../SPEC.md), section "Rev 2 carrier (2026-10-23)", plus the sections it keeps: ESP32 pin map, MCP23017 allocation (rev 1b), WS2812 chain, I2C addresses and the plate signal sets (rev 1 Jn_B table).
 
-**Status (2026-10-23): placed, routed, GND-poured and DRC clean; JLCPCB fabrication and assembly files in `out/jlcpcb/`.** The owner approved the layout preview and delegated the routing; hand edits in KiCad are welcome from here on.
+**Status (2026-10-23): placed, routed, finished (rev 2.1: straighter tracks, grounded GND pour, professional silkscreen) and DRC clean with the silkscreen rules on; JLCPCB fabrication and assembly files in `out/jlcpcb/`.** The owner approved the layout preview and delegated the routing; hand edits in KiCad are welcome from here on. Rev 2.1 changes copper and silkscreen only: same placement, schematic, netlist and pin map as rev 2.
 
 | Check | Result |
 |---|---|
 | `kicad-cli sch erc --severity-all` | 0 errors, 0 warnings |
-| `kicad-cli pcb drc --schematic-parity --refill-zones` (also with `--severity-all`) | 0 violations, 0 unconnected items, 0 schematic parity issues |
+| `kicad-cli pcb drc --severity-all --schematic-parity --refill-zones` | 0 violations, 0 unconnected items, 0 schematic parity issues (silk_over_copper, silk_overlap, silk_edge_clearance are errors; silk clearance 0.15 mm, text >= 0.8 mm / 0.15 mm) |
 | `gen/check_netlist.py` | OK: netlist and board pads match `design.py`, plus the SPEC pin map, MCP23017 allocation, IDC pinout rule, rails, AMS1117 capacitors, outline, holes, U1 antenna beyond the edge and net classes |
+| `gen/pcb_audit.py` (finish audit, `out/audit.json`) | silkscreen: 0 violations, 0 warnings, no hidden reference; copper: 0 voids that can take a stitching via, 83 narrower or blocked voids (159 mm2); routing: 49 jogs left (110 in rev 2), each with its reason in `polish.py jogs` |
 
 Rev 1b (THT, DevKitC socket, 190 x 140 mm, routed) is in git, tag `carrier-rev1b`.
 
@@ -184,7 +185,7 @@ Lowest stock among the SMD parts: MCP23017-E/SO (2085), LIS3DHTR (8205), DM3AT (
 Rev 2 uses official KiCad symbols and footprints except:
 
 - `defuse32.kicad_sym` / `CH340C_3V3`: copy of `Interface_USB:CH340C` with pin 4 (V3) typed `power_in`. At 3.3 V the datasheet ties V3 to VCC; with the official `power_out` type ERC reports two power outputs on `3V3` (V3 and the AMS1117).
-- `defuse32.pretty` / `ESP32-WROOM-32E_JLC`: copy of `RF_Module:ESP32-WROOM-32E` with the 12 GND thermal vias drilled 0.3 mm instead of 0.2 mm (0.6 mm pad, 0.15 mm ring), because JLCPCB's 2-layer minimum hole is 0.3 mm. Pads, antenna keep-out zone, outline and 3D model are unchanged.
+- `defuse32.pretty` / `ESP32-WROOM-32E_JLC`: copy of `RF_Module:ESP32-WROOM-32E` with the 12 GND thermal vias drilled 0.3 mm instead of 0.2 mm (0.6 mm pad, 0.15 mm ring), because JLCPCB's 2-layer minimum hole is 0.3 mm. Since rev 2.1 its pin-1 triangle is 0.38 mm instead of 0.5 mm and 0.07 mm further in, so it keeps 0.15 mm from the board edge (the antenna overhangs it) and from pad 1 (DRC `silk_edge_clearance` / `silk_over_copper`). Pads, antenna keep-out zone, outline and 3D model are unchanged.
 - `defuse32.pretty` / `USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge`: copy of the official HRO footprint for a receptacle whose front face sits on the board edge: the silkscreen line drawn 0.25 mm in front of the face is removed and the two side lines end 0.35 mm behind it, so no silkscreen is clipped by the edge (DRC `silk_edge_clearance`). Pads, courtyard, fab outline and 3D model reference are unchanged.
 
 All three are written by `gen/gen_lib.py` from the installed KiCad libraries. KiCad 10.0.7 here ships no 3D model for J7 (HRO USB-C), SW1/SW2 (XKB TS-1187A) and F1 (1812 fuse), so the renders and `../cad/carrier.step` show their pads only.
@@ -219,15 +220,16 @@ Routed with Freerouting 2.4.1 through `gen/route_prep.py` (its docstring has the
 2. **GND fan-out** (`gnd_fanout`): every other SMD GND pad gets a 0.4 mm stub and a via to the bottom pour, at the first spot that keeps 0.25 mm from other copper (45 pads).
 3. **Freerouting** routes all other nets (Default 0.2 mm, Power 0.6 mm, vias 0.6/0.3 mm). The DSN has a GND plane on both layers so it routes no GND but keeps the Power-class clearance to GND pins; fully hand-routed nets are taken out of the DSN network, and each partly pre-routed group keeps one open pin (Freerouting 2.4.1 does not count locked tracks as connecting their pads). Options: no SMD fan-out stage, neck-down on, via cost 150, 40 passes, 10 optimizer passes; this session routed every connection.
 4. **Hand fixes** after the session (`HAND_FIXES`): T4 rerouted under SW1 (the optimizer had looped it round both EN pads, crossing the EN jumper), SD_CS moved 0.15 mm away from R3 pad 1, a MOSI corner moved off U5 pin 3 (0.248 mm < 0.25 mm), and C14 pad 1 tied to the 3V3P track at C4 (the LIS3DH supply group had no open pin).
-5. **GND pours** on F.Cu and B.Cu over the whole outline (0.25 mm clearance, 0.3 mm thermal gap, 0.5 mm spokes; USB-C GND pads solid by a custom rule; through-hole GND pins may resolve with one spoke). Stitching: the GND copper is split into connected components and every component other than the main one gets a via into a main-component piece on the other layer (65 vias: 56 into cut-off pour pieces, 9 for pieces carrying pads or vias), plus a 5 mm grid of stitching vias where both pours are solid (43 vias). Unconnected pour islands are removed (island removal "always"); nothing is left floating, nothing is unconnected.
+5. **GND pours** (rev 2; rebuilt in rev 2.1, see below) on F.Cu and B.Cu over the whole outline, thermal reliefs on pads (0.3 mm gap, 0.5 mm spokes; USB-C GND pads solid by a custom rule; through-hole GND pins may resolve with one spoke), islands stitched to the main pour and unconnected islands removed.
 6. **Antenna**: the module's antenna region and its footprint keep-out zone are outside the outline; no track, via or pour reaches past the edge (copper-to-edge 0.3 mm). The pours run under the module body up to the board edge, as Espressif asks for a module whose antenna overhangs the base board.
+7. **Rev 2.1 finish** (`gen/polish.py all`, next section): jogs straightened, pours rebuilt at 0.2 mm, every groundable island stitched, silkscreen placed again.
 
-| Result | |
+| Result (rev 2.1) | |
 |---|---|
-| Vias | **320**: 168 GND (45 fan-out, 15 pre-route, 65 island, 43 grid), 152 signal (incl. 6 USB/VBUS pre-route) |
-| Track length | 5974 mm (F.Cu 3128, B.Cu 2847), 1361 segments |
+| Vias | **427**: 275 GND (60 fan-out and pre-route vias with their stubs, 107 island stitching vias, 108 grid stitching vias), 152 signal (incl. 6 USB/VBUS pre-route) |
+| Track length | 5978 mm (F.Cu 3129, B.Cu 2849), 1272 segments |
 | Power tracks | 5V, 3V3, 3V3P, VBUS 0.6 mm everywhere except the 0.25 mm LIS3DH fan-out (3V3P) and the 0.4 mm U9 VBUS stub; GND is the pours plus 0.25-0.6 mm stubs |
-| Silkscreen | references 0.8 mm, placed by `gen_pcb.place_refs` clear of pads and outlines; R18 has no free spot (not printed) |
+| Silkscreen | references 0.8 mm / 0.15 mm, 0 or 90 deg, placed by `gen/polish.py`; 3 callouts with a leader, 7 references on the bottom silkscreen (below); plate names after J1-J6; board legend and JLCPCB order-number placeholder |
 
 Decoupling, cap pad to the IC supply pad (`route_prep.py report`; edge gap / centre distance, mm):
 
@@ -242,7 +244,28 @@ Decoupling, cap pad to the IC supply pad (`route_prep.py report`; edge gap / cen
 | U5.2 3V3P out | C2 22 µF | 0.90 / 2.40 | U8.14 VDD | C15 10 µF | 2.56 / 3.57 |
 | U5.2 3V3P out | C19 100 nF | 1.00 / 3.31 | J11.4 VDD | C17 100 nF / C18 10 µF | 1.10 / 2.20, 2.91 / 4.20 |
 
-Every decoupling cap pad is within 3 mm (edge to edge) of its supply pad.
+Every decoupling cap pad is within 3 mm (edge to edge) of its supply pad (unchanged in rev 2.1).
+
+## Rev 2.1 finish (`gen/polish.py`)
+
+The owner asked for the professional finish of the routed board: no empty copper between tracks (grounded, not floating), no via under a reference, clean label placement, and no "double angle changes" (jogs). `gen/polish.py all` does it on the current board, with the rules of the pcb-layout-pro skill, measured by `gen/pcb_audit.py` (a copy of the skill's audit). It does not re-route from scratch, move parts, re-apply `HAND_FIXES` or touch the pre-routes; every move keeps all clearances (exact geometry against the net-class rules) and every connection, and KiCad's DRC checks the result. Its docstring has the details.
+
+| | rev 2 | rev 2.1 |
+|---|---|---|
+| Jogs (audit) | 110 | 49 |
+| Copper voids >= 0.5 mm2 (audit) | 105, 251 mm2 | 83, 159 mm2 |
+| ... of which a stitching via fits | 62 (86 with the old audit test) | **0** |
+| Silkscreen violations / warnings (audit) | 100 / 1 (64 strokes 0.12 mm, 36 vias under or next to text; R6 in J9's courtyard) | **0 / 0** |
+| Hidden references | R17, R18 | none |
+| Vias | 320 (168 GND) | 427 (275 GND) |
+| KiCad DRC (all severities, parity) | 0 / 0 / 0 | 0 / 0 / 0, silk rules on |
+
+1. **Jogs.** Router stubs at vias removed (10 vias moved onto the end of their stub); 53 jogs straightened by extending the run after the jog back along its own line (or the run before it forward), by sliding the slanted part back to where the first run started, by pushing aside the via or track of another net that was in the way, or by re-routing a few segments around the jog (octilinear search, bend penalties). Collinear pieces merged. **47 jogs are left (49 counted by the audit, which also follows chains through track ends inside vias)**: 2 on the hand-routed USB pair (kept symmetric), 27 where the step passes between header or IC pads (J1, J3-J6, J8-J10 rows, U1, U4, U5, U7, Q3, J11, R4/R6/R9, C5/C8), 7 at T-junctions that a move would break, 10 locked between tracks and vias of other nets that cannot move without a real re-route (J4 WA/WB bus, SCL/SDA/SCK/MISO along the left side, LDO3, U3_GPA7), 1 (ROW3, 0.10 mm) with no straight alternative between the pads it joins. `/usr/bin/python3 gen/polish.py jogs` lists them with the reason. Removing these needs local hand re-routing (or a re-route of the J4 bus).
+2. **Copper.** GND pours rebuilt on both layers: clearance 0.2 mm, minimum width 0.2 mm (net-class Power clearance 0.25 mm still applies), thermal reliefs 0.3 / 0.5 mm, island removal "always". 12 tracks were shifted (corners sliding, directions kept) to close narrow strips. Every GND piece that a legal via can join to the main pour got one (107 island vias; 8 of them after pushing a blocking track or via aside; 4 references moved off the only via spot), then a 5 mm stitching grid (108 vias) off the labels and the U1/J7/J11 courtyards. No floating copper. **83 voids remain (159 mm2), none can take a via**: strips between tracks narrower than via + clearances (81) or over a void on the other layer (2); the largest are a 0.64 mm strip between the IR and SCL diagonals on B.Cu (14 mm2) and strips along the top edge and under J4/J5 where the other layer has tracks. Closing them needs track moves the automatic pass could not make legally.
+3. **Silkscreen.** One size for every reference: 0.8 mm / 0.15 mm (at 1.0 mm, 12 parts had no spot; at 0.8 mm, 9). 0 or 90 deg, keep-upright, outside every courtyard (mounting holes included), at most 2 mm from and nearer to its own part than any other, 0.15 mm from pads, mask openings and silk, 0.3 mm from the edge, never over a via (a via in the way of the only good spot was moved). Rows share a line (R12/R13, Q2/Q3, C4/C3, U3/U2, J1-J3, J4/J5, ...). Board legend `DEFUSE32 CARRIER` / `rev 2.1  2026-10` and the JLCPCB placeholder `JLCJLCJLCJLC` at the top left; plate names after the header references (`J1  M1 RADIO` ... `J6  M6 SENSORS`, from SPEC "Module plates"). U8, R11 and C11 are callouts: label a short way off with a 0.15 mm leader to the part. **7 references are on the bottom silkscreen, under their parts, because no top spot or leader path exists:** R16-R19 (row between U5's SOT-223 body above, J5's box header below, C19/C1 left and J11 right; printed as a row on the bottom), R14 and R15 (USB-C CC resistors between J7, U7/U9, F1 and J6) and C17 (between C18, C13, U9 and J11). The old bottom legend is gone. The pin-1 and key marks are kept; U1's pin-1 triangle is smaller and 0.07 mm further in (local library, `gen_lib.py`), so it clears the board edge and pad 1 by 0.15 mm.
+4. **Rules.** `gen_pcb.write_project` now writes silk clearance 0.15 mm, text >= 0.8 mm / 0.15 mm and makes silk_over_copper, silk_overlap and silk_edge_clearance errors, so DRC enforces the silkscreen from now on.
+
+What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are they where you want them?), the remaining jogs in the J4 bus and along the left edge (hand re-route if they bother you), and the board title block (rev 2.1).
 
 ## Assembly (JLCPCB)
 
@@ -255,7 +278,8 @@ Every decoupling cap pad is within 3 mm (edge to edge) of its supply pad.
 
 ## Board and design rules
 
-- `defuse32-carrier.kicad_pcb`: 100 x 70 mm, 2 layers, 1.6 mm; H1-H4 (MountingHole_3.2mm_M3) 4 mm from the corners; placed (design.py `PCB`), routed, GND pours on both layers.
+- `defuse32-carrier.kicad_pcb`: 100 x 70 mm, 2 layers, 1.6 mm; H1-H4 (MountingHole_3.2mm_M3) 4 mm from the corners; placed (design.py `PCB`), routed, GND pours on both layers (zones `GND_F` / `GND_B`: clearance 0.2 mm, minimum width 0.2 mm, thermal reliefs 0.3 / 0.5 mm, island removal always), title block rev 2.1.
+- Silkscreen rules (in `defuse32-carrier.kicad_pro`, written by `gen_pcb.write_project`): silk clearance 0.15 mm, text height >= 0.8 mm, stroke >= 0.15 mm; silk_over_copper, silk_overlap and silk_edge_clearance are errors.
 - Net classes (in `defuse32-carrier.kicad_pro`): **Power** = `5V`, `3V3`, `3V3P`, `GND`, `VBUS`: 0.6 mm track, 0.25 mm clearance. **Default**: 0.2 mm track, 0.2 mm clearance. Vias 0.6/0.3 mm.
 - Board minimums = JLCPCB 2-layer standard: track/space 0.127 mm, hole 0.3 mm, via ring 0.13 mm, via 0.56 mm, hole-to-hole 0.5 mm, copper to edge 0.3 mm.
 - Custom rules (`defuse32-carrier.kicad_dru`): clearance 0.15 mm between items inside the U8 (LIS3DH) and J7 (USB-C) courtyards (0.5 mm pitch: their own pad gaps are 0.15 / 0.2 mm); J7 GND pads join the pours solid; through-hole GND pins may resolve with one thermal spoke per layer (box headers, hand-soldered: thermal reliefs kept).
@@ -272,6 +296,8 @@ Every decoupling cap pad is within 3 mm (edge to edge) of its supply pad.
 | `gen/gen_sch.py` | Writes the five schematic files: power symbols and global labels on short pin stubs |
 | `gen/gen_pcb.py` | Writes the placed, unrouted board (outline, footprints, nets from the schematic netlist, LCSC fields, silkscreen references), the `.kicad_pro` and the `.kicad_dru`. Refuses to overwrite a routed board (tracks, vias or zones; `--force` overrides) |
 | `gen/route_prep.py` | Rev 2 routing: pre-routes, GND fan-out, DSN export, SES import, hand fixes, pours, stitching, report |
+| `gen/polish.py` | Rev 2.1 finish of the routed board: jogs, GND pour and stitching, narrow strips, silkscreen (references, callouts, legend, plate names), DRC, report |
+| `gen/pcb_audit.py` | Finish audit (copy of the pcb-layout-pro skill's script): copper voids, jogs, silkscreen problems DRC does not flag |
 | `gen/gen_jlcpcb.py` | JLCPCB Gerbers, drill, zip, BOM and CPL into `out/jlcpcb/` |
 | `gen/check_netlist.py` | Rev 2 checks (see Status) |
 | `gen/sexp.py`, `gen/symlib.py` | S-expression reader/writer; symbol flattening (`extends`) |
@@ -279,8 +305,10 @@ Every decoupling cap pad is within 3 mm (edge to edge) of its supply pad.
 | `out/bom.csv` | BOM grouped by value, footprint and LCSC number, with MPN, manufacturer and Basic/Extended |
 | `out/defuse32-carrier.net` | Schematic netlist, input of `check_netlist.py` |
 | `out/defuse32-carrier.ses` | The Freerouting session the board was built from |
-| `out/erc.rpt`, `out/drc.rpt` | Latest check reports |
-| `out/jlcpcb/` | JLCPCB fabrication and assembly files (rev 2) |
+| `out/erc.rpt`, `out/drc.rpt`, `out/audit.json` | Latest check reports (DRC, ERC, finish audit) |
+| `out/jlcpcb/` | JLCPCB fabrication and assembly files (rev 2.1) |
+| `../renders/carrier-top.png`, `carrier-iso.png` | 3D renders (kicad-cli) |
+| `../renders/carrier-f-cu.png`, `carrier-b-cu.png`, `carrier-silk.png` | 2D plots, 300 dpi: F.Cu + F.Silkscreen, B.Cu, F.Silkscreen + F.Mask + F.Fab (each with Edge.Cuts) |
 
 ## Regenerate
 
@@ -290,11 +318,16 @@ From `hardware/defuse32/kicad/`. Scripts that import `pcbnew` need KiCad's Pytho
 python3 gen/gen_lib.py                      # local symbols + footprints
 python3 gen/gen_sch.py                      # five schematic files
 
+# finish (rev 2.1) on the routed board: jogs, pour + stitching, silkscreen, DRC, report (~9 min)
+/usr/bin/python3 gen/polish.py all          # `all nojogs` skips the jog step; `jogs` lists what is left
+# (D32_BOARD=/path/copy.kicad_pcb runs any of it on a copy with its own .kicad_pro/.kicad_dru)
+
 # checks
 kicad-cli sch export netlist -o out/defuse32-carrier.net defuse32-carrier.kicad_sch
 kicad-cli sch erc --severity-all -o out/erc.rpt defuse32-carrier.kicad_sch
-kicad-cli pcb drc --schematic-parity --refill-zones -o out/drc.rpt defuse32-carrier.kicad_pcb
+kicad-cli pcb drc --severity-all --schematic-parity --refill-zones -o out/drc.rpt defuse32-carrier.kicad_pcb
 /usr/bin/python3 gen/check_netlist.py out/defuse32-carrier.net defuse32-carrier.kicad_pcb
+/usr/bin/python3 gen/pcb_audit.py defuse32-carrier.kicad_pcb --json out/audit.json   # exit 1 while jogs remain
 
 # exports
 kicad-cli sch export pdf -o out/defuse32-carrier.pdf defuse32-carrier.kicad_sch
@@ -307,6 +340,11 @@ kicad-cli pcb render --side top --quality high -w 1568 -h 1176 --background opaq
   -o ../renders/carrier-top.png defuse32-carrier.kicad_pcb
 kicad-cli pcb render --quality high --perspective --rotate '-50,0,-35' --zoom 0.9 -w 1568 -h 1064 \
   --background opaque -o ../renders/carrier-iso.png defuse32-carrier.kicad_pcb
+# 2D plots (carrier-f-cu: "F.Cu,F.Silkscreen,Edge.Cuts", carrier-b-cu: "B.Cu,Edge.Cuts",
+# carrier-silk: "F.Silkscreen,F.Mask,F.Fab,Edge.Cuts")
+kicad-cli pcb export svg --layers "F.Cu,F.Silkscreen,Edge.Cuts" --mode-single --fit-page-to-board \
+  --exclude-drawing-sheet -o /tmp/f-cu.svg defuse32-carrier.kicad_pcb
+inkscape /tmp/f-cu.svg --export-type=png --export-dpi=300 --export-background=white -o ../renders/carrier-f-cu.png
 ```
 
-The board is now edited in KiCad: circuit changes go through `design.py` + `gen_sch.py`, then KiCad *Tools > Update PCB from Schematic*. `gen_pcb.py` stops on the routed board; `gen_pcb.py --force` followed by the `route_prep.py` steps rebuilds placement and routing from scratch (and loses hand edits).
+The board is now edited in KiCad: circuit changes go through `design.py` + `gen_sch.py`, then KiCad *Tools > Update PCB from Schematic*. `gen_pcb.py` stops on the routed board; `gen_pcb.py --force` followed by the `route_prep.py` steps and `polish.py all` rebuilds placement, routing and finish from scratch (and loses hand edits). `polish.py all` can be run again after hand edits: it rebuilds the pours, stitching and silkscreen and only moves tracks where a jog or a narrow strip is fixed.

@@ -11,7 +11,9 @@ Symbol:
 Footprints:
   ESP32-WROOM-32E_JLC  copy of RF_Module:ESP32-WROOM-32E with the 12 thermal vias in the GND pad
               drilled 0.3 mm instead of 0.2 mm (0.6 mm pad, 0.15 mm ring): JLCPCB's 2-layer minimum
-              hole is 0.3 mm. Pads, antenna keep-out zone, outline and 3D model are unchanged.
+              hole is 0.3 mm. The pin-1 triangle is 0.38 mm instead of 0.5 mm and 0.07 mm further in,
+              so it clears the board edge (the antenna overhangs it) and pad 1 by 0.15 mm (rev 2.1).
+              Pads, antenna keep-out zone, outline and 3D model are unchanged.
   USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge  copy of Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12
               for a receptacle whose front face sits on the board edge: the silkscreen line across the
               front (0.25 mm in front of the face) is removed and the two side lines end 0.35 mm behind
@@ -63,8 +65,15 @@ def write_fplib():
         raise SystemExit("unexpected RF_Module:ESP32-WROOM-32E (%d 0.2 mm drills)" % n)
     out = src.replace('(footprint "ESP32-WROOM-32E"', '(footprint "ESP32-WROOM-32E_JLC"')
     out = out.replace("(drill 0.2)", "(drill 0.3)")
+    # pin-1 mark: the 0.5 mm triangle at (-9.2, -6) sits on the line where the board edge runs when
+    # the antenna overhangs the edge (rev 2 placement): 0.38 mm triangle, 0.07 mm in, so it keeps
+    # 0.15 mm from the edge and from pad 1 (DRC silk_edge_clearance / silk_over_copper)
+    mark = "(xy -9.2 -6) (xy -9.7 -6) (xy -9.2 -6.5) (xy -9.2 -6)"
+    if out.count(mark) != 1:
+        raise SystemExit("unexpected RF_Module:ESP32-WROOM-32E pin-1 mark")
+    out = out.replace(mark, "(xy -9.2 -5.93) (xy -9.58 -5.93) (xy -9.2 -6.31) (xy -9.2 -5.93)")
     out = out.replace('(descr "', '(descr "RF_Module:ESP32-WROOM-32E with 0.3 mm thermal-via drills (JLCPCB 2-layer '
-                                  'minimum hole). ', 1)
+                                  'minimum hole) and a smaller pin-1 mark clear of the board edge. ', 1)
     d = os.path.join(KDIR, "defuse32.pretty")
     os.makedirs(d, exist_ok=True)
     with open(os.path.join(d, "ESP32-WROOM-32E_JLC.kicad_mod"), "w") as f:
