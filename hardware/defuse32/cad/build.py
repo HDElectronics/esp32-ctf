@@ -349,8 +349,8 @@ add("Panel", panel, C["panel"], 1.0, "Panel", "panel")
 SLED_T = 3.0
 sled = L.rrect_face(0, 0, INT["floor_l"] - 2.0, INT["floor_w"] - 2.0, R_IN - 1.0).extrude(V(0, 0, SLED_T))
 add("Floor_Sled", sled, C["sled"], 1.0, "Carrier", "sled")
-CAR_L, CAR_W, CAR_T, CAR_Z = 190.0, 140.0, 1.6, 11.0
-car_holes = [(sx * (CAR_L / 2 - 5.0), sy * (CAR_W / 2 - 5.0)) for sx in (-1, 1) for sy in (-1, 1)]
+CAR_L, CAR_W, CAR_T, CAR_Z = 100.0, 70.0, 1.6, 11.0   # rev 2 carrier
+car_holes = [(sx * (CAR_L / 2 - 4.0), sy * (CAR_W / 2 - 4.0)) for sx in (-1, 1) for sy in (-1, 1)]
 for i, (x, y) in enumerate(car_holes):
     s = L.hexprism(x, y, SLED_T, 5.5, CAR_Z - SLED_T).cut(L.cyl(x, y, 0, 2.5, CAR_Z + 1))
     add("Carrier_Standoff%d" % (i + 1), s, C["brass"], 1.0, "Carrier", "carrier_hw")
@@ -361,7 +361,7 @@ if os.path.exists(CARRIER_STEP) and os.path.getsize(CARRIER_STEP) > 0:
     try:
         imp = Part.read(CARRIER_STEP)
         solids = imp.Solids
-        cands = [s for s in solids if abs(s.BoundBox.ZLength - CAR_T) < 0.3 and s.BoundBox.XLength > 100]
+        cands = [s for s in solids if abs(s.BoundBox.ZLength - CAR_T) < 0.3 and s.BoundBox.XLength > 0.8 * CAR_L]
         if cands:
             board = max(cands, key=lambda s: s.BoundBox.XLength * s.BoundBox.YLength)
         else:
@@ -386,7 +386,7 @@ if os.path.exists(CARRIER_STEP) and os.path.getsize(CARRIER_STEP) > 0:
             others = []
             for s in mv.Solids:
                 bb = s.BoundBox
-                if abs(bb.ZLength - CAR_T) < 0.3 and bb.XLength > 100:
+                if abs(bb.ZLength - CAR_T) < 0.3 and bb.XLength > 0.8 * CAR_L:
                     continue
                 others.append(s)
             carrier_items.append(add("Carrier_PCB", bsh, C["carrier"], 1.0, "Carrier", "carrier"))

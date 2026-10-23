@@ -1,4 +1,4 @@
-# Defuse32 mechanical CAD (case rev 0, carrier rev 1)
+# Defuse32 mechanical CAD (case rev 0, carrier rev 2)
 
 Scripted FreeCAD model of the Defuse32 case: a Pelican 1520 with the 1520PF panel frame, the panel, six module plates with placeholder modules, the floor sled, the carrier PCB, and the wall-mounted key switch and USB-C input. Every dimension comes from `../data/parts.json` and from the plate layouts in `layout.py`. The scripts write the outputs; nothing here is drawn by hand.
 
@@ -15,7 +15,7 @@ freecad.cmd cad/build.py            # about 10 s; writes every output below
 - **`D32_STRICT=1`** makes the script exit with 1 when a fit check fails. By default it exits with 0 and lists the failures.
 - **`D32_CARRIER_STEP=path`** overrides the default `cad/carrier.step`.
 - **File ownership.** The script writes only `cad/defuse32.FCStd`, `cad/out/*` and `renders/cad_*.png`. It never deletes or writes other files in `renders/`: `carrier-top.png` and `carrier-iso.png` belong to the KiCad side (`render_path()` in `build.py` refuses any other name).
-- **Carrier STEP.** If `cad/carrier.step` exists (written by the KiCad side), it is imported and placed automatically. The board solid is the largest solid 1.6 mm thick. It is centred on the floor with its underside at z 11, and turned 90° if its long side is along y. The other solids become `Carrier_Components`. Without the file, a 190 x 140 x 1.6 green placeholder is used. Re-run the build after the STEP appears.
+- **Carrier STEP.** If `cad/carrier.step` exists (written by the KiCad side), it is imported and placed automatically. The board solid is the largest solid 1.6 mm thick. It is centred on the floor with its underside at z 11, and turned 90° if its long side is along y. The other solids become `Carrier_Components`. Without the file, a 100 x 70 x 1.6 green placeholder is used. Re-run the build after the STEP appears.
 
 ## Outputs
 
@@ -25,7 +25,7 @@ freecad.cmd cad/build.py            # about 10 s; writes every output below
 | `out/panel.dxf`, `out/plate_M1.dxf` to `out/plate_M6.dxf` | 2D laser files, 1:1 mm, AutoCAD R12 (LINE/CIRCLE/ARC). Origin is the part's bottom-left corner. Layers: `CUT` (outline and through-cuts, colour 1) and `ENGRAVE_1MM` (titles, NFC mark and touch-pad recesses, colour 5; text is flattened to 0.02 mm line segments). Written by our own writer and checked: every contour closes and the outline areas match the model. |
 | `out/panel.stl`, `out/plate_M1.stl` to `out/plate_M6.stl` | Printable solids, including the 1 mm engravings. Plate bottom at z 0. |
 | `out/assembly.step` | Whole assembly with colours. The carrier keep-out box is left out. |
-| `out/assembly.glb` | glTF 2.0 binary for the web viewer: 152 meshes, about 697k triangles (most of them from the carrier STEP). Units are metres with +Y up; case (x, y, z) mm maps to glTF (x, z, -y)/1000. Each object is one node, named after the FCStd label and parented to a group node (Case, Frame, Panel, M1 to M6, Carrier, Wall). Node `extras` hold `colour`, `alpha` and `group`. Materials are double-sided PBR. The case shells are translucent (`BLEND`, alpha 0.35). |
+| `out/assembly.glb` | glTF 2.0 binary for the web viewer: 152 meshes, about 197k triangles (most of them from the carrier STEP). Units are metres with +Y up; case (x, y, z) mm maps to glTF (x, z, -y)/1000. Each object is one node, named after the FCStd label and parented to a group node (Case, Frame, Panel, M1 to M6, Carrier, Wall). Node `extras` hold `colour`, `alpha` and `group`. Materials are double-sided PBR. The case shells are translucent (`BLEND`, alpha 0.35). |
 | `out/fit_report.txt` | Full console log of the last run, including the fit checks. |
 | `out/plate_cutouts.md` | The cut-out and module tables below, regenerated on every run. |
 | `../renders/cad_iso.png`, `cad_top.png`, `cad_exploded.png`, `cad_underside.png` | 1600 x 1200 views. In order: isometric with the lid open; top view without the lid; exploded (frame +60, panel +120, plates with their modules +200); and looking up at the modules hanging under the plates. |
@@ -62,7 +62,7 @@ Source files: `build.py` (entry point: case, frame, panel, plates, carrier, chec
 | `Plate_M1` to `Plate_M6` | 134 x 138 x 3, light grey. 4 x dia 3.4 holes 6 mm from the corners. Module cut-outs as listed below, a dia 5 status LED hole at (49, 52) and a 1 mm deep title (DejaVu Sans Bold, cap height 5.5) at (-52, 55). |
 | `Mn_<item>_<part>` | Placeholder bodies for each module (PCB, display glass, encoder, keys, headers, standoffs, nuts, knob, posts…), coloured roughly like the real parts. |
 | `Floor_Sled` | 443 x 312 x 3 R15.5: the floor less 1 mm per side. |
-| `Carrier_PCB` (+ `Carrier_Components` when the STEP is used) | 190 x 140 x 1.6 at z 11, 4 x dia 3.2 holes 5 mm from the corners. |
+| `Carrier_PCB` (+ `Carrier_Components` when the STEP is used) | 100 x 70 x 1.6 at z 11, 4 x dia 3.2 holes 4 mm from the corners. |
 | `Carrier_Standoff1` to `Carrier_Standoff4` | M3 x 8 hex standoffs. |
 | `Carrier_Keepout` | Hidden in the FCStd and not exported. Used by the fit checks. |
 | `Wall_KeySwitch_*`, `Wall_USBC_*` | Outside bezels (dia 28 x 10, dia 29.5 x 4) and inside bodies (dia 22 x 51, dia 21.5 x 35) on the right wall. |
@@ -257,9 +257,9 @@ How each plate is mounted (the generated tables below give exact positions):
 ## Fit checks (last run, real `carrier.step`)
 
 ```
-carrier: carrier.step (45 solids, board found, rotated 0 deg)
-carrier: Carrier_PCB x -95.0..95.0 y -70.0..70.0 z 11.0..12.5
-carrier: Carrier_Components x -83.5..91.6 y -66.4..64.8 z 2.8..31.4
+carrier: carrier.step (63 solids, board found, rotated 0 deg)
+carrier: Carrier_PCB x -50.0..50.0 y -35.0..35.0 z 11.0..12.5
+carrier: Carrier_Components x -56.2..48.3 y -34.5..33.3 z 9.6..21.7
 
 ========================================================================
 FIT CHECKS
@@ -291,8 +291,8 @@ PASS  M3 no clashes between different modules
 PASS  M4 no clashes between different modules
 PASS  M5 no clashes between different modules
 PASS  M6 no clashes between different modules
-PASS  nothing intersects the carrier PCB/components, its standoffs, the sled or the carrier keep-out (min clearance to keep-out 67.2 mm at M4_PostA6_Stud)
-PASS  carrier tallest part z 31.4 (18.8 above the board) <= keep-out top z 40; lowest module part z 105.1 at M6_IR_Leads (gap 73.7) [carrier.step (45 solids, board found, rotated 0 deg)]
+PASS  nothing intersects the carrier PCB/components, its standoffs, the sled or the carrier keep-out (min clearance to keep-out 72.7 mm at M2_Buzzer_Pins)
+PASS  carrier tallest part z 21.7 (9.1 above the board) <= keep-out top z 40; lowest module part z 105.1 at M6_IR_Leads (gap 83.4) [carrier.step (63 solids, board found, rotated 0 deg)]
 PASS  KeySwitch on the right wall: y 60, hole dia 19.0, flange z 56.0..84.0 (band 40..100)
 PASS  USBC on the right wall: y -60, hole dia 22.0, flange z 55.2..84.8 (band 40..100)
 PASS  wall parts clear of the shell, frame and plate modules
@@ -309,7 +309,7 @@ PASS  panel webs >= 3 mm (min 3.96: M5 opening <-> M5 plate screw 2)
 fit checks: 0 failure(s)
 ```
 
-The carrier comes from the rev 1 KiCad STEP (board plus all parts, centred on the floor, underside at z 11, USB edge toward the right wall). Its tallest part is the upright LD1117 regulator U5 (TO-220), top at z 31.4; its STEP leads reach down to z 2.8, which would touch the sled top (z 3) by 0.2 mm, so trim the leads flush. The microSD breakout socket A2 sits at the left board edge (x -95); the case wall is at x -223, so the card slot has about 128 mm of free access. The STEP models only A2's pin socket, not the breakout board itself. The DevKit sockets and the 470 µF capacitor reach z 26.4; a plugged-in DevKit (about 5 mm of PCB and parts above the socket tops) is not in the STEP but stays far under the 40 mm keep-out top and the lowest plate module (z 105.1).
+The carrier comes from the rev 2 KiCad STEP (100 x 70 mm SMD board, centred on the floor, underside at z 11, USB-C edge toward the right wall). Its tallest parts are the IDC box headers, top 9.2 mm above the board (z 21.7). The ESP32-WROOM-32E antenna overhangs the left edge by 6.2 mm (to x -56.2); nothing else is within 10 mm of it (nearest metal: standoffs at x -46, y ±31; left case wall about 166 mm away). From the right board edge (x 50, USB-C) to the floor-level case wall (x 222.5) there are about 172 mm for the panel-mount USB-C extension; the microSD socket sits 0.5 mm inside the bottom edge (y -35), about 122 mm from the front wall (y -157). The board is screwed to the sled on four standoffs 4 mm from its corners.
 
 Other notes from the checks:
 - M2 has nothing above its plate. The TM1637 display sits 0.2 mm under its window.
