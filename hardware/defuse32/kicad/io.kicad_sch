@@ -2137,7 +2137,7 @@
 		)
 		(uuid "55100110-78c7-58ae-bbb7-9bc796e287ce")
 	)
-	(text "low = card in (switch closes on insertion; CONFIG_D32_SD_DET_ACTIVE_HIGH=n)."
+	(text "low = card present: the DM3 detect switch is normally open and closes on insertion (Hirose DM3"
 		(exclude_from_sim no)
 		(at 257.81 237.49 0)
 		(effects
@@ -2146,7 +2146,18 @@
 			)
 			(justify left)
 		)
-		(uuid "e9a61102-0370-5c0c-9d13-d339e5f877b3")
+		(uuid "ba66f72c-ecea-5b75-90dd-3e045998f671")
+	)
+	(text "catalog). Firmware: CONFIG_D32_SD_DET_ACTIVE_HIGH=n."
+		(exclude_from_sim no)
+		(at 257.81 241.3 0)
+		(effects
+			(font
+				(size 1 1)
+			)
+			(justify left)
+		)
+		(uuid "5023e1bd-b6d7-59b4-9eee-faa1440b0a9b")
 	)
 	(symbol
 		(lib_id "Interface_Expansion:MCP23017x-x-SO")
@@ -2644,8 +2655,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "48ddaae6-04ce-53d9-a070-a0a7922274ba")
-		(property "Reference" "#PWR064"
+		(uuid "0b5d9811-ba05-5a28-98a9-faa07d357c2c")
+		(property "Reference" "#PWR063"
 			(at 71.12 50.8 0)
 			(hide yes)
 			(show_name no)
@@ -2700,12 +2711,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "eba0a36b-1e55-5011-8ca2-e207362a03dc")
+			(uuid "6472dbf6-2b7e-5ed1-9133-b69e4cc84dc2")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR064")
+					(reference "#PWR063")
 					(unit 1)
 				)
 			)
@@ -2732,8 +2743,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "4cb6f051-6de4-5b66-9d17-5d5b8a431144")
-		(property "Reference" "#PWR065"
+		(uuid "48ddaae6-04ce-53d9-a070-a0a7922274ba")
+		(property "Reference" "#PWR064"
 			(at 71.12 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -2788,12 +2799,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "ca5e50e7-c616-587a-8dd0-07cb42770f73")
+			(uuid "eba0a36b-1e55-5011-8ca2-e207362a03dc")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR065")
+					(reference "#PWR064")
 					(unit 1)
 				)
 			)
@@ -2888,8 +2899,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "71a090fc-f7b0-5a73-ae92-5d0936ce5dee")
-		(property "Reference" "#PWR066"
+		(uuid "4cb6f051-6de4-5b66-9d17-5d5b8a431144")
+		(property "Reference" "#PWR065"
 			(at 55.88 93.98 90)
 			(hide yes)
 			(show_name no)
@@ -2945,12 +2956,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "924557b2-427d-551e-8176-4d6c57a9132c")
+			(uuid "ca5e50e7-c616-587a-8dd0-07cb42770f73")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR066")
+					(reference "#PWR065")
 					(unit 1)
 				)
 			)
@@ -2977,8 +2988,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "d720b93e-9403-5d2d-8beb-1d68db76d096")
-		(property "Reference" "#PWR067"
+		(uuid "71a090fc-f7b0-5a73-ae92-5d0936ce5dee")
+		(property "Reference" "#PWR066"
 			(at 55.88 96.52 90)
 			(hide yes)
 			(show_name no)
@@ -3034,12 +3045,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "fa37cf24-78f0-58cf-9259-af156ba2b7ff")
+			(uuid "924557b2-427d-551e-8176-4d6c57a9132c")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR067")
+					(reference "#PWR066")
 					(unit 1)
 				)
 			)
@@ -3066,8 +3077,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "028211d2-3f3a-5839-ae72-a2ca698d096c")
-		(property "Reference" "#PWR068"
+		(uuid "d720b93e-9403-5d2d-8beb-1d68db76d096")
+		(property "Reference" "#PWR067"
 			(at 55.88 99.06 90)
 			(hide yes)
 			(show_name no)
@@ -3123,12 +3134,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "765fbadd-a827-54aa-9e54-a6cc42af644b")
+			(uuid "fa37cf24-78f0-58cf-9259-af156ba2b7ff")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR068")
+					(reference "#PWR067")
 					(unit 1)
 				)
 			)
@@ -3155,8 +3166,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "c455bc49-c684-5642-8116-c93ad27263fd")
-		(property "Reference" "#PWR069"
+		(uuid "028211d2-3f3a-5839-ae72-a2ca698d096c")
+		(property "Reference" "#PWR068"
 			(at 55.88 81.28 90)
 			(hide yes)
 			(show_name no)
@@ -3212,12 +3223,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "3559bf5a-2a9d-549b-b2ad-a08bf5d40ca4")
+			(uuid "765fbadd-a827-54aa-9e54-a6cc42af644b")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR069")
+					(reference "#PWR068")
 					(unit 1)
 				)
 			)
@@ -4059,8 +4070,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "90fb32e6-df84-51e7-974b-de308e7aeb52")
-		(property "Reference" "#PWR070"
+		(uuid "c455bc49-c684-5642-8116-c93ad27263fd")
+		(property "Reference" "#PWR069"
 			(at 185.42 50.8 0)
 			(hide yes)
 			(show_name no)
@@ -4115,12 +4126,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "bc4de92d-9fa7-5f7f-88d2-15d44f3cf1a3")
+			(uuid "3559bf5a-2a9d-549b-b2ad-a08bf5d40ca4")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR070")
+					(reference "#PWR069")
 					(unit 1)
 				)
 			)
@@ -4147,8 +4158,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "1c520a16-34c3-5102-85e3-2ce57a8e478e")
-		(property "Reference" "#PWR071"
+		(uuid "90fb32e6-df84-51e7-974b-de308e7aeb52")
+		(property "Reference" "#PWR070"
 			(at 185.42 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -4203,12 +4214,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "44311bfd-b644-5294-a824-0b52d9330b90")
+			(uuid "bc4de92d-9fa7-5f7f-88d2-15d44f3cf1a3")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR071")
+					(reference "#PWR070")
 					(unit 1)
 				)
 			)
@@ -4303,8 +4314,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "0aa7896b-a1e7-567b-987a-31a7452d6e27")
-		(property "Reference" "#PWR072"
+		(uuid "1c520a16-34c3-5102-85e3-2ce57a8e478e")
+		(property "Reference" "#PWR071"
 			(at 170.18 93.98 90)
 			(hide yes)
 			(show_name no)
@@ -4360,12 +4371,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "9406f93a-2dc6-5ea8-a49e-21a6c48c0217")
+			(uuid "44311bfd-b644-5294-a824-0b52d9330b90")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR072")
+					(reference "#PWR071")
 					(unit 1)
 				)
 			)
@@ -4392,8 +4403,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "ab55c31a-6257-5d5d-a901-1a0e9f465e3d")
-		(property "Reference" "#PWR073"
+		(uuid "0aa7896b-a1e7-567b-987a-31a7452d6e27")
+		(property "Reference" "#PWR072"
 			(at 170.18 96.52 90)
 			(hide yes)
 			(show_name no)
@@ -4449,12 +4460,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "c91b5832-8c99-5e56-bbe3-d31180b73177")
+			(uuid "9406f93a-2dc6-5ea8-a49e-21a6c48c0217")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR073")
+					(reference "#PWR072")
 					(unit 1)
 				)
 			)
@@ -4481,8 +4492,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "c303bc8f-d6de-5251-b535-db28d6c96bf6")
-		(property "Reference" "#PWR074"
+		(uuid "ab55c31a-6257-5d5d-a901-1a0e9f465e3d")
+		(property "Reference" "#PWR073"
 			(at 170.18 99.06 90)
 			(hide yes)
 			(show_name no)
@@ -4538,12 +4549,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "27a1d17f-03d2-5349-bc35-3375b20ebec8")
+			(uuid "c91b5832-8c99-5e56-bbe3-d31180b73177")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR074")
+					(reference "#PWR073")
 					(unit 1)
 				)
 			)
@@ -4570,8 +4581,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "ba19958f-349e-548c-8121-224779678be1")
-		(property "Reference" "#PWR075"
+		(uuid "c303bc8f-d6de-5251-b535-db28d6c96bf6")
+		(property "Reference" "#PWR074"
 			(at 170.18 81.28 90)
 			(hide yes)
 			(show_name no)
@@ -4627,12 +4638,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "f29d369c-aa72-51de-9052-952e4f21cd8e")
+			(uuid "27a1d17f-03d2-5349-bc35-3375b20ebec8")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR075")
+					(reference "#PWR074")
 					(unit 1)
 				)
 			)
@@ -5124,8 +5135,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "5c95460e-931d-51d9-a9f8-d5bf2dc0f8f9")
-		(property "Reference" "#PWR076"
+		(uuid "ba19958f-349e-548c-8121-224779678be1")
+		(property "Reference" "#PWR075"
 			(at 27.94 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -5180,12 +5191,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "d68b878f-1003-5bed-af07-3fac9d57cd54")
+			(uuid "f29d369c-aa72-51de-9052-952e4f21cd8e")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR076")
+					(reference "#PWR075")
 					(unit 1)
 				)
 			)
@@ -5212,8 +5223,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "771de19c-a36a-5379-9803-ff79ab36f7ff")
-		(property "Reference" "#PWR077"
+		(uuid "5c95460e-931d-51d9-a9f8-d5bf2dc0f8f9")
+		(property "Reference" "#PWR076"
 			(at 27.94 72.39 0)
 			(hide yes)
 			(show_name no)
@@ -5268,12 +5279,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "6bf739a0-f3e5-5d4c-b588-529ed1b000c2")
+			(uuid "d68b878f-1003-5bed-af07-3fac9d57cd54")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR077")
+					(reference "#PWR076")
 					(unit 1)
 				)
 			)
@@ -5425,8 +5436,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "9ffb549c-4806-5336-b921-7ce5f3577560")
-		(property "Reference" "#PWR078"
+		(uuid "771de19c-a36a-5379-9803-ff79ab36f7ff")
+		(property "Reference" "#PWR077"
 			(at 142.24 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -5481,12 +5492,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "66c30e8d-0f63-5ac6-8514-be21b74feed4")
+			(uuid "6bf739a0-f3e5-5d4c-b588-529ed1b000c2")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR078")
+					(reference "#PWR077")
 					(unit 1)
 				)
 			)
@@ -5513,8 +5524,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "2790add7-b6b8-5707-8ff9-996a654b6b44")
-		(property "Reference" "#PWR079"
+		(uuid "9ffb549c-4806-5336-b921-7ce5f3577560")
+		(property "Reference" "#PWR078"
 			(at 142.24 72.39 0)
 			(hide yes)
 			(show_name no)
@@ -5569,12 +5580,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "95d05571-e45c-5b62-a9a8-0cc713602140")
+			(uuid "66c30e8d-0f63-5ac6-8514-be21b74feed4")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR079")
+					(reference "#PWR078")
 					(unit 1)
 				)
 			)
@@ -5768,8 +5779,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "10b2baf8-c07e-5765-86ee-567b23a7651f")
-		(property "Reference" "#PWR080"
+		(uuid "2790add7-b6b8-5707-8ff9-996a654b6b44")
+		(property "Reference" "#PWR079"
 			(at 330.2 48.26 0)
 			(hide yes)
 			(show_name no)
@@ -5824,12 +5835,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "23507dd8-de56-554d-832b-3af867fcd244")
+			(uuid "95d05571-e45c-5b62-a9a8-0cc713602140")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR080")
+					(reference "#PWR079")
 					(unit 1)
 				)
 			)
@@ -5890,8 +5901,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "da1616b1-50b6-57c1-a5df-a658ffa93bd8")
-		(property "Reference" "#PWR081"
+		(uuid "10b2baf8-c07e-5765-86ee-567b23a7651f")
+		(property "Reference" "#PWR080"
 			(at 332.74 81.28 0)
 			(hide yes)
 			(show_name no)
@@ -5946,12 +5957,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "15bfc057-87be-56b1-a02d-106d496acca1")
+			(uuid "23507dd8-de56-554d-832b-3af867fcd244")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR081")
+					(reference "#PWR080")
 					(unit 1)
 				)
 			)
@@ -6023,8 +6034,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "a4f745ed-20e2-5af3-af2f-714305be2b00")
-		(property "Reference" "#PWR082"
+		(uuid "da1616b1-50b6-57c1-a5df-a658ffa93bd8")
+		(property "Reference" "#PWR081"
 			(at 317.5 71.12 90)
 			(hide yes)
 			(show_name no)
@@ -6080,12 +6091,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "219d2dec-d799-5a46-a575-62b16431b323")
+			(uuid "15bfc057-87be-56b1-a02d-106d496acca1")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR082")
+					(reference "#PWR081")
 					(unit 1)
 				)
 			)
@@ -6124,8 +6135,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "423b336f-7e4c-5e04-a82e-8cf852df7263")
-		(property "Reference" "#PWR083"
+		(uuid "a4f745ed-20e2-5af3-af2f-714305be2b00")
+		(property "Reference" "#PWR082"
 			(at 335.28 48.26 0)
 			(hide yes)
 			(show_name no)
@@ -6180,12 +6191,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "4659dd71-02d1-5af2-b083-a148481a2c7c")
+			(uuid "219d2dec-d799-5a46-a575-62b16431b323")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR083")
+					(reference "#PWR082")
 					(unit 1)
 				)
 			)
@@ -6345,8 +6356,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "2550e30e-a230-53d3-afab-249b26169a6b")
-		(property "Reference" "#PWR084"
+		(uuid "423b336f-7e4c-5e04-a82e-8cf852df7263")
+		(property "Reference" "#PWR083"
 			(at 284.48 50.8 0)
 			(hide yes)
 			(show_name no)
@@ -6401,12 +6412,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "63457e3b-7e70-5c87-b27d-bd4f60e69d8a")
+			(uuid "4659dd71-02d1-5af2-b083-a148481a2c7c")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR084")
+					(reference "#PWR083")
 					(unit 1)
 				)
 			)
@@ -6569,8 +6580,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "09e24b56-1e19-5f84-8792-5ff46a9d19b3")
-		(property "Reference" "#PWR085"
+		(uuid "2550e30e-a230-53d3-afab-249b26169a6b")
+		(property "Reference" "#PWR084"
 			(at 365.76 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -6625,12 +6636,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "0d79d406-b7b7-5b1c-88a6-c0c7cc419d32")
+			(uuid "63457e3b-7e70-5c87-b27d-bd4f60e69d8a")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR085")
+					(reference "#PWR084")
 					(unit 1)
 				)
 			)
@@ -6657,8 +6668,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "7bd517f8-8578-5189-acbb-f6200e76a168")
-		(property "Reference" "#PWR086"
+		(uuid "09e24b56-1e19-5f84-8792-5ff46a9d19b3")
+		(property "Reference" "#PWR085"
 			(at 365.76 72.39 0)
 			(hide yes)
 			(show_name no)
@@ -6713,12 +6724,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "61506b66-775c-5c81-b37a-2b5766b8c7ce")
+			(uuid "0d79d406-b7b7-5b1c-88a6-c0c7cc419d32")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR086")
+					(reference "#PWR085")
 					(unit 1)
 				)
 			)
@@ -6870,8 +6881,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "8343bc04-1a9c-595b-aaa4-c02afd6aa76f")
-		(property "Reference" "#PWR087"
+		(uuid "7bd517f8-8578-5189-acbb-f6200e76a168")
+		(property "Reference" "#PWR086"
 			(at 375.92 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -6926,12 +6937,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "af825b9b-6804-5635-a018-1b5000158894")
+			(uuid "61506b66-775c-5c81-b37a-2b5766b8c7ce")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR087")
+					(reference "#PWR086")
 					(unit 1)
 				)
 			)
@@ -6958,8 +6969,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "cf6308d9-0167-58e2-8565-9cc4cdc7fc13")
-		(property "Reference" "#PWR088"
+		(uuid "8343bc04-1a9c-595b-aaa4-c02afd6aa76f")
+		(property "Reference" "#PWR087"
 			(at 375.92 72.39 0)
 			(hide yes)
 			(show_name no)
@@ -7014,12 +7025,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "0502486f-725b-5d75-a998-7b8dc0c98401")
+			(uuid "af825b9b-6804-5635-a018-1b5000158894")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR088")
+					(reference "#PWR087")
 					(unit 1)
 				)
 			)
@@ -7171,8 +7182,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "20c070ed-344d-5a3f-9133-19dc96192a2d")
-		(property "Reference" "#PWR089"
+		(uuid "cf6308d9-0167-58e2-8565-9cc4cdc7fc13")
+		(property "Reference" "#PWR088"
 			(at 386.08 59.69 0)
 			(hide yes)
 			(show_name no)
@@ -7227,12 +7238,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "8bb1a7f9-9c6e-58f7-9660-b15913e19fcf")
+			(uuid "0502486f-725b-5d75-a998-7b8dc0c98401")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR089")
+					(reference "#PWR088")
 					(unit 1)
 				)
 			)
@@ -7259,8 +7270,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "2ddfe045-8d6b-5d2c-8527-d5ef442238c9")
-		(property "Reference" "#PWR090"
+		(uuid "20c070ed-344d-5a3f-9133-19dc96192a2d")
+		(property "Reference" "#PWR089"
 			(at 386.08 72.39 0)
 			(hide yes)
 			(show_name no)
@@ -7315,12 +7326,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "8ea78d2e-6a90-55c2-ac98-563dd48de425")
+			(uuid "8bb1a7f9-9c6e-58f7-9660-b15913e19fcf")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR090")
+					(reference "#PWR089")
 					(unit 1)
 				)
 			)
@@ -7601,8 +7612,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "e57b495e-4cc6-53c1-b3ff-adea4271810a")
-		(property "Reference" "#PWR091"
+		(uuid "2ddfe045-8d6b-5d2c-8527-d5ef442238c9")
+		(property "Reference" "#PWR090"
 			(at 335.28 180.34 90)
 			(hide yes)
 			(show_name no)
@@ -7658,12 +7669,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "3fa6afc7-74d7-58cd-bcd9-9e09ee80b401")
+			(uuid "8ea78d2e-6a90-55c2-ac98-563dd48de425")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR091")
+					(reference "#PWR090")
 					(unit 1)
 				)
 			)
@@ -7724,8 +7735,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "381ae17e-2487-5162-9e24-6e76137e8414")
-		(property "Reference" "#PWR092"
+		(uuid "e57b495e-4cc6-53c1-b3ff-adea4271810a")
+		(property "Reference" "#PWR091"
 			(at 335.28 185.42 90)
 			(hide yes)
 			(show_name no)
@@ -7781,12 +7792,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "96d79887-0ad5-50d4-a5ff-a52bbc7201b4")
+			(uuid "3fa6afc7-74d7-58cd-bcd9-9e09ee80b401")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR092")
+					(reference "#PWR091")
 					(unit 1)
 				)
 			)
@@ -7915,8 +7926,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "16e0cd91-1bc2-5d08-b6ca-d3827dd7d543")
-		(property "Reference" "#PWR093"
+		(uuid "381ae17e-2487-5162-9e24-6e76137e8414")
+		(property "Reference" "#PWR092"
 			(at 335.28 193.04 90)
 			(hide yes)
 			(show_name no)
@@ -7972,12 +7983,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "d56003d6-a7e5-5a52-9ece-15c8909cc4be")
+			(uuid "96d79887-0ad5-50d4-a5ff-a52bbc7201b4")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR093")
+					(reference "#PWR092")
 					(unit 1)
 				)
 			)
@@ -8004,8 +8015,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "fc7dd207-e091-5485-89ed-b730621a260b")
-		(property "Reference" "#PWR094"
+		(uuid "16e0cd91-1bc2-5d08-b6ca-d3827dd7d543")
+		(property "Reference" "#PWR093"
 			(at 383.54 195.58 90)
 			(hide yes)
 			(show_name no)
@@ -8061,12 +8072,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "0b1dad43-fb52-5001-9dc0-e837f9dd235b")
+			(uuid "d56003d6-a7e5-5a52-9ece-15c8909cc4be")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR094")
+					(reference "#PWR093")
 					(unit 1)
 				)
 			)
@@ -8218,8 +8229,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "61c24380-4f40-58cf-96dc-deb47d1edebe")
-		(property "Reference" "#PWR095"
+		(uuid "fc7dd207-e091-5485-89ed-b730621a260b")
+		(property "Reference" "#PWR094"
 			(at 269.24 146.05 0)
 			(hide yes)
 			(show_name no)
@@ -8274,12 +8285,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "9e7fe8c8-e107-56fe-999b-4021307eddf1")
+			(uuid "0b1dad43-fb52-5001-9dc0-e837f9dd235b")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR095")
+					(reference "#PWR094")
 					(unit 1)
 				)
 			)
@@ -8465,8 +8476,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "4d94db9e-125a-5a08-b570-0474259fe42f")
-		(property "Reference" "#PWR096"
+		(uuid "61c24380-4f40-58cf-96dc-deb47d1edebe")
+		(property "Reference" "#PWR095"
 			(at 279.4 146.05 0)
 			(hide yes)
 			(show_name no)
@@ -8521,12 +8532,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "8539a375-ae61-55c8-8edc-1fb5d8ba0688")
+			(uuid "9e7fe8c8-e107-56fe-999b-4021307eddf1")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR096")
+					(reference "#PWR095")
 					(unit 1)
 				)
 			)
@@ -8712,8 +8723,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "77f600ba-9792-58c7-b8c3-6bd55a7e0b81")
-		(property "Reference" "#PWR097"
+		(uuid "4d94db9e-125a-5a08-b570-0474259fe42f")
+		(property "Reference" "#PWR096"
 			(at 289.56 146.05 0)
 			(hide yes)
 			(show_name no)
@@ -8768,12 +8779,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "95317ea9-495e-5cc8-b62d-ed08358c332a")
+			(uuid "8539a375-ae61-55c8-8edc-1fb5d8ba0688")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR097")
+					(reference "#PWR096")
 					(unit 1)
 				)
 			)
@@ -8959,8 +8970,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "d3fba87d-44de-5ed3-ab0d-ae27309411b9")
-		(property "Reference" "#PWR098"
+		(uuid "77f600ba-9792-58c7-b8c3-6bd55a7e0b81")
+		(property "Reference" "#PWR097"
 			(at 299.72 146.05 0)
 			(hide yes)
 			(show_name no)
@@ -9015,12 +9026,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "d5eba56a-fd68-5309-be96-68577bbbca14")
+			(uuid "95317ea9-495e-5cc8-b62d-ed08358c332a")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR098")
+					(reference "#PWR097")
 					(unit 1)
 				)
 			)
@@ -9206,8 +9217,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "07eebcee-e615-5ecf-bd83-1f4d333f8fec")
-		(property "Reference" "#PWR099"
+		(uuid "d3fba87d-44de-5ed3-ab0d-ae27309411b9")
+		(property "Reference" "#PWR098"
 			(at 269.24 209.55 0)
 			(hide yes)
 			(show_name no)
@@ -9262,12 +9273,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "2d80b8c7-a83b-567e-9660-f578221db75c")
+			(uuid "d5eba56a-fd68-5309-be96-68577bbbca14")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR099")
+					(reference "#PWR098")
 					(unit 1)
 				)
 			)
@@ -9294,8 +9305,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "a58415c7-0a37-5334-b5dc-462a9d59167a")
-		(property "Reference" "#PWR100"
+		(uuid "07eebcee-e615-5ecf-bd83-1f4d333f8fec")
+		(property "Reference" "#PWR099"
 			(at 269.24 222.25 0)
 			(hide yes)
 			(show_name no)
@@ -9350,12 +9361,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "3b0e389c-272b-5330-98c4-b976f14ab9cd")
+			(uuid "2d80b8c7-a83b-567e-9660-f578221db75c")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR100")
+					(reference "#PWR099")
 					(unit 1)
 				)
 			)
@@ -9507,8 +9518,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "47d6adeb-be01-5404-946e-6fc772c8f5c0")
-		(property "Reference" "#PWR101"
+		(uuid "a58415c7-0a37-5334-b5dc-462a9d59167a")
+		(property "Reference" "#PWR100"
 			(at 279.4 209.55 0)
 			(hide yes)
 			(show_name no)
@@ -9563,12 +9574,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "d9c48208-3e65-524a-a9c1-7bcf93dba08c")
+			(uuid "3b0e389c-272b-5330-98c4-b976f14ab9cd")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR101")
+					(reference "#PWR100")
 					(unit 1)
 				)
 			)
@@ -9595,8 +9606,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "f213bc53-9157-5144-985e-f9dbfdeae595")
-		(property "Reference" "#PWR102"
+		(uuid "47d6adeb-be01-5404-946e-6fc772c8f5c0")
+		(property "Reference" "#PWR101"
 			(at 279.4 222.25 0)
 			(hide yes)
 			(show_name no)
@@ -9651,12 +9662,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "1da13a1c-df58-5b6b-90fa-2e0b2ddeab24")
+			(uuid "d9c48208-3e65-524a-a9c1-7bcf93dba08c")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/bf999377-5e8d-5505-917e-f43aa91cc6e7"
-					(reference "#PWR102")
+					(reference "#PWR101")
 					(unit 1)
 				)
 			)

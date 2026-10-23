@@ -5,7 +5,7 @@ check_netlist.py. Net names follow hardware/defuse32/SPEC.md. Pin numbers are sy
 numbers == footprint pad numbers.
 
 Rev 2 (SPEC "Rev 2 carrier (2026-10-23)"): SMD, 100 x 70 mm, ESP32-WROOM-32E soldered at the
-left edge, USB-C + CH340C programming port, AMS1117 (3V3) + AP2112K (3V3P), 2x MCP23017-E/SO,
+left edge, USB-C + CH340C programming port, 2x AMS1117-3.3 (3V3, 3V3P), 2x MCP23017-E/SO,
 LIS3DH, push-push microSD, one IDC box header per plate. The ESP32 GPIO map, the MCP23017
 allocation (rev 1b), the WS2812 chain and the I2C addresses are unchanged from rev 1b.
 """
@@ -42,7 +42,6 @@ LCSC = {
     "C22u": ("C45783", "CL21A226MAQNNNE", "Samsung", "Basic"),
     "C220u": ("C72494", "RVT1A221M0605", "ROQANG", "Extended"),
     "AMS1117": ("C6186", "AMS1117-3.3", "Advanced Monolithic Systems", "Basic"),
-    "AP2112K": ("C51118", "AP2112K-3.3TRG1", "Diodes Inc", "Extended"),
     "MMBT3904": ("C20526", "MMBT3904", "Changjiang (CJ)", "Basic"),
     "1N4148WS": ("C2128", "1N4148WS", "Changjiang (CJ)", "Basic"),
     "TS1187A": ("C318884", "TS-1187A-B-A-B", "XKB Connection", "Basic"),
@@ -106,7 +105,7 @@ def C(ref, value, a, b, sheet, sch, rot=0, note=None):
 # ================================================================== sheet "power": USB-C, regulators, CH340C
 # USB-C receptacle (16P). VBUS/GND pins are stacked in the symbol (hidden duplicates share the stub).
 part("J_USB", "Connector", "USB_C_Receptacle_USB2.0_16P", "USB-C",
-     "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+     "defuse32:USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge",     # official footprint, edge-mount silkscreen
      {"A1": "GND", "A12": "GND", "B1": "GND", "B12": "GND",
       "A4": "VBUS", "A9": "VBUS", "B4": "VBUS", "B9": "VBUS",
       "A5": "CC1", "B5": "CC2", "A6": "USB_DP", "B6": "USB_DP", "A7": "USB_DM", "B7": "USB_DM",
@@ -127,11 +126,12 @@ part("U6", "Regulator_Linear", "AMS1117-3.3", "AMS1117-3.3", "Package_TO_SOT_SMD
      {"1": "GND", "2": "3V3", "3": "5V"}, "power", (210.82, 50.8), lcsc="AMS1117")
 C("C7", "10uF", "5V", "GND", "power", (180.34, 76.2), note="U6 in")
 C("C8", "22uF", "3V3", "GND", "power", (241.3, 76.2), note="U6 out")
-# 3V3P (plates, expanders, LIS3DH, microSD): AP2112K-3.3, SOT-23-5, EN tied to VIN
-part("U5", "Regulator_Linear", "AP2112K-3.3", "AP2112K-3.3", "Package_TO_SOT_SMD:SOT-23-5",
-     {"1": "5V", "3": "5V", "2": "GND", "4": NC, "5": "3V3P"}, "power", (210.82, 106.68), lcsc="AP2112K")
-C("C6", "1uF", "5V", "GND", "power", (180.34, 116.84), note="U5 in")
-C("C2", "10uF", "3V3P", "GND", "power", (241.3, 116.84), note="U5 out")
+# 3V3P (plates, expanders, LIS3DH, microSD): a second AMS1117-3.3 (SOT-223, JLCPCB Basic).
+# AMS1117 datasheet: 10 uF on the input, 22 uF minimum on the output for stability.
+part("U5", "Regulator_Linear", "AMS1117-3.3", "AMS1117-3.3", "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+     {"1": "GND", "2": "3V3P", "3": "5V"}, "power", (210.82, 106.68), lcsc="AMS1117")
+C("C6", "10uF", "5V", "GND", "power", (180.34, 116.84), note="U5 in")
+C("C2", "22uF", "3V3P", "GND", "power", (241.3, 116.84), note="U5 out")
 C("C19", "100nF", "3V3P", "GND", "power", (254.0, 116.84), note="U5 out")
 
 # CH340C at 3.3 V (V3 tied to VCC), no crystal. TXD -> ESP RXD0 (GPIO3), RXD <- ESP TXD0 (GPIO1).
@@ -317,7 +317,8 @@ BLOCKS = {
         ]),
         (165.1, 15.24, 290.83, 134.62, "REGULATORS", [
             ("U6 AMS1117-3.3: 5V -> 3V3 (ESP32 module, CH340C).", 167.64, 22.86),
-            ("U5 AP2112K-3.3 (600 mA): 5V -> 3V3P (plates, U2/U3, LIS3DH, microSD, pull-ups).", 167.64, 26.67),
+            ("U5 AMS1117-3.3 (1 A): 5V -> 3V3P (plates, U2/U3, LIS3DH, microSD, pull-ups).", 167.64, 26.67),
+            ("Each AMS1117: 10 uF in, 22 uF out (datasheet minimum for stability).", 167.64, 30.48),
             ("10 uF + 100 nF at the module 3V3 pin: C9/C10 (ESP32 sheet).", 167.64, 129.54),
         ]),
         (295.91, 15.24, 405.13, 63.5, "POWER FLAGS (ERC)", []),
@@ -360,7 +361,8 @@ BLOCKS = {
         (255.27, 121.92, 405.13, 245.11, "microSD (push-push, SPI mode)", [
             ("VSPI shared with the probe plate: SCK GPIO18, MOSI GPIO23, MISO GPIO19, SD_CS GPIO2.", 257.81, 229.87),
             ("DAT0-2 10k pull-ups to 3V3P. Card detect: DET_A GND, DET_B -> SD_DET (U2 GPB5), R19 pull-up:", 257.81, 233.68),
-            ("low = card in (switch closes on insertion; CONFIG_D32_SD_DET_ACTIVE_HIGH=n).", 257.81, 237.49),
+            ("low = card present: the DM3 detect switch is normally open and closes on insertion (Hirose DM3", 257.81, 237.49),
+            ("catalog). Firmware: CONFIG_D32_SD_DET_ACTIVE_HIGH=n.", 257.81, 241.3),
         ]),
     ],
     "conn": [
@@ -377,50 +379,66 @@ BLOCKS = {
 }
 PWR_FLAGS = ("power", [("VBUS", 300.99, 40.64), ("5V", 332.74, 40.64), ("GND", 364.49, 40.64)])
 
-# ------------------------------------------------------------------ PCB (rough placement only)
+# ------------------------------------------------------------------ PCB placement (rev 2)
 BOARD_W, BOARD_H = 100.0, 70.0
 HOLE_INSET = 4.0
-# (x, y, rotation) in board coordinates: origin = board top-left corner, x right, y down (mm).
-# Rough, after the approved preview: module left (antenna end beyond x = 0), expanders in the
-# middle, CH340C + USB-C bottom right, regulators near the USB path, microSD bottom right.
-# The placement task moves everything; only U1 (antenna region outside the edge) and the
-# holes are meant to stay.
+# (x, y, rotation) in board coordinates: origin = board top-left corner, x right, y down (mm),
+# rotation in KiCad degrees (counter-clockwise). Follows the approved preview (SPEC "Rev 2
+# carrier", positions within 5 mm). The placement was done for the routing task (2026-10-23);
+# the routed board is the reference from now on (gen_pcb.py refuses to overwrite it).
+#   - U1 local y = -6.56 (antenna-region boundary) on the board edge x = 0: the antenna and its
+#     keep-out zone are outside the outline.
+#   - IDC box headers: key notch toward the nearest board edge (top row 270, bottom row 90,
+#     J6 180), so pin 1 / the odd row is on the edge side.
+#   - Two changes against the preview's labels (same positions): BOOT (SW2) is the upper button,
+#     next to module pin 25 (IO0), EN (SW1) the lower one, near pin 3; U3 (wires, J4 + J1) takes
+#     the left expander position and U2 (keypad J3, Simon J6, microSD detect) the right one.
 PCB = {
-    "U1": (6.56, 35.0, 90),          # local y = -6.56 (antenna-region boundary) on the board edge x = 0
+    "U1": (6.56, 35.0, 90),
     "H1": (4, 4, 0), "H2": (96, 4, 0), "H3": (4, 66, 0), "H4": (96, 66, 0),
-    "J1": (20, 7, 90), "J2": (40, 7, 90), "J3": (63, 7, 90),
-    "J4": (20, 65, 90), "J5": (52, 65, 90),
-    "J6": (94, 12, 0),
-    "J_USB": (95, 56, 90), "J_SD": (78, 58, 0),
-    "J_KEY": (88, 30, 0), "J_SERVO": (88, 38, 0), "J_SPARE": (84, 14, 0),
-    "U2": (38, 32, 0), "U3": (54, 32, 0),
-    "U8": (28, 50, 0), "U4": (44, 50, 0), "Q1": (50, 50, 0),
-    "U7": (75, 48, 0), "U9": (86, 50, 0), "F1": (86, 44, 0), "C1": (72, 36, 0),
-    "U6": (70, 26, 0), "U5": (78, 26, 0),
-    "SW1": (24, 26, 0), "SW2": (24, 44, 0),
-    "Q2": (66, 50, 0), "Q3": (66, 54, 0),
+    # plate connectors and edge parts
+    # (the footprint's pin-1 marker sits 4.7 mm out on the notch side: rows at 4.9 mm from the edge)
+    "J1": (23.24, 4.9, 270), "J2": (49.8, 4.9, 270), "J3": (81.8, 4.9, 270),
+    "J4": (13.1, 65.1, 90), "J5": (49.1, 65.1, 90),
+    "J6": (95.1, 38.0, 180),
+    "J_USB": (96.35, 49.5, 90),           # receptacle front face on the right edge (x = 100)
+    "J_SD": (80.0, 61.2, 0),              # card slot on the bottom edge
+    "J_KEY": (3.8, 13.3, 0), "J_SERVO": (3.8, 51.5, 0), "J_SPARE": (31.3, 50.3, 90),
+    # module: decoupling at pin 2 (3V3), BOOT/EN buttons, EN RC, IO0 pull-up
+    "C10": (2.0, 46.0, 180), "C9": (2.0, 48.1, 180),
+    "SW2": (24.4, 29.6, 0), "SW1": (24.4, 40.4, 0),
+    "R11": (29.6, 29.0, 90), "R8": (31.4, 29.0, 90),
+    "C11": (29.6, 40.4, 270), "R10": (31.4, 40.4, 90),
+    # pull-ups / pull-down on the module's lower pin row
+    "R6": (8.0, 52.5, 90), "R9": (9.9, 52.5, 90), "R5": (11.8, 52.5, 90), "R4": (13.7, 52.5, 90),
+    # expanders (SOIC-28W, long axis horizontal) and their 100 nF at VDD/VSS (pins 9/10)
+    "U3": (39.0, 21.0, 90), "C4": (41.54, 28.2, 0),
+    "U2": (61.0, 21.0, 90), "C3": (63.54, 28.2, 0),
+    "R3": (34.6, 34.6, 270), "R2": (36.4, 38.5, 90),      # I2C pull-ups next to the LIS3DH SCL/SDA pads
+    # LIS3DH
+    "U8": (38.0, 34.5, 0), "C14": (39.28, 31.5, 0), "C16": (36.0, 31.5, 180), "C15": (41.85, 33.0, 270),
+    "R20": (38.8, 37.7, 180),
+    # WS2812 buffer, buzzer driver
+    "U4": (47.5, 32.5, 0), "C5": (50.6, 32.0, 270), "R1": (47.6, 35.6, 180),
+    "Q1": (56.2, 33.0, 0), "R7": (53.3, 32.6, 90), "D1": (59.6, 33.0, 90),
+    # regulators (2 x AMS1117-3.3, input pins toward the USB side), bulk
+    "U6": (66.0, 44.0, 180), "C7": (71.8, 42.6, 270), "C8": (59.5, 44.0, 180),
+    "U5": (66.0, 52.0, 180), "C6": (71.8, 50.5, 270), "C2": (59.5, 52.0, 180), "C19": (59.8, 54.4, 180),
+    "C1": (52.0, 53.0, 0),
+    # USB-C, ESD, fuse, CC resistors (USB area hand-routed in route_prep.PREROUTE)
+    "U9": (87.8, 49.5, 0), "F1": (90.0, 59.0, 270),
+    "R15": (89.9, 45.2, 90), "R14": (90.2, 54.0, 270),
+    # CH340C and auto-reset
+    "U7": (82.0, 43.0, 90), "C12": (75.4, 41.6, 270), "C13": (80.6, 48.3, 270),
+    "Q2": (79.5, 35.5, 0), "R12": (79.5, 31.8, 0), "Q3": (85.0, 35.5, 0), "R13": (85.0, 31.8, 0),
+    # microSD supply and pull-ups
+    "C17": (78.4, 51.3, 180), "C18": (75.0, 51.2, 180),
+    "R16": (63.0, 57.15, 90), "R17": (64.9, 57.15, 90), "R18": (66.8, 57.15, 90), "R19": (68.7, 57.15, 90),
 }
-# passives without a fixed position go in a small grid next to this anchor part
-PCB_NEAR = {
-    "C9": "U1", "C10": "U1", "R10": "SW1", "C11": "SW1", "R11": "SW2",
-    "R2": "U2", "R3": "U2", "R4": "U2", "R5": "U3", "R9": "U3", "R6": "U3", "R8": "U8",
-    "C3": "U2", "C4": "U3", "C5": "U4", "R1": "U4", "R7": "Q1", "D1": "Q1",
-    "R20": "U8", "C14": "U8", "C15": "U8", "C16": "U8",
-    "R16": "J_SD", "R17": "J_SD", "R18": "J_SD", "R19": "J_SD", "C17": "J_SD", "C18": "J_SD",
-    "R14": "J_USB", "R15": "J_USB", "C12": "U7", "C13": "U7", "R12": "Q2", "R13": "Q3",
-    "C7": "U6", "C8": "U6", "C6": "U5", "C2": "U5", "C19": "U5",
-}
-_counts = {}
 for p in PARTS:
-    s = p["spec"]
-    if s in PCB:
-        p["pcb"] = PCB[s]
-    else:
-        a = PCB_NEAR[s]
-        k = _counts.get(a, 0)
-        _counts[a] = k + 1
-        ax, ay, _ = PCB[a]
-        p["pcb"] = (ax - 4 + 2.5 * (k % 4), ay + 6 + 2.0 * (k // 4), 0)
+    p["pcb"] = PCB[p["spec"]]
+_extra = set(PCB) - {p["spec"] for p in PARTS}
+assert not _extra, _extra
 
 # ------------------------------------------------------------------ net classes (rev 2)
 POWER_NETS = ["5V", "3V3", "3V3P", "GND", "VBUS"]

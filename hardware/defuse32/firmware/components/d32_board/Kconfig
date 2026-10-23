@@ -17,10 +17,12 @@ menu "Defuse32 board"
 
     config D32_SD_DET_ACTIVE_HIGH
         bool "microSD DET is high when a card is inserted"
-        default y
+        default n
         help
-            Adafruit 4682 style breakouts tie DET to GND without a card and pull
-            it up with a card inserted.
+            Carrier rev 2 (Hirose DM3AT socket): the detect switch is normally
+            open and closes to GND with a card, and SD_DET has a pull-up, so
+            low means card present (default n). Turn on only for rev 1b with an
+            Adafruit 4682 style breakout, whose DET is high with a card.
 
     config D32_SH1106_COL_OFFSET
         int "SH1106 column offset"

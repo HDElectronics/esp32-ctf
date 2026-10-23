@@ -5,17 +5,17 @@
       "Application": "Pcbnew",
       "Version": "10.0.7-10.0.7~ubuntu26.04.1"
     },
-    "CreationDate": "2026-10-22T17:42:25+04:00"
+    "CreationDate": "2026-10-23T03:57:35+04:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "defuse32-carrier",
       "GUID": "64656675-7365-4333-922d-636172726965",
-      "Revision": "1b"
+      "Revision": "2"
     },
     "Size": {
-      "X": 190.1,
-      "Y": 140.1
+      "X": 100.1,
+      "Y": 70.1
     },
     "LayerNumber": 2,
     "BoardThickness": 1.6,
@@ -27,9 +27,9 @@
       "PadToPad": 0.2,
       "PadToTrack": 0.2,
       "TrackToTrack": 0.2,
-      "MinLineWidth": 0.25,
-      "TrackToRegion": 0.4,
-      "RegionToRegion": 0.4
+      "MinLineWidth": 0.2,
+      "TrackToRegion": 0.25,
+      "RegionToRegion": 0.25
     }
   ],
   "FilesAttributes": [

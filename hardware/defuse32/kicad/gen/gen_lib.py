@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """Generate the project-local libraries defuse32.kicad_sym and defuse32.pretty/ (rev 2).
 
-Rev 2 uses official KiCad symbols and footprints everywhere except one symbol and one footprint.
+Rev 2 uses official KiCad symbols and footprints everywhere except one symbol and two footprints.
 
 Symbol:
   CH340C_3V3  copy of Interface_USB:CH340C with pin 4 (V3) typed power_in instead of power_out.
               At VCC = 3.3 V the datasheet ties V3 to VCC, so V3 is an input there; with the
               official pin type ERC reports two power outputs (V3 and the AMS1117 output) on 3V3.
 
-Footprint:
+Footprints:
   ESP32-WROOM-32E_JLC  copy of RF_Module:ESP32-WROOM-32E with the 12 thermal vias in the GND pad
               drilled 0.3 mm instead of 0.2 mm (0.6 mm pad, 0.15 mm ring): JLCPCB's 2-layer minimum
               hole is 0.3 mm. Pads, antenna keep-out zone, outline and 3D model are unchanged.
+  USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge  copy of Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12
+              for a receptacle whose front face sits on the board edge: the silkscreen line across the
+              front (0.25 mm in front of the face) is removed and the two side lines end 0.35 mm behind
+              the face, so no silkscreen is clipped by the edge (DRC silk_edge_clearance). Pads,
+              courtyard, fab outline and 3D model are unchanged.
 
 (The rev 1b DevKitC/GY-521/microSD-breakout symbols and footprints are in git, tag carrier-rev1b.)
 
@@ -19,7 +24,7 @@ Run from anywhere:  python3 kicad/gen/gen_lib.py
 """
 import os
 
-from sexp import Sym as S, dump, find, find1
+from sexp import Sym as S, dump, find, find1, parse
 from symlib import flat
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -66,7 +71,39 @@ def write_fplib():
         f.write(out)
 
 
+USBC = "USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+
+
+def write_usbc():
+    src = open("/usr/share/kicad/footprints/Connector_USB.pretty/%s.kicad_mod" % USBC).read()
+    root = parse(src)
+    keep, cut, short = [], 0, 0
+    for it in root:
+        if isinstance(it, list) and it and it[0] == S("fp_line") and find1(it, "layer")[1] == "F.SilkS":
+            st, en = find1(it, "start"), find1(it, "end")
+            if float(st[2]) == 3.9 and float(en[2]) == 3.9:   # front line
+                cut += 1
+                continue
+            for pt in (st, en):
+                if float(pt[2]) == 3.9:                  # side lines: stop 0.35 mm behind the face (3.65)
+                    pt[2] = 3.3
+                    short += 1
+        keep.append(it)
+    if (cut, short) != (1, 2):
+        raise SystemExit("unexpected %s silkscreen (%d front, %d side lines)" % (USBC, cut, short))
+    keep[1] = USBC + "_Edge"
+    for it in keep:
+        if isinstance(it, list) and it and it[0] == S("descr"):
+            it[1] = ("Connector_USB:%s, front face on the board edge: front silkscreen line removed, side lines "
+                     "shortened (no silkscreen clipped by the edge). " % USBC) + it[1]
+        if isinstance(it, list) and it and it[0] == S("property") and it[1] == "Value":
+            it[2] = USBC + "_Edge"
+    with open(os.path.join(KDIR, "defuse32.pretty", USBC + "_Edge.kicad_mod"), "w") as f:
+        f.write(dump(keep) + "\n")
+
+
 if __name__ == "__main__":
     write_symlib()
     write_fplib()
-    print("wrote defuse32.kicad_sym and defuse32.pretty/ESP32-WROOM-32E_JLC.kicad_mod")
+    write_usbc()
+    print("wrote defuse32.kicad_sym and defuse32.pretty/ESP32-WROOM-32E_JLC.kicad_mod, %s_Edge.kicad_mod" % USBC)

@@ -162,9 +162,16 @@ def check_schematic(got, names, comps):
     # 5. rails
     expect(got, "U6", "3", "5V", "AMS1117 in")
     expect(got, "U6", "2", "3V3", "AMS1117 out")
-    expect(got, "U5", "1", "5V", "AP2112K in")
-    expect(got, "U5", "3", "5V", "AP2112K EN")
-    expect(got, "U5", "5", "3V3P", "AP2112K out")
+    expect(got, "U6", "1", "GND", "AMS1117 GND")
+    expect(got, "U5", "3", "5V", "AMS1117 (3V3P) in")
+    expect(got, "U5", "2", "3V3P", "AMS1117 (3V3P) out")
+    expect(got, "U5", "1", "GND", "AMS1117 (3V3P) GND")
+    # AMS1117 datasheet: 10 uF in, 22 uF minimum out
+    for ref, a, val in (("C7", "5V", "10uF"), ("C8", "3V3", "22uF"), ("C6", "5V", "10uF"), ("C2", "3V3P", "22uF")):
+        expect(got, ref, "1", a, "AMS1117 capacitor")
+        v = [p["value"] for p in D.PARTS if p["ref"] == ref]
+        if v != [val]:
+            bad("%s value %s, expected %s (AMS1117 datasheet)" % (ref, v, val))
     on3v3 = sorted({r for (r, _), v in got.items() if v == "3V3"})
     allowed = {"U1", "U6", "U7", "C8", "C9", "C10", "C12", "C13", "R10", "R11"}
     if set(on3v3) - allowed:

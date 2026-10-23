@@ -2700,200 +2700,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Regulator_Linear:AP2112K-3.3"
-			(pin_names
-				(offset 0.254)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "U"
-				(at -5.08 5.715 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left)
-				)
-			)
-			(property "Value" "AP2112K-3.3"
-				(at 0 5.715 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left)
-				)
-			)
-			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-5"
-				(at 0 8.255 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" "https://www.diodes.com/assets/Datasheets/AP2112.pdf"
-				(at 0 2.54 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "linear regulator ldo fixed positive"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "SOT?23?5*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "AP2112K-3.3_0_1"
-				(rectangle
-					(start -5.08 4.445)
-					(end 5.08 -5.08)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type background)
-					)
-				)
-			)
-			(symbol "AP2112K-3.3_1_1"
-				(pin power_in line
-					(at -7.62 2.54 0)
-					(length 2.54)
-					(name "VIN"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at 0 -7.62 90)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -7.62 0 0)
-					(length 2.54)
-					(name "EN"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin no_connect line
-					(at 5.08 0 180)
-					(length 2.54)
-					(hide yes)
-					(name "NC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_out line
-					(at 7.62 2.54 180)
-					(length 2.54)
-					(name "VOUT"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "power:+3.3VP"
 			(power global)
 			(pin_numbers
@@ -3770,7 +3576,7 @@
 		)
 		(uuid "68043261-0445-5874-898e-cf59aec8f7a3")
 	)
-	(text "U5 AP2112K-3.3 (600 mA): 5V -> 3V3P (plates, U2/U3, LIS3DH, microSD, pull-ups)."
+	(text "U5 AMS1117-3.3 (1 A): 5V -> 3V3P (plates, U2/U3, LIS3DH, microSD, pull-ups)."
 		(exclude_from_sim no)
 		(at 167.64 26.67 0)
 		(effects
@@ -3779,7 +3585,18 @@
 			)
 			(justify left)
 		)
-		(uuid "a0a79f72-36d2-5e32-be94-aaca55c340c3")
+		(uuid "42682ce6-9254-511b-82b0-964cbe19e218")
+	)
+	(text "Each AMS1117: 10 uF in, 22 uF out (datasheet minimum for stability)."
+		(exclude_from_sim no)
+		(at 167.64 30.48 0)
+		(effects
+			(font
+				(size 1 1)
+			)
+			(justify left)
+		)
+		(uuid "c8fda86e-201a-5d3d-91c0-81c4d368cf27")
 	)
 	(text "10 uF + 100 nF at the module 3V3 pin: C9/C10 (ESP32 sheet)."
 		(exclude_from_sim no)
@@ -4412,7 +4229,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+		(property "Footprint" "defuse32:USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge"
 			(at 49.53 73.66 0)
 			(hide yes)
 			(show_name no)
@@ -7568,7 +7385,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Regulator_Linear:AP2112K-3.3")
+		(lib_id "Regulator_Linear:AMS1117-3.3")
 		(at 210.82 106.68 0)
 		(unit 1)
 		(body_style 1)
@@ -7589,7 +7406,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "AP2112K-3.3"
+		(property "Value" "AMS1117-3.3"
 			(at 214.63 120.65 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7600,8 +7417,8 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-5"
-			(at 210.82 98.425 0)
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-223-3_TabPin2"
+			(at 210.82 101.6 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7611,8 +7428,8 @@
 				)
 			)
 		)
-		(property "Datasheet" "https://www.diodes.com/assets/Datasheets/AP2112.pdf"
-			(at 210.82 104.14 0)
+		(property "Datasheet" "http://www.advanced-monolithic.com/pdf/ds1117.pdf"
+			(at 213.36 113.03 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7622,7 +7439,7 @@
 				)
 			)
 		)
-		(property "Description" "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5"
+		(property "Description" "1A Low Dropout regulator, positive, 3.3V fixed output, SOT-223"
 			(at 210.82 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -7633,7 +7450,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C51118"
+		(property "LCSC" "C6186"
 			(at 210.82 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -7644,7 +7461,7 @@
 				)
 			)
 		)
-		(property "MPN" "AP2112K-3.3TRG1"
+		(property "MPN" "AMS1117-3.3"
 			(at 210.82 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -7655,7 +7472,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Diodes Inc"
+		(property "Manufacturer" "Advanced Monolithic Systems"
 			(at 210.82 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -7666,7 +7483,7 @@
 				)
 			)
 		)
-		(property "JLC" "Extended"
+		(property "JLC" "Basic"
 			(at 210.82 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -7686,105 +7503,10 @@
 		(pin "3"
 			(uuid "ac36b46c-751c-585a-a1ff-1f839c2d710f")
 		)
-		(pin "4"
-			(uuid "cb2f88b4-9406-574b-9e57-ddb87fd3e4af")
-		)
-		(pin "5"
-			(uuid "8a37f2a9-a6ed-5531-aaf9-c15178ddcc1e")
-		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
 					(reference "U5")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(wire
-		(pts
-			(xy 203.2 104.14)
-			(xy 200.66 104.14)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "87164e9a-ab98-5a28-a6f2-595b402aef99")
-	)
-	(symbol
-		(lib_id "power:+5V")
-		(at 200.66 104.14 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board no)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "d038edd3-4671-5e39-adb3-443a2a9c9051")
-		(property "Reference" "#PWR022"
-			(at 200.66 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "5V"
-			(at 195.58 104.14 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 200.66 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 200.66 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 200.66 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "99976be6-5e2f-5da1-a64d-a47a3ea654fb")
-		)
-		(instances
-			(project "defuse32-carrier"
-				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR022")
 					(unit 1)
 				)
 			)
@@ -7811,8 +7533,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "0f8cf5c0-20d0-595e-a6cb-9eb36b2c5cd0")
-		(property "Reference" "#PWR023"
+		(uuid "d038edd3-4671-5e39-adb3-443a2a9c9051")
+		(property "Reference" "#PWR022"
 			(at 210.82 116.84 0)
 			(hide yes)
 			(show_name no)
@@ -7857,6 +7579,95 @@
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
 			(at 210.82 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "99976be6-5e2f-5da1-a64d-a47a3ea654fb")
+		)
+		(instances
+			(project "defuse32-carrier"
+				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
+					(reference "#PWR022")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 218.44 106.68)
+			(xy 220.98 106.68)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d4743bf9-7f56-5584-9ece-4a3fafdc996c")
+	)
+	(symbol
+		(lib_id "power:+3.3VP")
+		(at 220.98 106.68 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board no)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0f8cf5c0-20d0-595e-a6cb-9eb36b2c5cd0")
+		(property "Reference" "#PWR023"
+			(at 220.98 106.68 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "3V3P"
+			(at 226.06 106.68 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 220.98 106.68 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 220.98 106.68 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3VP\""
+			(at 220.98 106.68 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7967,99 +7778,6 @@
 			)
 		)
 	)
-	(no_connect
-		(at 215.9 106.68)
-		(uuid "042590da-c351-5fbc-9dfb-61774ada899c")
-	)
-	(wire
-		(pts
-			(xy 218.44 104.14)
-			(xy 220.98 104.14)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "e1ced4d7-7d41-566c-98de-cc07905a71a4")
-	)
-	(symbol
-		(lib_id "power:+3.3VP")
-		(at 220.98 104.14 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board no)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "0bae187d-68c8-5eba-a555-39dca3a790a4")
-		(property "Reference" "#PWR025"
-			(at 220.98 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "3V3P"
-			(at 226.06 104.14 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 220.98 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 220.98 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+3.3VP\""
-			(at 220.98 104.14 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "6077217e-6555-53b3-928c-4ee7fdffb039")
-		)
-		(instances
-			(project "defuse32-carrier"
-				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR025")
-					(unit 1)
-				)
-			)
-		)
-	)
 	(symbol
 		(lib_id "Device:C")
 		(at 180.34 116.84 0)
@@ -8082,7 +7800,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "1uF"
+		(property "Value" "10uF"
 			(at 182.88 118.11 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8093,7 +7811,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
 			(at 181.3052 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -8126,7 +7844,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C15849"
+		(property "LCSC" "C15850"
 			(at 180.34 116.84 0)
 			(hide yes)
 			(show_name no)
@@ -8137,7 +7855,7 @@
 				)
 			)
 		)
-		(property "MPN" "CL10A105KB8NNNC"
+		(property "MPN" "CL21A106KAYNNNE"
 			(at 180.34 116.84 0)
 			(hide yes)
 			(show_name no)
@@ -8206,8 +7924,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "bb7ba02b-a258-5aaa-893f-fb00b05523f6")
-		(property "Reference" "#PWR026"
+		(uuid "0bae187d-68c8-5eba-a555-39dca3a790a4")
+		(property "Reference" "#PWR025"
 			(at 180.34 110.49 0)
 			(hide yes)
 			(show_name no)
@@ -8262,12 +7980,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "9ca91432-bbd1-5c13-a006-c7c839feac55")
+			(uuid "6077217e-6555-53b3-928c-4ee7fdffb039")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR026")
+					(reference "#PWR025")
 					(unit 1)
 				)
 			)
@@ -8294,8 +8012,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "7fc3a2af-292c-5d4a-9a80-e312635cba6f")
-		(property "Reference" "#PWR027"
+		(uuid "bb7ba02b-a258-5aaa-893f-fb00b05523f6")
+		(property "Reference" "#PWR026"
 			(at 180.34 123.19 0)
 			(hide yes)
 			(show_name no)
@@ -8350,12 +8068,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "462717ce-5efc-53f0-be2c-a97640010ab0")
+			(uuid "9ca91432-bbd1-5c13-a006-c7c839feac55")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR027")
+					(reference "#PWR026")
 					(unit 1)
 				)
 			)
@@ -8383,7 +8101,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10uF"
+		(property "Value" "22uF"
 			(at 243.84 118.11 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8427,7 +8145,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C15850"
+		(property "LCSC" "C45783"
 			(at 241.3 116.84 0)
 			(hide yes)
 			(show_name no)
@@ -8438,7 +8156,7 @@
 				)
 			)
 		)
-		(property "MPN" "CL21A106KAYNNNE"
+		(property "MPN" "CL21A226MAQNNNE"
 			(at 241.3 116.84 0)
 			(hide yes)
 			(show_name no)
@@ -8507,8 +8225,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "21b9dd8c-5ff9-57bb-8281-d46c8bec3b78")
-		(property "Reference" "#PWR028"
+		(uuid "7fc3a2af-292c-5d4a-9a80-e312635cba6f")
+		(property "Reference" "#PWR027"
 			(at 241.3 110.49 0)
 			(hide yes)
 			(show_name no)
@@ -8563,12 +8281,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "73e2483a-38d6-563e-a55c-662b6a2c27b2")
+			(uuid "462717ce-5efc-53f0-be2c-a97640010ab0")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR028")
+					(reference "#PWR027")
 					(unit 1)
 				)
 			)
@@ -8595,8 +8313,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "f5988cc2-f6c2-56b8-9b86-7d58ce9c7ad7")
-		(property "Reference" "#PWR029"
+		(uuid "21b9dd8c-5ff9-57bb-8281-d46c8bec3b78")
+		(property "Reference" "#PWR028"
 			(at 241.3 123.19 0)
 			(hide yes)
 			(show_name no)
@@ -8651,12 +8369,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "579cc340-467f-5818-a0f4-8921f665f491")
+			(uuid "73e2483a-38d6-563e-a55c-662b6a2c27b2")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR029")
+					(reference "#PWR028")
 					(unit 1)
 				)
 			)
@@ -8808,8 +8526,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "219ea924-6d77-5205-b145-031597b2f0db")
-		(property "Reference" "#PWR030"
+		(uuid "f5988cc2-f6c2-56b8-9b86-7d58ce9c7ad7")
+		(property "Reference" "#PWR029"
 			(at 254 110.49 0)
 			(hide yes)
 			(show_name no)
@@ -8864,12 +8582,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "70b60240-366f-5dd5-8edc-84e549a6fb4e")
+			(uuid "579cc340-467f-5818-a0f4-8921f665f491")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR030")
+					(reference "#PWR029")
 					(unit 1)
 				)
 			)
@@ -8896,8 +8614,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "f0d734d6-8d09-5f01-bfac-b8a180463882")
-		(property "Reference" "#PWR031"
+		(uuid "219ea924-6d77-5205-b145-031597b2f0db")
+		(property "Reference" "#PWR030"
 			(at 254 123.19 0)
 			(hide yes)
 			(show_name no)
@@ -8952,12 +8670,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "b1bce785-db1b-505e-806c-ce78b1ce35f6")
+			(uuid "70b60240-366f-5dd5-8edc-84e549a6fb4e")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR031")
+					(reference "#PWR030")
 					(unit 1)
 				)
 			)
@@ -9151,8 +8869,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "f9c787da-c1fc-587b-b403-80408025b5cf")
-		(property "Reference" "#PWR032"
+		(uuid "f0d734d6-8d09-5f01-bfac-b8a180463882")
+		(property "Reference" "#PWR031"
 			(at 91.44 223.52 0)
 			(hide yes)
 			(show_name no)
@@ -9207,12 +8925,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "559833f1-d7ce-5ed4-884c-7ee478c0c130")
+			(uuid "b1bce785-db1b-505e-806c-ce78b1ce35f6")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR032")
+					(reference "#PWR031")
 					(unit 1)
 				)
 			)
@@ -9307,8 +9025,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "126178b5-592e-5102-bd30-e881ab302627")
-		(property "Reference" "#PWR033"
+		(uuid "f9c787da-c1fc-587b-b403-80408025b5cf")
+		(property "Reference" "#PWR032"
 			(at 91.44 187.96 0)
 			(hide yes)
 			(show_name no)
@@ -9363,12 +9081,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "6fc8a59e-8d72-54c9-9e9a-9f275a5e81ca")
+			(uuid "559833f1-d7ce-5ed4-884c-7ee478c0c130")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR033")
+					(reference "#PWR032")
 					(unit 1)
 				)
 			)
@@ -9551,8 +9269,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "d9d2d4cb-5d57-5718-8a03-91c1297c4bcf")
-		(property "Reference" "#PWR034"
+		(uuid "126178b5-592e-5102-bd30-e881ab302627")
+		(property "Reference" "#PWR033"
 			(at 88.9 187.96 0)
 			(hide yes)
 			(show_name no)
@@ -9608,12 +9326,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "02ba90c0-d7e0-5f0f-bdb6-4748502c3b12")
+			(uuid "6fc8a59e-8d72-54c9-9e9a-9f275a5e81ca")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR034")
+					(reference "#PWR033")
 					(unit 1)
 				)
 			)
@@ -9765,8 +9483,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "39894c28-0a44-5b0f-b8f9-8f41ef60e935")
-		(property "Reference" "#PWR035"
+		(uuid "d9d2d4cb-5d57-5718-8a03-91c1297c4bcf")
+		(property "Reference" "#PWR034"
 			(at 33.02 199.39 0)
 			(hide yes)
 			(show_name no)
@@ -9821,12 +9539,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "d8523434-9b80-5c4e-8a0b-2f4a40889255")
+			(uuid "02ba90c0-d7e0-5f0f-bdb6-4748502c3b12")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR035")
+					(reference "#PWR034")
 					(unit 1)
 				)
 			)
@@ -9853,8 +9571,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "151d8dfb-10ff-58b8-9bd5-f2d95d5c15e3")
-		(property "Reference" "#PWR036"
+		(uuid "39894c28-0a44-5b0f-b8f9-8f41ef60e935")
+		(property "Reference" "#PWR035"
 			(at 33.02 212.09 0)
 			(hide yes)
 			(show_name no)
@@ -9909,12 +9627,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "5f4d6b75-992d-5d63-a632-76776139c4bf")
+			(uuid "d8523434-9b80-5c4e-8a0b-2f4a40889255")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR036")
+					(reference "#PWR035")
 					(unit 1)
 				)
 			)
@@ -10066,8 +9784,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "b9dbbdd7-5148-558d-ad33-1fc9e28f8337")
-		(property "Reference" "#PWR037"
+		(uuid "151d8dfb-10ff-58b8-9bd5-f2d95d5c15e3")
+		(property "Reference" "#PWR036"
 			(at 45.72 199.39 0)
 			(hide yes)
 			(show_name no)
@@ -10122,12 +9840,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "e172161d-f6e2-5cbb-8c1d-a693aabb3627")
+			(uuid "5f4d6b75-992d-5d63-a632-76776139c4bf")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR037")
+					(reference "#PWR036")
 					(unit 1)
 				)
 			)
@@ -10154,8 +9872,8 @@
 		(on_board no)
 		(in_pos_files yes)
 		(dnp no)
-		(uuid "13b8e0f9-12bd-56e3-98e1-8227b025ec7a")
-		(property "Reference" "#PWR038"
+		(uuid "b9dbbdd7-5148-558d-ad33-1fc9e28f8337")
+		(property "Reference" "#PWR037"
 			(at 45.72 212.09 0)
 			(hide yes)
 			(show_name no)
@@ -10210,12 +9928,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "2961ae2b-1883-505f-be63-416fd2b3792a")
+			(uuid "e172161d-f6e2-5cbb-8c1d-a693aabb3627")
 		)
 		(instances
 			(project "defuse32-carrier"
 				(path "/b97112e6-98e8-5640-b1a5-b74f74797421/f5c018ae-401a-54e1-8c6d-270bc5e6c986"
-					(reference "#PWR038")
+					(reference "#PWR037")
 					(unit 1)
 				)
 			)

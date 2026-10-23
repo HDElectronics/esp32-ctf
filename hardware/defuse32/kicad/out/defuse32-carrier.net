@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "/home/ibrahim/ESP32-CTF.defuse32-hw/hardware/defuse32/kicad/defuse32-carrier.kicad_sch")
-		(date "2026-10-23T01:28:19")
+		(date "2026-10-23T03:57:13")
 		(tool "Eeschema 10.0.7-10.0.7~ubuntu26.04.1")
 		(sheet
 			(number "1")
@@ -326,14 +326,14 @@
 		)
 		(comp
 			(ref "C2")
-			(value "10uF")
+			(value "22uF")
 			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "LCSC") "C15850")
+					(name "LCSC") "C45783")
 				(field
-					(name "MPN") "CL21A106KAYNNNE")
+					(name "MPN") "CL21A226MAQNNNE")
 				(field
 					(name "Manufacturer") "Samsung")
 				(field
@@ -353,11 +353,11 @@
 			)
 			(property
 				(name "LCSC")
-				(value "C15850")
+				(value "C45783")
 			)
 			(property
 				(name "MPN")
-				(value "CL21A106KAYNNNE")
+				(value "CL21A226MAQNNNE")
 			)
 			(property
 				(name "Manufacturer")
@@ -404,20 +404,20 @@
 		)
 		(comp
 			(ref "C6")
-			(value "1uF")
-			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(value "10uF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "LCSC") "C15849")
+					(name "LCSC") "C15850")
 				(field
-					(name "MPN") "CL10A105KB8NNNC")
+					(name "MPN") "CL21A106KAYNNNE")
 				(field
 					(name "Manufacturer") "Samsung")
 				(field
 					(name "JLC") "Basic")
 				(field
-					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
 				(field
 					(name "Datasheet")
 				)
@@ -431,11 +431,11 @@
 			)
 			(property
 				(name "LCSC")
-				(value "C15849")
+				(value "C15850")
 			)
 			(property
 				(name "MPN")
-				(value "CL10A105KB8NNNC")
+				(value "CL21A106KAYNNNE")
 			)
 			(property
 				(name "Manufacturer")
@@ -951,7 +951,7 @@
 		(comp
 			(ref "J7")
 			(value "J_USB USB-C")
-			(footprint "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12")
+			(footprint "defuse32:USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge")
 			(datasheet "https://www.usb.org/sites/default/files/documents/usb_type-c.zip")
 			(description "USB 2.0-only 16P Type-C Receptacle connector")
 			(fields
@@ -964,7 +964,7 @@
 				(field
 					(name "JLC") "Extended")
 				(field
-					(name "Footprint") "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12")
+					(name "Footprint") "defuse32:USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge")
 				(field
 					(name "Datasheet") "https://www.usb.org/sites/default/files/documents/usb_type-c.zip")
 				(field
@@ -1547,46 +1547,46 @@
 		)
 		(comp
 			(ref "U5")
-			(value "AP2112K-3.3")
-			(footprint "Package_TO_SOT_SMD:SOT-23-5")
-			(datasheet "https://www.diodes.com/assets/Datasheets/AP2112.pdf")
-			(description "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5")
+			(value "AMS1117-3.3")
+			(footprint "Package_TO_SOT_SMD:SOT-223-3_TabPin2")
+			(datasheet "http://www.advanced-monolithic.com/pdf/ds1117.pdf")
+			(description "1A Low Dropout regulator, positive, 3.3V fixed output, SOT-223")
 			(fields
 				(field
-					(name "LCSC") "C51118")
+					(name "LCSC") "C6186")
 				(field
-					(name "MPN") "AP2112K-3.3TRG1")
+					(name "MPN") "AMS1117-3.3")
 				(field
-					(name "Manufacturer") "Diodes Inc")
+					(name "Manufacturer") "Advanced Monolithic Systems")
 				(field
-					(name "JLC") "Extended")
+					(name "JLC") "Basic")
 				(field
-					(name "Footprint") "Package_TO_SOT_SMD:SOT-23-5")
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-223-3_TabPin2")
 				(field
-					(name "Datasheet") "https://www.diodes.com/assets/Datasheets/AP2112.pdf")
+					(name "Datasheet") "http://www.advanced-monolithic.com/pdf/ds1117.pdf")
 				(field
-					(name "Description") "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5")
+					(name "Description") "1A Low Dropout regulator, positive, 3.3V fixed output, SOT-223")
 			)
 			(libsource
 				(lib "Regulator_Linear")
-				(part "AP2112K-3.3")
-				(description "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5")
+				(part "AMS1117-3.3")
+				(description "1A Low Dropout regulator, positive, 3.3V fixed output, SOT-223")
 			)
 			(property
 				(name "LCSC")
-				(value "C51118")
+				(value "C6186")
 			)
 			(property
 				(name "MPN")
-				(value "AP2112K-3.3TRG1")
+				(value "AMS1117-3.3")
 			)
 			(property
 				(name "Manufacturer")
-				(value "Diodes Inc")
+				(value "Advanced Monolithic Systems")
 			)
 			(property
 				(name "JLC")
-				(value "Extended")
+				(value "Basic")
 			)
 			(property
 				(name "Sheetname")
@@ -1602,7 +1602,7 @@
 			)
 			(property
 				(name "ki_fp_filters")
-				(value "SOT?23?5*")
+				(value "SOT?223*TabPin2*")
 			)
 			(sheetpath
 				(names "/Power, USB, UART/")
@@ -1614,19 +1614,13 @@
 					(name "A")
 					(pins
 						(pin
-							(num "1")
-						)
-						(pin
 							(num "3")
 						)
 						(pin
+							(num "1")
+						)
+						(pin
 							(num "2")
-						)
-						(pin
-							(num "4")
-						)
-						(pin
-							(num "5")
 						)
 					)
 				)
@@ -7816,54 +7810,6 @@
 			)
 		)
 		(libpart
-			(lib "Regulator_Linear")
-			(part "AP2112K-3.3")
-			(description "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5")
-			(docs "https://www.diodes.com/assets/Datasheets/AP2112.pdf")
-			(footprints
-				(fp "SOT?23?5*")
-			)
-			(fields
-				(field
-					(name "Reference") "U")
-				(field
-					(name "Value") "AP2112K-3.3")
-				(field
-					(name "Footprint") "Package_TO_SOT_SMD:SOT-23-5")
-				(field
-					(name "Datasheet") "https://www.diodes.com/assets/Datasheets/AP2112.pdf")
-				(field
-					(name "Description") "600mA low dropout linear regulator, with enable pin, 3.8V-6V input voltage range, 3.3V fixed positive output, SOT-23-5")
-			)
-			(pins
-				(pin
-					(num "1")
-					(name "VIN")
-					(type "power_in")
-				)
-				(pin
-					(num "2")
-					(name "GND")
-					(type "power_in")
-				)
-				(pin
-					(num "3")
-					(name "EN")
-					(type "input")
-				)
-				(pin
-					(num "4")
-					(name "NC")
-					(type "no_connect")
-				)
-				(pin
-					(num "5")
-					(name "VOUT")
-					(type "power_out")
-				)
-			)
-		)
-		(libpart
 			(lib "Sensor_Motion")
 			(part "LIS3DH")
 			(description "3-Axis Accelerometer, 2/4/8/16g range, I2C/SPI interface, LGA-16")
@@ -8439,8 +8385,8 @@
 			)
 			(node
 				(ref "U5")
-				(pin "5")
-				(pinfunction "VOUT_5")
+				(pin "2")
+				(pinfunction "VO_2")
 				(pintype "power_out")
 			)
 			(node
@@ -8553,15 +8499,9 @@
 			)
 			(node
 				(ref "U5")
-				(pin "1")
-				(pinfunction "VIN_1")
-				(pintype "power_in")
-			)
-			(node
-				(ref "U5")
 				(pin "3")
-				(pinfunction "EN_3")
-				(pintype "input")
+				(pinfunction "VI_3")
+				(pintype "power_in")
 			)
 			(node
 				(ref "U6")
@@ -9239,8 +9179,8 @@
 			)
 			(node
 				(ref "U5")
-				(pin "2")
-				(pinfunction "GND_2")
+				(pin "1")
+				(pinfunction "GND_1")
 				(pintype "power_in")
 			)
 			(node
@@ -10747,17 +10687,6 @@
 		)
 		(net
 			(code "99")
-			(name "unconnected-(U5-NC-Pad4)")
-			(class "Default")
-			(node
-				(ref "U5")
-				(pin "4")
-				(pinfunction "NC_4")
-				(pintype "no_connect")
-			)
-		)
-		(net
-			(code "100")
 			(name "unconnected-(U7-NC-Pad7)")
 			(class "Default")
 			(node
@@ -10768,7 +10697,7 @@
 			)
 		)
 		(net
-			(code "101")
+			(code "100")
 			(name "unconnected-(U7-NC-Pad8)")
 			(class "Default")
 			(node
@@ -10779,7 +10708,7 @@
 			)
 		)
 		(net
-			(code "102")
+			(code "101")
 			(name "unconnected-(U7-R232-Pad15)")
 			(class "Default")
 			(node
@@ -10790,7 +10719,7 @@
 			)
 		)
 		(net
-			(code "103")
+			(code "102")
 			(name "unconnected-(U7-~{CTS}-Pad9)")
 			(class "Default")
 			(node
@@ -10801,7 +10730,7 @@
 			)
 		)
 		(net
-			(code "104")
+			(code "103")
 			(name "unconnected-(U7-~{DCD}-Pad12)")
 			(class "Default")
 			(node
@@ -10812,7 +10741,7 @@
 			)
 		)
 		(net
-			(code "105")
+			(code "104")
 			(name "unconnected-(U7-~{DSR}-Pad10)")
 			(class "Default")
 			(node
@@ -10823,7 +10752,7 @@
 			)
 		)
 		(net
-			(code "106")
+			(code "105")
 			(name "unconnected-(U7-~{RI}-Pad11)")
 			(class "Default")
 			(node
@@ -10834,7 +10763,7 @@
 			)
 		)
 		(net
-			(code "107")
+			(code "106")
 			(name "unconnected-(U8-ADC1-Pad16)")
 			(class "Default")
 			(node
@@ -10845,7 +10774,7 @@
 			)
 		)
 		(net
-			(code "108")
+			(code "107")
 			(name "unconnected-(U8-ADC2-Pad15)")
 			(class "Default")
 			(node
@@ -10856,7 +10785,7 @@
 			)
 		)
 		(net
-			(code "109")
+			(code "108")
 			(name "unconnected-(U8-ADC3-Pad13)")
 			(class "Default")
 			(node
@@ -10867,7 +10796,7 @@
 			)
 		)
 		(net
-			(code "110")
+			(code "109")
 			(name "unconnected-(U8-INT1-Pad11)")
 			(class "Default")
 			(node
@@ -10878,7 +10807,7 @@
 			)
 		)
 		(net
-			(code "111")
+			(code "110")
 			(name "unconnected-(U8-INT2-Pad9)")
 			(class "Default")
 			(node
@@ -10889,7 +10818,7 @@
 			)
 		)
 		(net
-			(code "112")
+			(code "111")
 			(name "unconnected-(U8-NC-Pad2)")
 			(class "Default")
 			(node
@@ -10900,7 +10829,7 @@
 			)
 		)
 		(net
-			(code "113")
+			(code "112")
 			(name "unconnected-(U8-NC-Pad3)")
 			(class "Default")
 			(node
