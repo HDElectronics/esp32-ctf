@@ -17,10 +17,13 @@ Checks what KiCad's DRC does not (or not by default):
            - over a via, a pad / mask opening, a hole, or off the board / within 0.3 mm of the edge
            - overlapping another text or another footprint's silk lines
            - under another footprint's courtyard (hidden after assembly)
-           - height < 0.8 mm or stroke < 0.15 mm, mixed reference sizes
+           - height < 0.8 mm or stroke < 0.15 mm (or the board's own silk minimums if higher,
+             e.g. JLCPCB's 1.0 mm), mixed reference sizes
            - reading direction other than left-to-right (0 deg) or bottom-to-top (90 deg)
-           - far from its own part (> 2 mm) or closer to another part than to its own
-           - over tracks (legibility, info only); hidden references (info)
+           - far from its own part (> 2 mm) or closer to another part than to its own (unless a
+             board-level silk leader joins label and part: a callout, listed as info)
+           - over tracks (legibility, info only); hidden references (info; a board-level range
+             label such as "R16-19" counts as printing the references it covers)
   routing  jogs: a track that steps sideways by < 1.5 mm with two bends and carries on in the same
            direction (ugly, and every bend is a small discontinuity on a fast line: keep it
            straight); a straight run split into collinear pieces counts as one segment, so a split
@@ -31,6 +34,7 @@ Exit code 1 when there are violations (warnings and info do not count).
 """
 import json
 import math
+import re
 import sys
 
 import pcbnew
@@ -39,14 +43,39 @@ MM = pcbnew.FromMM
 TOMM = pcbnew.ToMM
 ERR = MM(0.005)
 
-TEXT_MIN_H, TEXT_MIN_W = 0.8, 0.15      # mm, JLCPCB/PCBWay legible minimum
+TEXT_MIN_H, TEXT_MIN_W = 0.8, 0.15      # mm, legible minimum; raised to the board's own silk rules
+                                        # (JLCPCB lists 1.0 mm text height) in board_rules()
 EDGE_GAP = 0.3                          # mm, silk to board edge
 SILK_PAD_GAP = 0.1                      # mm, silk to pad / mask opening (fab clips closer ink)
 SILK_VIA_GAP = 0.1                      # mm, silk to via copper
-FAR = 2.0                               # mm, text centre to own courtyard
+NEAR = 1.0                              # mm, label box to own courtyard: more is a warning
+FAR = 2.0                               # mm, ... more is a violation (unless a silk leader joins them)
+ROW_TOL = 0.3                           # mm, parts whose centres line up within this form a row
+ROW_PITCH = 5.0                         # mm, ... when neighbours are closer than this
 VOID_MIN_AREA = 0.5                     # mm2, smaller voids are ignored
 VIA_D, VIA_CLR = 0.6, 0.2               # mm, stitching via used for the "fits a via" test
-VIA_DRILL = 0.3                         # mm (its hole counts for hole-to-hole spacing)
+VIA_DRILL = 0.3                         # mm (its hole counts for hole-to-hole spacing); both replaced
+                                        # by the smallest via the board's rules allow (board_rules())
+
+
+def board_rules(board):
+    """Take the stitching-via size and the silk text minimum from the board's design rules: the via
+    is the smallest the rules allow (min drill, min diameter, min drill + 2 x min annular ring), the
+    text minimum the larger of TEXT_MIN_* and the board's min text height / stroke."""
+    global VIA_D, VIA_DRILL, TEXT_MIN_H, TEXT_MIN_W
+    ds = board.GetDesignSettings()
+    try:
+        drill = TOMM(ds.m_MinThroughDrill)
+        dia = max(TOMM(ds.m_ViasMinSize), drill + 2 * TOMM(ds.m_ViasMinAnnularWidth))
+        if 0.1 <= drill and 0.2 <= dia:
+            VIA_D, VIA_DRILL = round(dia, 3), round(drill, 3)
+    except Exception:
+        pass
+    try:
+        TEXT_MIN_H = max(TEXT_MIN_H, round(TOMM(ds.m_MinSilkTextHeight), 3))
+        TEXT_MIN_W = max(TEXT_MIN_W, round(TOMM(ds.m_MinSilkTextThickness), 3))
+    except Exception:
+        pass
 
 
 def box(b, g=0.0):
@@ -261,11 +290,55 @@ def silk_texts(board):
     for fp in board.GetFootprints():
         for t in [fp.Reference(), fp.Value()] + [g for g in fp.GraphicalItems() if g.GetClass() == "PCB_TEXT"]:
             if t.IsVisible() and t.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS) and t.GetShownText(False).strip():
-                kind = "ref" if t is fp.Reference() or t.GetText() == "${REFERENCE}" else "text"
+                # SWIG hands out a new proxy per call, so `t is fp.Reference()` is never true: compare by uuid
+                kind = "ref" if t.m_Uuid.AsString() == fp.Reference().m_Uuid.AsString() or t.GetText() == "${REFERENCE}" else "text"
                 out.append((fp, t, kind))
     for d in board.GetDrawings():
         if d.GetClass() in ("PCB_TEXT", "PCB_TEXTBOX") and d.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS) and d.IsVisible():
             out.append((None, d, "text"))
+    return out
+
+
+def group_alignment(board):
+    """Rows (or columns) of 3+ like parts (same footprint and rotation, centres in line, neighbours
+    closer than ROW_PITCH) must have their references at one angle and on one line, in part order."""
+    out = []
+    fps = [f for f in board.GetFootprints() if f.Reference().IsVisible() and len(list(f.Pads()))]
+    groups = {}
+    for f in fps:
+        groups.setdefault((f.GetFPIDAsString(), round(f.GetOrientationDegrees()) % 180, f.GetLayer()), []).append(f)
+    for parts in groups.values():
+        if len(parts) < 3:
+            continue
+        for axis in (0, 1):                    # 0: horizontal row (same y), 1: vertical column (same x)
+            other = 1 - axis
+            pos = lambda f: (TOMM(f.GetPosition().x), TOMM(f.GetPosition().y))
+            parts_s = sorted(parts, key=lambda f: (round(pos(f)[other] / ROW_TOL), pos(f)[axis]))
+            rows, cur = [], []
+            for f in parts_s:
+                if cur and abs(pos(f)[other] - pos(cur[-1])[other]) <= ROW_TOL and pos(f)[axis] - pos(cur[-1])[axis] < ROW_PITCH:
+                    cur.append(f)
+                else:
+                    if len(cur) >= 3:
+                        rows.append(cur)
+                    cur = [f]
+            if len(cur) >= 3:
+                rows.append(cur)
+            for row in rows:
+                names = " ".join(f.GetReference() for f in row)
+                texts = [f.Reference() for f in row]
+                angs = {round(t.GetDrawRotation().AsDegrees()) % 360 for t in texts}
+                bxs = [box(t.GetBoundingBox()) for t in texts]
+                if len(angs) > 1:
+                    out.append(("group-align", names, "labels of this row use different directions"))
+                    continue
+                cy = [(b[1] + b[3]) / 2 for b in bxs] if axis == 0 else [(b[0] + b[2]) / 2 for b in bxs]
+                if max(cy) - min(cy) > 0.2:
+                    out.append(("group-align", names, "labels of this row are not on one line (spread %.2f mm)" % (max(cy) - min(cy))))
+                order_parts = [pos(f)[axis] for f in row]
+                order_lab = [((b[0] + b[2]) / 2 if axis == 0 else (b[1] + b[3]) / 2) for b in bxs]
+                if sorted(range(len(row)), key=lambda i: order_parts[i]) != sorted(range(len(row)), key=lambda i: order_lab[i]):
+                    out.append(("group-align", names, "labels are not in the same order as the parts"))
     return out
 
 
@@ -291,6 +364,8 @@ def silk_checks(board):
     board.GetBoardPolygonOutlines(ob, True)
     edge = box(ob.BBox())
     texts = silk_texts(board)
+    leaders = [(d.GetLayer(), box(d.GetBoundingBox())) for d in board.GetDrawings()
+               if d.GetClass() == "PCB_SHAPE" and d.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS)]
     boxes = []
     sizes = {}
     for fp, t, kind in texts:
@@ -332,12 +407,26 @@ def silk_checks(board):
         if fp and kind == "ref":
             own = crt[ref][0]
             d_own = box_dist(b, own)
-            if d_own > FAR:
-                warn.append(("far", name, "%.1f mm from its part" % d_own))
+            # a board-level silk line joining label and part is a leader: the label is a callout
+            # (at any distance), so the far / off-a-corner / nearer-to-another-part rules do not apply
+            own_g = (own[0] - 0.5, own[1] - 0.5, own[2] + 0.5, own[3] + 0.5)
+            lab_g = (b[0] - 0.5, b[1] - 0.5, b[2] + 0.5, b[3] + 0.5)
+            leader = any(lay == t.GetLayer() and hit(sb, own_g) and hit(sb, lab_g) for lay, sb in leaders)
+            if leader:
+                info.append(("callout", name, "%.1f mm from its part, with a leader line" % d_own))
+            elif d_own > NEAR:
+                if d_own > FAR:
+                    viol.append(("far", name, "%.1f mm from its part (max %.1f): move it next to the part or add a leader" % (d_own, FAR)))
+                else:
+                    warn.append(("far", name, "%.1f mm from its part (aim for <= %.1f)" % (d_own, NEAR)))
+            ox = min(b[2], own[2]) - max(b[0], own[0])      # overlap of label and part along x
+            oy = min(b[3], own[3]) - max(b[1], own[1])
+            if ox < 0.2 * (b[2] - b[0]) and oy < 0.2 * (b[3] - b[1]) and not any(k == "callout" and n == name for k, n, _ in info):
+                viol.append(("diagonal", name, "off a corner of its part, not beside one side: put it directly above, below, left or right"))
             near = [(box_dist(b, cb), r2) for r2, (cb, lay) in crt.items() if r2 != ref and not r2.startswith(("H", "MH"))]
             if near:
                 dn, rn = min(near)
-                if dn + 0.2 < d_own:
+                if dn + 0.2 < d_own and not any(k == "callout" and n == name for k, n, _ in info):   # a leader tells
                     warn.append(("ambiguous", name, "closer to %s (%.1f mm) than to its own part (%.1f mm)" % (rn, dn, d_own)))
             if hit(b, own) and box_dist((b[0] + 0.01, b[1] + 0.01, b[2] - 0.01, b[3] - 0.01), own) == 0 \
                     and b[0] >= own[0] and b[2] <= own[2] and b[1] >= own[1] and b[3] <= own[3]:
@@ -348,8 +437,22 @@ def silk_checks(board):
                 viol.append(("text-text", boxes[i][0], "overlaps %s" % boxes[j][0]))
     if len(sizes) > 1:
         warn.append(("sizes", "references", "%d different sizes: %s" % (len(sizes), {"%sx%s" % k: len(v) for k, v in sizes.items()})))
+    viol += group_alignment(board)
     hidden = [fp.GetReference() for fp in board.GetFootprints() if not fp.Reference().IsVisible()
               and not fp.GetReference().startswith(("H", "MH")) and not fp.IsBoardOnly() if hasattr(fp, "IsBoardOnly")]
+    # a row of like parts may carry one range label ("R16-19" / "R16-R19") on the board silkscreen
+    # instead of a reference each: those references are printed, not hidden
+    for d in board.GetDrawings():
+        if d.GetClass() != "PCB_TEXT" or d.GetLayer() not in (pcbnew.F_SilkS, pcbnew.B_SilkS):
+            continue
+        m = re.match(r"^([A-Z]+)(\d+)-\1?(\d+)$", d.GetText().strip())
+        if not m:
+            continue
+        rng = ["%s%d" % (m.group(1), k) for k in range(int(m.group(2)), int(m.group(3)) + 1)]
+        covered = [r for r in rng if r in hidden]
+        if covered:
+            info.append(("range", d.GetText().strip(), "range label for %s" % " ".join(covered)))
+            hidden = [r for r in hidden if r not in covered]
     if hidden:
         info.append(("hidden", "references", " ".join(sorted(hidden))))
     return viol, warn, info
@@ -369,6 +472,7 @@ def _chains(board):
         if v.GetClass() == "PCB_VIA":
             stops.add(key(v.GetPosition()))
     pads = [p for fp in board.GetFootprints() for p in fp.Pads()]
+    vias = [v for v in board.GetTracks() if v.GetClass() == "PCB_VIA"]
     groups = {}
     for t in board.GetTracks():
         if t.GetClass() == "PCB_TRACK" and t.GetLength() > 0:
@@ -384,7 +488,10 @@ def _chains(board):
             if pt in stops or len(adj[pt]) != 2:
                 return True
             v = pcbnew.VECTOR2I(MM(pt[0]), MM(pt[1]))
-            return any(p.IsOnLayer(layer) and p.HitTest(v) for p in pads if p.GetNetname() == net)
+            # a track end inside a pad or a via of the net (not only at a via's centre) ends the
+            # run there: a bend hidden in the via's copper is no corner
+            return any(p.IsOnLayer(layer) and p.HitTest(v) for p in pads if p.GetNetname() == net) or \
+                any(x.HitTest(v, 0) for x in vias if x.GetNetname() == net)
         seen = set()
         for start in adj:
             if not is_stop(start):
@@ -444,8 +551,37 @@ def routing_checks(board):
             if dot < -1e-3:
                 viol.append(("acute", "%s on %s" % (net, layer), "turn sharper than 90 deg at (%.2f, %.2f)" % segs[i][1]))
             elif abs(dot) < 1e-3 and min(la, lb) > 0.05:
-                warn.append(("right-angle", "%s on %s" % (net, layer), "90 deg corner at (%.2f, %.2f): use two 45 deg bends" % segs[i][1]))
+                viol.append(("right-angle", "%s on %s" % (net, layer), "90 deg corner at (%.2f, %.2f): use two 45 deg bends" % segs[i][1]))
     return viol, warn
+
+
+# ---------------------------------------------------------------------------------- 3D models
+def model_checks(board):
+    """Every footprint with pads needs a visible 3D model whose file exists (otherwise the 3D view,
+    the STEP export for the enclosure and the fab's assembly preview show a hole)."""
+    import os
+    base = os.environ.get("KICAD10_3DMODEL_DIR") or os.environ.get("KICAD9_3DMODEL_DIR") or "/usr/share/kicad/3dmodels"
+    prj = os.path.dirname(os.path.abspath(board.GetFileName()))
+
+    def resolve(fn):
+        for v in ("KICAD10_3DMODEL_DIR", "KICAD9_3DMODEL_DIR", "KICAD8_3DMODEL_DIR", "KICAD7_3DMODEL_DIR", "KICAD6_3DMODEL_DIR"):
+            fn = fn.replace("${%s}" % v, base)
+        fn = fn.replace("${KIPRJMOD}", prj)
+        return fn if os.path.isabs(fn) else os.path.join(prj, fn)
+
+    viol = []
+    for fp in board.GetFootprints():
+        ref = fp.GetReference()
+        if not len(list(fp.Pads())) or ref.startswith(("H", "MH", "FID", "LOGO", "TP")):
+            continue
+        models = [m for m in fp.Models() if m.m_Show]
+        if not models:
+            viol.append(("3d-missing", ref, "%s has no 3D model" % fp.GetFPIDAsString()))
+            continue
+        missing = [m.m_Filename for m in models if not os.path.isfile(resolve(m.m_Filename))]
+        if len(missing) == len(models):
+            viol.append(("3d-missing", ref, "model file not found: %s" % missing[0]))
+    return viol
 
 
 def main():
@@ -455,6 +591,9 @@ def main():
     path = args[0]
     out_json = args[args.index("--json") + 1] if "--json" in args else None
     board = pcbnew.LoadBoard(path)
+    board_rules(board)
+    print("rules: stitching via %.2f / %.2f mm, silk text >= %.2f / %.2f mm, %d copper layers" % (
+        VIA_D, VIA_DRILL, TEXT_MIN_H, TEXT_MIN_W, board.GetCopperLayerCount()))
     if "--fill" in args:
         pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     voids = []
@@ -465,6 +604,7 @@ def main():
             voids += copper_voids(board, layer, z)
     viol, warn, info = silk_checks(board)
     rviol, rwarn = routing_checks(board)
+    mviol = model_checks(board)
     fits = [v for v in voids if v["via_fits"]]
     noground = [v for v in voids if v["why"].startswith("no ground")]
     print("COPPER: %d voids >= %.1f mm2 (total %.1f mm2), %d can take a stitching via, %d cannot (%d too narrow or blocked, "
@@ -474,7 +614,8 @@ def main():
     for v in sorted(voids, key=lambda v: (not v["via_fits"], -v["area_mm2"]))[:30]:
         print("  %-5s %6.2f mm2  w %.2f mm  at (%.1f, %.1f)  %s" % (v["layer"], v["area_mm2"], v["width_mm"], v["at"][0], v["at"][1],
                                                               v["why"]))
-    for title, rows in (("ROUTING VIOLATIONS", rviol), ("ROUTING WARNINGS", rwarn), ("SILK VIOLATIONS", viol), ("SILK WARNINGS", warn), ("INFO", info)):
+    for title, rows in (("ROUTING VIOLATIONS", rviol), ("ROUTING WARNINGS", rwarn), ("SILK VIOLATIONS", viol), ("SILK WARNINGS", warn),
+                        ("3D MODEL VIOLATIONS", mviol), ("INFO", info)):
         kinds = {}
         for k, *_ in rows:
             kinds[k] = kinds.get(k, 0) + 1
@@ -483,8 +624,8 @@ def main():
             print("  [%s] %s: %s" % (k, n, msg))
     if out_json:
         json.dump({"voids": voids, "routing_violations": rviol, "routing_warnings": rwarn,
-                   "violations": viol, "warnings": warn, "info": info}, open(out_json, "w"), indent=1)
-    return 1 if viol or rviol else 0
+                   "violations": viol, "warnings": warn, "model_violations": mviol, "info": info}, open(out_json, "w"), indent=1)
+    return 1 if viol or rviol or mviol else 0
 
 
 if __name__ == "__main__":

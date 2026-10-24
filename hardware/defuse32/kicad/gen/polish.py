@@ -3215,14 +3215,18 @@ class Unit:
             t.SetPosition(V((c[0] + dx, c[1] + dy)))
 
 
-def label_candidates(fp_box, w, h, angle):
-    """(side, gap, offset, centre) spots for a w x h box around courtyard box fp_box."""
+def label_candidates(fp_box, w, h, angle, wide=False):
+    """(side, gap, offset, centre) spots for a w x h box around courtyard box fp_box: offsets up to
+    3 mm from the middle of each side, or (wide) anywhere along the part's longer side."""
     x0, y0, x1, y1 = fp_box
     mx, my = (x0 + x1) / 2, (y0 + y1) / 2
     out = []
+    kmax = 12
+    if wide:
+        kmax = max(kmax, int(max(x1 - x0, y1 - y0) / 2 / MM(0.25)))
     for gap in (0.15, 0.25, 0.4, 0.6, 0.9, 1.3, 1.8):
         g = MM(gap)
-        for k in range(0, 13):
+        for k in range(0, kmax + 1):
             for sgn in ((0,) if k == 0 else (1, -1)):
                 off = sgn * k * MM(0.25)
                 out.append(("top", gap, k * 0.25, (mx + off, y0 - g - h / 2)))
@@ -3286,31 +3290,45 @@ def ref_near(sm, ref, unit, angle, c):
 
 
 def best_single(sm, fp, unit):
+    """Best label spot (score, angle, centre, box) for one part, or None. A plate header's label
+    (its reference alone, or reference + plate name as one line) sits along one of the header's long
+    sides, anywhere along it, and runs parallel to it; a lone header reference falls back to the
+    short sides only when the long sides have no room."""
     ref = fp.GetReference()
     pb = part_box(sm, fp)
     long_h = (pb[2] - pb[0]) >= (pb[3] - pb[1])
-    best = None
-    for angle in (0, 90):
-        w, h, _ = unit.layout(angle)
-        for side, gap, off, c in label_candidates(pb, w, h, angle):
-            b = unit_box(c, w, h)
-            if best is not None and 2.0 * gap + SIDE_COST[side] > best[0]:
+    multi = len(unit.texts) > 1
+    header = ref in PLATES
+    long_sides = ("top", "bottom") if long_h else ("left", "right")
+    for long_only in ((True, False) if header and not multi else (header,)):
+        best = None
+        for angle in (0, 90):
+            if long_only and (angle == 0) != long_h:
                 continue
-            if not sm.ok(b, ref):
-                continue
-            if len(unit.texts) > 1:
-                if sm.d_own(b, ref) > MAX_FROM_PART or not ref_near(sm, ref, unit, angle, c):
+            w, h, _ = unit.layout(angle)
+            for side, gap, off, c in label_candidates(pb, w, h, angle, wide=header):
+                if long_only and side not in long_sides:
                     continue
-                s = 2.0 * TOMM(int(sm.d_own(b, ref))) + SIDE_COST[side] + 0.15 * off + 0.6 * min(sm.tracks_under(b), 4)
+                b = unit_box(c, w, h)
+                if best is not None and 2.0 * gap + SIDE_COST[side] > best[0]:
+                    continue
+                if not sm.ok(b, ref):
+                    continue
+                if multi:
+                    if sm.d_own(b, ref) > MAX_FROM_PART or not ref_near(sm, ref, unit, angle, c):
+                        continue
+                    s = 2.0 * TOMM(int(sm.d_own(b, ref))) + SIDE_COST[side] + 0.05 * off + 0.6 * min(sm.tracks_under(b), 4)
+                    if best is None or s < best[0]:
+                        best = (s, angle, c, b)
+                    continue
+                s = spot_score(sm, ref, b, side, gap, off, angle, long_h)
+                if s is None:
+                    continue
                 if best is None or s < best[0]:
                     best = (s, angle, c, b)
-                continue
-            s = spot_score(sm, ref, b, side, gap, off, angle, long_h)
-            if s is None:
-                continue
-            if best is None or s < best[0]:
-                best = (s, angle, c, b)
-    return best
+        if best is not None:
+            return best
+    return None
 
 
 def via_blocked_spots(sm, fp, unit):
@@ -3625,9 +3643,11 @@ def place_refs_top(board, fps, size, ctx=None):
         rest = [r for r in rest if r not in placed]
     for ref in sorted(rest, key=lambda r: (spots[r] == 0, spots[r], -area(r))):
         best, u = None, None
-        for cand in [units[ref]]:
+        # the plate headers (most spots, so placed after the small parts) try their reference and
+        # plate name as one line first ("J3  M3 KEYPAD"), so the two never end up apart
+        for cand in ([with_plate(ref), units[ref]] if ref in plates else [units[ref]]):
             best = best_single(sm, fps[ref], cand)
-            if best is None and ctx is not None:
+            if best is None and ctx is not None and len(cand.texts) == 1:
                 for s, angle, c, b, vs in via_blocked_spots(sm, fps[ref], cand)[:12]:
                     if push_vias_off(ctx, sm, [b], vs):
                         pushed += len(vs)
@@ -4354,6 +4374,14 @@ def cmd_all(*opts):
             merge_collinear(board)
             cleft = chamfer_pass(board, skip, log=log)[1]
         merge_collinear(board)
+        # the re-routes and chamfers can leave a jog the local moves fix (rev 3: BUZZ- next to the
+        # U2_GPA7 via): one more local pass, then the corners again
+        jfix, left = jog_pass(board, skip, log=log)
+        if jfix:
+            fixed += jfix
+            c2, cleft = chamfer_pass(board, skip, log=log)
+            cfix += c2
+            merge_collinear(board)
         log("corners: %d right angles chamfered to 2 x 45 deg, %d left %s" % (len(cfix), len(cleft), cleft[:12]))
         fixed += cfix
         bad = drc_check(board)
@@ -4395,7 +4423,7 @@ def cmd_all(*opts):
         % (nisl, nlab, npush, ngrid, time.time() - t0))
     tb = board.GetTitleBlock()
     tb.SetRevision(REVISION)
-    tb.SetComment(1, "rev 2.1: rev 2 routing finished by gen/polish.py (jogs, GND pour + stitching, silkscreen)")
+    tb.SetComment(1, "rev 3: 4-layer routing finished by gen/polish.py (jogs, corners, GND pours + planes, stitching, silkscreen)")
     save(board)
     R.prune(board, zones)
     rep = R.drc_json(BOARD)

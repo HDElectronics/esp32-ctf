@@ -2,18 +2,75 @@
 
 The carrier board sits on the case floor and connects to the six plates by ribbon cables. Rev 2 is an SMD board assembled by JLCPCB: ESP32-WROOM-32E module, USB-C programming port with a CH340C, two MCP23017 expanders, LIS3DH tilt sensor, push-push microSD, WS2812 buffer, buzzer driver and one keyed IDC box header per plate. The source of truth is [`../SPEC.md`](../SPEC.md), section "Rev 2 carrier (2026-10-23)", plus the sections it keeps: ESP32 pin map, MCP23017 allocation (rev 1b), WS2812 chain, I2C addresses and the plate signal sets (rev 1 Jn_B table).
 
-**Status (2026-10-23): placed, routed, finished (rev 2.1: straighter tracks, grounded GND pour, professional silkscreen) and DRC clean with the silkscreen rules on; JLCPCB fabrication and assembly files in `out/jlcpcb/`.** The owner approved the layout preview and delegated the routing; hand edits in KiCad are welcome from here on. Rev 2.1 changes copper and silkscreen only: same placement, schematic, netlist and pin map as rev 2.
+**Status (2026-10-24): rev 3, re-routed on 4 layers (JLCPCB JLC04161H-7628) and finished: GND pours on both outer layers stitched into two solid GND planes, 9 jogs and no 90° corner left, 1.0 mm silkscreen beside every part (nothing on the bottom), 3D models for every part; DRC clean against JLCPCB's 4-layer rules; JLCPCB fabrication and assembly files in `out/jlcpcb/`.** Rev 3 changes copper and silkscreen only: same placement, schematic, netlist and pin map as rev 2 (section "Rev 3" below). Hand edits in KiCad are welcome from here on.
 
 | Check | Result |
 |---|---|
 | `kicad-cli sch erc --severity-all` | 0 errors, 0 warnings |
-| `kicad-cli pcb drc --severity-all --schematic-parity --refill-zones` | 0 violations, 0 unconnected items, 0 schematic parity issues (silk_over_copper, silk_overlap, silk_edge_clearance are errors; silk clearance 0.15 mm, text >= 0.8 mm / 0.15 mm) |
+| `kicad-cli pcb drc --severity-all --schematic-parity --refill-zones` | 0 violations, 0 unconnected items, 0 schematic parity issues (JLCPCB 4-layer minimums and custom rules; silk_over_copper, silk_overlap, silk_edge_clearance are errors; silk clearance 0.15 mm, text >= 1.0 mm / 0.15 mm) |
 | `gen/check_netlist.py` | OK: netlist and board pads match `design.py`, plus the SPEC pin map, MCP23017 allocation, IDC pinout rule, rails, AMS1117 capacitors, outline, holes, U1 antenna beyond the edge and net classes |
-| `gen/pcb_audit.py` (finish audit, `out/audit.json`) | silkscreen: 0 violations, 0 warnings, no hidden reference; copper: 0 voids that can take a stitching via, 83 narrower or blocked voids (159 mm2); routing: 49 jogs left (110 in rev 2), each with its reason in `polish.py jogs` |
+| `gen/pcb_audit.py` (finish audit, `out/audit.json`) | silkscreen: 0 violations, 0 warnings, no hidden reference; 3D: every part has a model; routing: 0 right angles, 9 jogs (110 out of the router; each with its reason under "Rev 3"); copper: 60 narrow voids (137.8 mm2), none can take a usable stitching via |
 
 Rev 1b (THT, DevKitC socket, 190 x 140 mm, routed) is in git, tag `carrier-rev1b`.
 
 Changes against SPEC "Rev 2 carrier" made on 2026-10-23 (SPEC.md not edited yet): **U5 (3V3P) is an AMS1117-3.3** instead of the AP2112K-3.3 (see Power), and the microSD card-detect level is now documented (**low = card present**; firmware `CONFIG_D32_SD_DET_ACTIVE_HIGH=n`).
+
+## Rev 3: four layers (2026-10-23/24)
+
+The owner reviewed rev 2.1 and asked for: no gaps left between tracks (grounded copper), no 90° corners, 3D models for every part, labels aligned and right next to their part (R4 with R6 R9 R5; C6 and R20 beside, not off a corner), 4 layers allowed, and JLCPCB's capabilities respected (with the JLCPCB Tools plugin's conventions). Rev 3 keeps placement, schematic, netlist and pin map, and re-routes the board on 4 layers.
+
+| | rev 2.1 (2 layers) | rev 3 (4 layers) |
+|---|---|---|
+| Stack-up | 2 layers, 1.6 mm | JLC04161H-7628, 1.6 mm: signals + GND pour / GND plane / GND plane / signals + GND pour |
+| Jogs (audit) | 49 | **9** (110 straight out of Freerouting) |
+| 90° corners (audit) | 12 | **0** |
+| Copper voids >= 0.5 mm2 (audit) | 83, 159 mm2 | 60, 137.8 mm2 |
+| ... of which a stitching via fits | 0 | 2 by the audit's test, neither usable (below) |
+| Silkscreen violations / warnings (rev 3 audit, text >= 1.0 mm) | 3 / 18 (two 45° labels, R4 out of its row; 11 ambiguous, 7 far) | **0 / 0** |
+| Reference size | 0.8 mm / 0.15 mm | 1.0 mm / 0.15 mm (JLCPCB's minimum height) |
+| Top-side parts labelled on the bottom silkscreen | 7 | **0** |
+| Callouts (label + leader) | 3 | 10 |
+| Hidden references | none | none (R16-R19 share one label, "R16-19") |
+| Parts without a 3D model | 4 (J7, SW1, SW2, F1) | **0** |
+| Vias | 427 (275 GND) | 524 (353 GND: 45 fan-out, 144 island, 138 grid, 11 return, 15 pre-route) |
+| Track length | 5978 mm, 1272 segments | 6116 mm (F.Cu 3243, B.Cu 2873), 1442 segments |
+| USB D+ / D- | 15.6 mm (2 vias) / 14.8 mm, 0.8 mm apart | 15.4 mm (2 vias) / 14.8 mm, 0.6 mm apart, no double bend |
+| Decoupling (cap pad to supply pad) | table below | unchanged, every cap within 3 mm |
+| KiCad DRC (all severities, parity, refill) / ERC / check_netlist | 0 / 0 / 0, 0, OK | 0 / 0 / 0 (JLCPCB rules), 0, OK |
+
+**Stack-up (option B of the pcb-layout-pro skill, `references/four-layer.md`).** JLCPCB JLC04161H-7628, 1.6 mm: L1 F.Cu signals + power + GND pour, L2 In1.Cu solid GND plane, L3 In2.Cu solid GND plane, L4 B.Cu signals + power + GND pour; no tracks on L2/L3. Option A (power areas on L3) was the default; B was chosen because:
+
+- the three rails (5V, 3V3, 3V3P) each reach the whole board and meet on adjacent pins of every box header (pin 1 = 5V, pin 3 = 3V3P), so L3 cannot be split into areas; it would become a layer of 0.6 mm power tracks that crossed each other and cut the plane under every L4 signal;
+- in JLC04161H-7628 L2 and L3 are 1.065 mm apart (core), so a power plane on L3 would add only ~4 pF/cm2 of plane capacitance; the decoupling caps do that job anyway;
+- with B every signal layer has an unbroken GND plane 0.21 mm away and a layer change stays GND-to-GND (a GND via next to it carries the return); power currents are small (≤ 1 A on 5V), 0.6 mm tracks are plenty.
+
+**JLCPCB rules (no extra cost).** Board minimums and the `.kicad_dru` follow JLCPCB's 4-layer capability page (read 2026-10-23, numbers in the skill's `references/jlcpcb.md`), at values that stay inside the standard price: no hole under 0.2 mm, 0.2 mm holes only with ≥ 0.45 mm vias (GND fan-out and stitching vias 0.45/0.2; signal and power vias 0.6/0.3), via hole to via hole 0.25 mm, pad hole to pad hole 0.45 mm, PTH hole to track 0.28 mm, inner PTH hole to copper 0.3 mm, track/space ≥ 0.1 mm (the net classes keep 0.2/0.2 and 0.6/0.25), copper 0.3 mm from the edge, silkscreen text ≥ 1.0 mm / 0.15 mm. Order options: 4 layers, JLC04161H-7628, 1 oz / 0.5 oz, impedance control off, tented vias (`out/jlcpcb/README.md`).
+
+**Routing.** Same pre-routes as rev 2 (USB, LIS3DH fan-out, U1 decoupling, box-header GND stubs), now with 45° corners everywhere, and D+/D- leaving U9 on the line of J7's pads, so the pair runs straight with no 0.2 mm double bend. GND fan-out: 45 pads, 0.45/0.2 vias into the planes. Freerouting 2.4.1 routes F.Cu and B.Cu (the DSN has GND planes on all four layers, In1/In2 as plane layers), with its optimizer off: in 2.4.1 the optimizer stage starts from an older, less routed board (rev 3 runs: 1 connection open after routing, 23 after the optimizer). The one connection it left open (the LIS3DH supply group to the rest of 3V3P) is routed by `route_prep.py maze` (two-layer octilinear A*, 5 segments, no via). Session: `out/defuse32-carrier.ses`.
+
+**Finish (`gen/polish.py all`, extended for rev 3).**
+
+1. *Jogs: 110 -> 9.* After the rev 2.1 moves (extend, slide, push aside, corridor re-route), every run that still has a jog is ripped up and re-routed in jog-free mode: route_prep's maze search may not turn back to the heading it had before a 45° run shorter than 2.2 mm (that return is the audit's jog: offset < 1.5 mm, slanted part < 3 mm), with no 90° turn, on its own layer or over both outer layers with at most two vias; runs with T-junctions take their branches along; a run with no jog-free path gets the runs of other nets beside it ripped up as well and all of them routed again the same way. GND fan-out vias in the way are rebuilt round their pad (GND reaches the planes from anywhere). A last local pass catches jogs the re-routes leave behind (BUZZ- next to the U2_GPA7 via, fixed by moving that via down); IR between C1's pads went with its neighbours MCP_INT, SCL, T4 and T6 ripped up. Each change is checked by the exact clearance model and by KiCad's DRC before it is kept.
+2. *Corners: 0 left.* Every 90° corner becomes two 45° bends (cut back up to 1 mm, or merged into the next 45° segment); where a track joins the corner (T-junction, e.g. at SW1) the joining track slides onto the new 45° segment, or the run is re-routed without the turn.
+3. *Copper.* GND pours on F.Cu and B.Cu, solid planes on In1/In2 (clearance 0.2 mm, minimum width 0.2 mm, thermal reliefs 0.3 / 0.5 mm, island removal always). Every outer-layer pour piece is stitched into the planes (144 island vias), a 5 mm grid adds 138 more, and 11 GND vias sit next to the layer changes of the fast nets (USB, SPI, WS2812 data; none fits next to the SCK via at (78.95, 55.84)). No floating copper. **60 voids remain (137.8 mm2)**, all strips between tracks too narrow for a via with its clearances; the audit's via-fit test passes two of them, neither usable: one lies under the C10 label (no via under text), the other is the gap between two U7 pins (0.73 mm), where the 0.2 mm pad clearances leave no room.
+4. *Silkscreen.* One size, 1.0 mm / 0.15 mm, 0 or 90°, beside one side of the part (≥ 40 % overlap with its span, never off a corner), ≤ 1 mm away, outside every courtyard, never over a via; rows aligned in part order (R6 R9 R5 R4 on one line; C6 and R20 right beside their parts); none on the bottom silkscreen. Parts with no free spot beside them get a callout: label a short way off with a 0.15 mm leader to the part (U8, R14, R15, R11, C14, C19, C4, R8, C18, C2). R16-R19 (boxed in by U5, J5, C19/C1 and J11) share one label, "R16-19", beside their row. Header names are one line along the header's long side: "J1  M1 RADIO" ... "J6  M6 SENSORS" (J5 reads "M5 PROBE  J5": the space right of it is R16-19's). Board legend, revision and the JLCPCB order-number spot are kept.
+5. *3D models.* J7 (HRO TYPE-C-31-M-12, C165948), SW1/SW2 (XKB TS-1187A, C318884) and F1 (1812 PTC, C18198338) had no model in KiCad's library: `gen/fetch_3d.py` fetches the LCSC/EasyEDA STEP models with easyeda2kicad 1.0.1 into `3d/` (git-ignored: licence unclear for this MIT repository) and works out where each sits on our footprint by matching the pad sets (drilled pegs and shell legs weigh 5x). easyeda2kicad 1.0.1 places STEP models wrongly whenever EasyEDA's model origin is off the footprint origin or the model is rotated (it bakes the offset into the VRML only, before KiCad's rotation): J7 came out 2.4 mm too far toward its pads; fetch_3d.py corrects it (offsets in `gen/models3d.json`, applied by `gen_pcb.py`). Checked on renders: USB-C opening flush with the right edge, microSD slot on the bottom edge, buttons and fuse on their pads. F1's EasyEDA land pattern has a 3.7 mm pad pitch against KiCad's 4.275 mm, so the body is centred on our pads.
+
+**What is left and why.** The 9 jogs, each a single 45° pair (`/usr/bin/python3 gen/polish.py jogs` lists them with what keeps them):
+
+| Net, layer | At (mm) | Step | Kept by |
+|---|---|---|---|
+| 5V, B.Cu | (6.09, 32.27) | 0.20 | the ENC_SW via beside it; a T-junction pins the run |
+| 5V, B.Cu | (11.57, 47.83) | 0.42 | the IR and SERVO_SIG vias on either side |
+| SCL, B.Cu | (15.16, 63.79) | 1.21 | J4 pads 3 and 4, the SDA track and a GND via |
+| SCK, B.Cu | (39.87, 17.27) | 1.01 | the pads / vias it joins leave no straight line |
+| SCK, B.Cu | (50.88, 45.06) | 1.32 | crosses the BUZZ, LDO3, SDA and U2_GPA7 runs |
+| 3V3, F.Cu | (79.36, 42.74) | 0.67 | T-junction at U7's supply pins |
+| SIM4, F.Cu | (67.33, 27.94) | 1.25 | C3's pads and the 3V3P / SD_DET tracks |
+| U0RXD, F.Cu | (70.59, 44.25) | 0.60 | between C7 pad 2 and U6 pad 2 |
+| U0RXD, F.Cu | (72.63, 46.74) | 0.32 | the U0TXD via and the 3V3 track |
+
+Each was tried with the local moves, the jog-free maze (12 mm window, two layers) and the rip-up of up to eight neighbouring runs; removing them needs a hand re-route of the crossing runs. The copper voids are the narrow strips above; the one fast-net layer change without a GND via beside it is SCK at (78.95, 55.84) (the return current changes plane, GND1 to GND2, at the nearest stitching via instead).
 
 ## Rev 2 overview
 
@@ -188,7 +245,7 @@ Rev 2 uses official KiCad symbols and footprints except:
 - `defuse32.pretty` / `ESP32-WROOM-32E_JLC`: copy of `RF_Module:ESP32-WROOM-32E` with the 12 GND thermal vias drilled 0.3 mm instead of 0.2 mm (0.6 mm pad, 0.15 mm ring), because JLCPCB's 2-layer minimum hole is 0.3 mm. Since rev 2.1 its pin-1 triangle is 0.38 mm instead of 0.5 mm and 0.07 mm further in, so it keeps 0.15 mm from the board edge (the antenna overhangs it) and from pad 1 (DRC `silk_edge_clearance` / `silk_over_copper`). Pads, antenna keep-out zone, outline and 3D model are unchanged.
 - `defuse32.pretty` / `USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge`: copy of the official HRO footprint for a receptacle whose front face sits on the board edge: the silkscreen line drawn 0.25 mm in front of the face is removed and the two side lines end 0.35 mm behind it, so no silkscreen is clipped by the edge (DRC `silk_edge_clearance`). Pads, courtyard, fab outline and 3D model reference are unchanged.
 
-All three are written by `gen/gen_lib.py` from the installed KiCad libraries. KiCad 10.0.7 here ships no 3D model for J7 (HRO USB-C), SW1/SW2 (XKB TS-1187A) and F1 (1812 fuse), so the renders and `../cad/carrier.step` show their pads only.
+All three are written by `gen/gen_lib.py` from the installed KiCad libraries. KiCad 10.0.7 here ships no 3D model for J7 (HRO USB-C), SW1/SW2 (XKB TS-1187A) and F1 (1812 fuse); since rev 3 `gen/fetch_3d.py` supplies them (LCSC/EasyEDA models, git-ignored `3d/`), so the renders and `../cad/carrier.step` show every part.
 
 ## Placement (rev 2)
 
@@ -209,7 +266,9 @@ Board coordinates: origin at the top-left corner of the outline, x right, y down
 
 Differences from the preview's labels (same block positions): BOOT (SW2) is the upper button, next to module pin 25 (IO0), and EN (SW1) the lower one, near pin 3; U3 (wires J4 + encoder J1) takes the left expander position and U2 (keypad J3, Simon J6, SD detect J11) the right one. Both swaps shorten the routing; swap back by hand if the labels matter more.
 
-## Routing
+## Routing (rev 2 / 2.1, 2 layers)
+
+Rev 3 re-routed the board on 4 layers with the same pre-routes and tools (section "Rev 3"); this section and the next describe the 2-layer board it replaced.
 
 Routed with Freerouting 2.4.1 through `gen/route_prep.py` (its docstring has the exact commands), then GND pours and stitching; the session used is kept as `out/defuse32-carrier.ses`. Freerouting is not deterministic: a new run gives a different board, and the four `HAND_FIXES` in `route_prep.py` belong to this session only.
 
@@ -269,10 +328,10 @@ What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are t
 
 ## Assembly (JLCPCB)
 
-`out/jlcpcb/` holds the Gerbers + drill (zip), the JLCPCB BOM (Comment, Designator, Footprint, LCSC Part #; 23 lines, 57 SMD parts) and the CPL (Designator, Mid X, Mid Y, Layer, Rotation; 57 top-side parts), written by `gen/gen_jlcpcb.py`; [`out/jlcpcb/README.md`](out/jlcpcb/README.md) has the order settings.
+`out/jlcpcb/` holds the 4-layer Gerbers + drill (zip), the JLCPCB BOM (Comment, Designator, Footprint, LCSC, Quantity; 23 lines, 57 SMD parts) and the CPL (Designator, Val, Package, Mid X, Mid Y, Rotation, Layer; 57 top-side parts), written by `gen/gen_jlcpcb.py` with the conventions of the JLCPCB Tools plugin (Bouni/kicad-jlcpcb-tools 2026.04.03); [`out/jlcpcb/README.md`](out/jlcpcb/README.md) has the order settings.
 
 - Single-sided SMD assembly, all on top. Coordinates: drill/place origin at the board's bottom-left corner (Gerbers, drill and CPL agree).
-- **Check JLCPCB's rotation preview part by part**: the CPL carries KiCad's rotations, and JLCPCB's zero orientation differs per package (SOT-23/SOT-223/electrolytic often +180°, SOIC/LGA +-90°). Pin 1 of every IC, D1 (cathode to 5V), C1 (+) and the J7/J11 openings at the board edges are the ones to look at.
+- **Rotations**: the CPL position is the centre of each footprint's pads and the rotation is KiCad's plus the JLCPCB Tools plugin's correction for the package (U1 +270, U2/U3/U7 SOIC +270, U5/U6 SOT-223 +180, Q1-Q3/U4/U9 SOT-23 -90, J7 +180). Still check JLCPCB's placement preview: pin 1 of every IC, D1 (cathode to 5V), C1 (+), U8 (LGA-16, no rule) and the J7/J11 openings at the board edges.
 - **Through-hole, not assembled by default**: J1-J6 IDC box headers (2x5, 2x6, 2x8, 2x10, 2x7, 2x10), J8 1x2, J9 1x3, J10 1x5 pin headers. Solder by hand (keys toward the board edges, as on the silkscreen) or add them as JLCPCB THT assembly.
 - Extended parts after the regulator swap: 10 line items (see "Parts").
 

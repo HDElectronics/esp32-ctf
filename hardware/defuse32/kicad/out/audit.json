@@ -36,23 +36,6 @@
   },
   {
    "layer": "F.Cu",
-   "area_mm2": 5.32,
-   "width_mm": 1.81,
-   "via_fits": false,
-   "why": "too narrow / blocked for a via",
-   "at": [
-    61.9,
-    100.5
-   ],
-   "bbox": [
-    60.2,
-    98.85,
-    63.59,
-    102.14
-   ]
-  },
-  {
-   "layer": "F.Cu",
    "area_mm2": 5.08,
    "width_mm": 0.28,
    "via_fits": false,
@@ -100,6 +83,23 @@
     98.85,
     75.99,
     99.21
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 4.27,
+   "width_mm": 0.47,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    71.54,
+    108.34
+   ],
+   "bbox": [
+    68.15,
+    105.11,
+    74.93,
+    111.57
    ]
   },
   {
@@ -1054,18 +1054,8 @@
   ],
   [
    "jog",
-   "IR on F.Cu",
-   "sideways 0.34 mm double bend at (102.00, 102.68): keep the track straight"
-  ],
-  [
-   "jog",
    "SIM4 on F.Cu",
    "sideways 1.25 mm double bend at (117.33, 77.94): keep the track straight"
-  ],
-  [
-   "jog",
-   "BUZZ- on B.Cu",
-   "sideways 0.19 mm double bend at (102.86, 69.52): keep the track straight"
   ],
   [
    "jog",
@@ -1151,6 +1141,11 @@
   [
    "over-track",
    "C3 ref",
+   "printed over a track (legible, but text on flat mask reads better)"
+  ],
+  [
+   "over-track",
+   "J6 ref",
    "printed over a track (legible, but text on flat mask reads better)"
   ],
   [
@@ -1306,7 +1301,7 @@
   [
    "callout",
    "C19 ref",
-   "2.0 mm from its part, with a leader line"
+   "2.3 mm from its part, with a leader line"
   ],
   [
    "over-track",
@@ -1340,13 +1335,18 @@
   ],
   [
    "over-track",
+   "text 'M6 SENSORS'",
+   "printed over a track (legible, but text on flat mask reads better)"
+  ],
+  [
+   "over-track",
    "text 'DEFUSE32 CARRIER'",
    "printed over a track (legible, but text on flat mask reads better)"
   ],
   [
-   "hidden",
-   "references",
-   "R16 R17 R18 R19"
+   "range",
+   "R16-19",
+   "range label for R16 R17 R18 R19"
   ]
  ]
 }

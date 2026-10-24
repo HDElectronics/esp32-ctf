@@ -7,7 +7,7 @@ Written by `../../gen/gen_jlcpcb.py` from the routed and finished board (rev 3: 
 | `defuse32-carrier-jlcpcb.zip` | Gerbers + drill, zipped flat: upload at jlcpcb.com > Order now |
 | `defuse32-carrier-bom.csv` | Assembly BOM (Comment, Designator, Footprint, LCSC, Quantity), SMD parts only |
 | `defuse32-carrier-cpl.csv` | Pick-and-place (Designator, Val, Package, Mid X, Mid Y, Rotation, Layer), top-side SMD parts only |
-| `gerber/` | The unzipped Gerbers (`-F_Cu`, `-In1_Cu`, `-In2_Cu`, `-B_Cu`, mask, paste, silkscreen, `-Edge_Cuts`) and drill files |
+| `gerber/` | The unzipped Gerbers (`-F_Cu.gtl`, `-GND1.g1` = In1.Cu, `-GND2.g2` = In2.Cu, `-B_Cu.gbl`, mask, paste, silkscreen, `-Edge_Cuts.gm1`), drill files and the Gerber job file (layer order and stack-up) |
 
 ## PCB order settings
 
@@ -19,7 +19,7 @@ Written by `../../gen/gen_jlcpcb.py` from the routed and finished board (rev 3: 
 | Different designs / delivery format | 1 / single PCB |
 | PCB thickness | 1.6 mm |
 | **Layer stack-up** | **JLC04161H-7628** (standard, no extra charge): L1 F.Cu 1 oz, 0.2104 mm 7628 prepreg, L2 In1.Cu 0.5 oz, 1.065 mm core, L3 In2.Cu 0.5 oz, 0.2104 mm prepreg, L4 B.Cu 1 oz. The board file carries the same stack-up (Board Setup > Physical Stackup) |
-| Layer sequence (if asked) | L1 `-F_Cu`, L2 `-In1_Cu` (GND plane), L3 `-In2_Cu` (GND plane), L4 `-B_Cu` |
+| Layer sequence (if asked) | L1 `-F_Cu.gtl`, L2 `-GND1.g1` (In1.Cu, GND plane), L3 `-GND2.g2` (In2.Cu, GND plane), L4 `-B_Cu.gbl` (KiCad names the inner Gerbers after the layers, GND1 / GND2) |
 | Impedance control | **No** (USB full speed, SPI and WS2812 need none) |
 | Solder mask / silkscreen | Green / white (any colour works); top silkscreen only carries references (the bottom has none) |
 | Surface finish | HASL lead-free (ENIG is nicer for the 0.5 mm-pitch LIS3DH and USB-C, optional) |
