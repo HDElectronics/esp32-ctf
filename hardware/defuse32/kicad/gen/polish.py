@@ -1641,24 +1641,103 @@ def chamfer_pass(board, skip=(), log=print):
             ka = ("seg", ta, a, c1) if key(pt(ta.GetStart())) == key(a) else ("seg", ta, c1, a)
             kb = ("seg", tb, c2, b) if key(pt(tb.GetEnd())) == key(b) else ("seg", tb, b, c2)
             plans.append((TOMM(int(k)), [ka, kb, ("add", net, layer, w, c1, c2)]))
-        for kmm, raw in plans:
+        # a T-junction right at the corner (a branch U ends there): the chamfer is drawn and U's end
+        # slides along U onto it (follow_anchors cannot, the corner point itself goes)
+        tees = {}
+        other_anchor = False
+        for t_ in (ta, tb):
+            for a_ in ctx.anchors.get(uid(t_), []):
+                if a_[0] in ("tee", "onto") and uid(a_[1]) not in (uid(ta), uid(tb)):
+                    tees[uid(a_[1])] = a_[1]
+                else:
+                    other_anchor = True
+        special = []
+        if tees and not other_anchor and all(uid(U) not in ctx.fixed for U in tees.values()):
+            # every plan (merges and plain chamfers) once more with each branch U's end slid along
+            # U onto the nearest new segment of the plan
+            for kmm0, raw0 in plans:
+                segs_new = [(c_[2], c_[3]) for c_ in raw0 if c_[0] == "seg"] + [(c_[4], c_[5]) for c_ in raw0 if c_[0] == "add"]
+                raw = list(raw0)
+                ok_ = True
+                for U in tees.values():
+                    s0, s1 = pt(U.GetStart()), pt(U.GetEnd())
+                    if norm(sub(s0, c)) < U.GetWidth():
+                        e_, o_, first = s0, s1, True
+                    elif norm(sub(s1, c)) < U.GetWidth():
+                        e_, o_, first = s1, s0, False
+                    else:
+                        ok_ = False
+                        break
+                    dU = unit(sub(e_, o_))
+                    best_x = None
+                    for p_, q_ in segs_new:
+                        if norm(sub(q_, p_)) < UM:
+                            continue
+                        dd2 = unit(sub(q_, p_))
+                        X = intersect(o_, dU, p_, dd2)
+                        if X is None or not (0 <= dot(sub(X, p_), dd2) <= norm(sub(q_, p_))) or dot(sub(X, o_), dU) < MINLEN:
+                            continue
+                        if best_x is None or norm(sub(X, e_)) < norm(sub(best_x, e_)):
+                            best_x = X
+                    if best_x is None or norm(sub(best_x, e_)) > MM(1.0):
+                        ok_ = False
+                        break
+                    raw.append(("seg", U, best_x, o_) if first else ("seg", U, o_, best_x))
+                if ok_:
+                    special.append((kmm0, raw))
+        cdbg = (lambda m: log("    corner %s %s: %s" % (tag[0], tag[2], m))) if os.environ.get("D32_CHAMFER_DEBUG") else (lambda m: None)
+        cdbg("%d T-junction plans, %d plans, tees %d other %s" % (len(special), len(plans), len(tees), other_anchor))
+        for kmm, raw in special + plans:
             k = MM(kmm)
-            ch = follow_anchors(ctx, raw)
+            sp = any(r_ is raw for k_, r_ in special)
+            ch = raw if sp else follow_anchors(ctx, raw)
             if ch is None:
+                cdbg("k %.2f anchors %s" % (kmm, FA_FAIL))
                 continue                            # a connection sits on the cut-off part
             txn = Txn(ctx)
             txn.apply(ch)
-            if txn.conflicts(first=True):
+            bad = txn.conflicts(first=True)
+            if bad:
+                cdbg("k %.2f%s conflict %s" % (kmm, " T" if sp else "", [describe(e) for it, e in bad]))
                 txn.rollback()
                 continue
             if sum(count_jogs(c3[2]) for c3 in chains(board, {net}, exclude={uid(t) for t in txn.dele})) > before:
+                cdbg("k %.2f%s more jogs" % (kmm, " T" if sp else ""))
                 txn.rollback()
                 continue
+            if sp:
+                dd_ = drc_check(board, drop={uid(t) for t in txn.dele})
+                if dd_:
+                    cdbg("k %.2f T drc %s" % (kmm, [x[:2] for x in dd_[:2]]))
+                    txn.rollback()                  # KiCad checks the T-junction slide
+                    continue
             LAST_TOUCHED[:] = [uid(x) for x in txn.touched()]
             txn.commit()
             done = TOMM(int(k))
             break
         how = "45 deg chamfer"
+        if done is None and tees and not other_anchor:
+            # the "corner" is really a T-junction whose branch ends a few um off the vertex: weld
+            # the branch onto the vertex (moved parallel when its far end stays in its pad / via),
+            # so the junction is one point (a stop) and no corner is left
+            for U in tees.values():
+                s0, s1 = pt(U.GetStart()), pt(U.GetEnd())
+                first = norm(sub(s0, c)) <= norm(sub(s1, c))
+                e_, o_ = (s0, s1) if first else (s1, s0)
+                dlt = sub(c, e_)
+                if norm(dlt) > MM(0.1) or norm(dlt) < 1:
+                    continue
+                far = stop_item(ctx, net, layer, o_, {uid(U)})
+                o2 = add(o_, dlt) if far is not None and far.GetClass() in ("PAD", "PCB_VIA") and \
+                    far.HitTest(V(add(o_, dlt))) else o_
+                txn = Txn(ctx)
+                txn.apply([("seg", U, c, o2) if first else ("seg", U, o2, c)])
+                if txn.conflicts(first=True) or drc_check(board):
+                    txn.rollback()
+                    continue
+                txn.commit()
+                done, how = 0.0, "T-junction welded onto the vertex"
+                break
         if done is None:
             # re-route the run (from the stop before to the stop after) with 90 deg turns barred
             n = len(ts)
@@ -1762,17 +1841,42 @@ def maze_jogs(board, skip=(), log=print, rounds=4):
     return fixed
 
 
-def _maze_jogs_round(board, skip, log, fixed):
+def chain_corners(P):
+    return sum(1 for m in range(1, len(P) - 1)
+               if norm(sub(P[m], P[m - 1])) > MM(0.05) and norm(sub(P[m + 1], P[m])) > MM(0.05)
+               and abs(dot(unit(sub(P[m], P[m - 1])), unit(sub(P[m + 1], P[m])))) < 1e-3)
+
+
+def fewer_defects(ctx, txn):
+    """Like fewer_jogs, counting 90 deg corners too."""
+    nets = {it.GetNetCode() for it in txn.touched()} | {t.GetNetCode() for t in txn.dele}
+    gone = {uid(t) for t in txn.dele}
+    before = sum(count_jogs(c[2]) + chain_corners(c[2]) for c in ctx.chains if c[0] in nets)
+    after = sum(count_jogs(P) + chain_corners(P) for net, layer, P, ts in chains(ctx.board, nets, exclude=gone))
+    return after < before
+
+
+def maze_corners(board, skip=(), log=print):
+    """90 deg corners the chamfer could not cut (a T-junction sits on them): the run is re-routed
+    like a jogged one (maze_jogs), kept when the net then has fewer jogs + corners."""
+    fixed = []
+    _maze_jogs_round(board, skip, log, fixed, corners=True)
+    return fixed
+
+
+def _maze_jogs_round(board, skip, log, fixed, corners=False):
     base = len(drc_check(board))                 # problems already there (none expected)
     tried = set()
     ctx = Ctx(board)
+    fewer = fewer_defects if corners else fewer_jogs
     while True:
         cand = None
         for ci, (net, layer, pts, ts) in enumerate(ctx.chains):
             name = ts[0].GetNetname()
             if name in SKIP_NETS or any(uid(t) in ctx.fixed for t in ts):
                 continue
-            for j, off in find_jogs(pts):
+            spots = [(m - 1, 0.0) for c2, m in right_angles(ctx) if c2 == ci] if corners else find_jogs(pts)
+            for j, off in spots:
                 tag = (name, board.GetLayerName(layer), bmm(pts[j + 1]))
                 if tag in skip or tag in tried:
                     continue
@@ -1821,7 +1925,7 @@ def _maze_jogs_round(board, skip, log, fixed):
         runs[0][1] = snap_end(runs[0][1], a_it, True)
         runs[-1][1] = snap_end(runs[-1][1], b_it, False)
         if any(not chain_turns_ok(P_) or count_jogs(P_) > 0 for L_, P_ in runs) or \
-                (not two and count_jogs(runs[0][1]) >= count_jogs(pts)):
+                (not two and not corners and count_jogs(runs[0][1]) >= count_jogs(pts)):
             dbg("path has jogs")
             continue
         newlen = sum(chain_len(P_) for L_, P_ in runs)
@@ -1885,9 +1989,9 @@ def _maze_jogs_round(board, skip, log, fixed):
             txn.rollback()
             continue
         bad = txn.conflicts(first=True)
-        if not bad and fewer_jogs(ctx, txn):
-            bad = [(None, d) for d in drc_check(board)][base:base + 1]      # KiCad has the last word
-        if bad or not fewer_jogs(ctx, txn):
+        if not bad and fewer(ctx, txn):
+            bad = [(None, d) for d in drc_check(board, drop={uid(t) for t in txn.dele})][base:base + 1]  # KiCad has the last word
+        if bad or not fewer(ctx, txn):
             dbg("conflict %s" % (bad[:1],) if bad else "net jogs not fewer")
             txn.rollback()
             continue
@@ -2000,7 +2104,8 @@ def ripup_jogs(board, skip=(), log=print, max_nbrs=4):
             runs, vias = r
             txn.apply([("add", n_, L_, max(t.GetWidth() for t in T_), Q[m], Q[m + 1]) for L_, Q in runs for m in range(len(Q) - 1)]
                       + [("addvia", n_, q) for q in vias])
-        if not ok or txn.conflicts(first=True) or not fewer_jogs(ctx, txn) or len(drc_check(board)) > base:
+        if not ok or txn.conflicts(first=True) or not fewer_jogs(ctx, txn) or \
+                len(drc_check(board, drop={uid(t) for t in txn.dele})) > base:
             txn.rollback()
             continue
         names = nbr_names
@@ -4046,7 +4151,34 @@ def place_legend(board, sm, smb, log=print):
 
 
 # ------------------------------------------------------------------------------ checks, steps
-def drc_check(board, ignore_gnd=True):
+def drop_items(path, uuids):
+    """Remove the track / via blocks with these uuids from a saved board file (a transaction's
+    deletions only reach the board on commit: the DRC copy must not have them)."""
+    if not uuids:
+        return
+    lines = open(path).read().split("\n")
+    out, blk = [], None
+    for ln in lines:
+        if blk is None and (ln.startswith("\t(segment") or ln.startswith("\t(via") or ln.startswith("\t(arc")):
+            blk = [ln]
+            if ln.rstrip().endswith(")") and ln.count("(") == ln.count(")"):
+                if not any('(uuid "%s")' % u in ln for u in uuids):
+                    out.append(ln)
+                blk = None
+            continue
+        if blk is not None:
+            blk.append(ln)
+            if ln == "\t)":
+                text = "\n".join(blk)
+                if not any('"%s"' % u in text for u in uuids):
+                    out.extend(blk)
+                blk = None
+            continue
+        out.append(ln)
+    open(path, "w").write("\n".join(out))
+
+
+def drc_check(board, ignore_gnd=True, drop=()):
     """KiCad DRC (all severities) on a temporary copy of the board with this project's rules.
     Returns ([(type, description, [uuids])], unconnected count); with ignore_gnd, missing GND
     connections and dangling GND vias are left out (the pours that make them come later)."""
@@ -4061,6 +4193,7 @@ def drc_check(board, ignore_gnd=True):
             shutil.copy(os.path.join(src, base + ext), d)
     path = os.path.join(d, name)
     pcbnew.SaveBoard(path, board)
+    drop_items(path, set(drop))
     out = os.path.join(d, "drc.json")
     subprocess.run(["kicad-cli", "pcb", "drc", "--severity-all", "--format", "json", "-o", out, path],
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -4216,6 +4349,10 @@ def cmd_all(*opts):
         log("maze: %d more jogs fixed by re-routing their run (%d with neighbouring runs ripped up)" % (len(mfix), len(rfix)))
         fixed += mfix
         cfix, cleft = chamfer_pass(board, skip, log=log)
+        if cleft:
+            cfix += maze_corners(board, skip, log=log)
+            merge_collinear(board)
+            cleft = chamfer_pass(board, skip, log=log)[1]
         merge_collinear(board)
         log("corners: %d right angles chamfered to 2 x 45 deg, %d left %s" % (len(cfix), len(cleft), cleft[:12]))
         fixed += cfix
