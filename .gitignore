@@ -13,3 +13,4 @@ sdkconfig.*.local
 build-release/
 web/flasher/dist-site/
 build-*/
+hardware/defuse32/kicad/3d/

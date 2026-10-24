@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Rev 2.1 "professional finish" of the routed carrier (defuse32-carrier.kicad_pcb), in place.
+"""The "professional finish" of the routed carrier (defuse32-carrier.kicad_pcb), in place.
 
-Works on the CURRENT routed board: no new routing run, footprints and schematic untouched,
-route_prep's HAND_FIXES not re-applied, pre-routes (route_prep PREROUTE / PREVIAS) never moved and
-every connection kept. The rules come from the pcb-layout-pro skill; its audit (gen/pcb_audit.py,
+Written for rev 2.1 (2 layers), extended for rev 3 (4 layers, stack-up option B: In1.Cu and In2.Cu
+solid GND planes, signals + power + GND pours on F.Cu and B.Cu). Works on the CURRENT routed board:
+no new routing run, footprints and schematic untouched, route_prep's HAND_FIXES not re-applied,
+pre-routes (route_prep PREROUTE / PREVIAS) never moved and every connection kept. The rules come from the pcb-layout-pro skill; its audit (gen/pcb_audit.py,
 a copy of the skill's script) measures the result. Run from hardware/defuse32/kicad/ with KiCad's
 Python (/usr/bin/python3, not conda):
 
-  /usr/bin/python3 gen/polish.py all           # every step below, KiCad DRC, report (~8 min)
+  /usr/bin/python3 gen/polish.py all           # every step below, KiCad DRC, report (~10 min)
   /usr/bin/python3 gen/polish.py all nojogs    # the same without the jog step (~1.5 min)
   /usr/bin/python3 gen/polish.py jogs          # the jogs left on the board and what keeps each
   /usr/bin/python3 gen/polish.py report        # route_prep's report (vias, lengths, decoupling, USB)
@@ -19,7 +20,7 @@ os._exit() (KiCad 10.0.7 SWIG, see route_prep.main()).
 
 Model. Tracks are grouped into chains (per net and layer, between pads, vias, branch points and
 T-junctions). An obstacle index holds all copper with its net-class clearance, holes (0.25 mm,
-hole-to-hole 0.5 mm), keep-outs and the 0.3 mm edge band; every move is a change list applied in a
+hole-to-hole 0.3 mm), keep-outs and the 0.3 mm edge band; every move is a change list applied in a
 transaction and accepted only if each changed item keeps its clearance (exact segment / polygon
 distances). Moves keep directions: a moved run's corners slide along the neighbouring segments, a
 moved via takes its tracks along the same way. A track that ends on the middle of another one
@@ -36,30 +37,43 @@ jogs    A jog is a track that steps sideways by < 1.5 mm with two bends and carr
         chain around the jog with an octilinear A* search (0.05 mm grid, start anywhere on the kept
         segment before, end anywhere on the line of the kept segment after, bend penalties, 50 %
         extra cost within 0.1 mm of the clearance limit). A fix must lower the jog count of every
-        net it touches. USB_DP/USB_DM are kept as hand-routed (symmetric). KiCad's DRC then checks
-        the copper; a fix that shows up in a violation is skipped and the step replayed.
-voids   New GND pours on F.Cu and B.Cu (whole outline, clearance 0.2 mm, minimum width 0.2 mm,
-        thermal reliefs 0.3 / 0.5 mm; net-class clearances above 0.2 mm still apply). Floating pour
+        net it touches. A GND fan-out via (and its stub) in the way is rebuilt at another spot
+        round its pad (GND reaches the planes from anywhere). What is still left: the whole run
+        is ripped up and re-routed by route_prep's maze search (one layer, no 90 deg turn), kept
+        when the net then has fewer jogs. USB_DP/USB_DM are kept as hand-routed (symmetric).
+corners Every 90 deg corner becomes two 45 deg bends (chamfer_pass: the corner is cut back by up to
+        1 mm along both legs; clearances, mid-segment connections and the jog count kept). KiCad's
+        DRC then checks the copper; a fix that shows up in a violation is skipped and the step
+        replayed.
+voids   New GND zones: pours on F.Cu and B.Cu and solid planes on In1.Cu / In2.Cu (whole outline,
+        clearance 0.2 mm, minimum width 0.2 mm, thermal reliefs 0.3 / 0.5 mm; net-class clearances
+        above 0.2 mm still apply). Floating pour
         pieces too narrow for a via: each track bounding one is shifted toward it by the largest
         legal step (strip closes to minimum spacing); kept when, after a refill, the floating area
         within 3 mm has dropped by at least half the piece and no jog was added.
-silk    References: one size for all, 1.0 mm / 0.15 mm, else 0.8 mm / 0.15 mm (the first at which
-        the fewest parts need the fallback); 0 or 90 deg, keep-upright; outside every courtyard
-        (mounting holes too); at most 2 mm from its own part and at least 0.05 mm nearer it than any
-        other part; 0.15 mm from pads, mask openings and other silk, 0.3 mm from the edge; never
-        over a via (a via in the way of the only good spot is moved, plan_via_move, if it can);
-        fewer tracks underneath preferred. Rows of like parts (GROUPS) share one side and line.
-        Last resort before hiding: the bottom silkscreen at the part (a row that would end up mostly
-        there goes as a whole). Then the board legend (name, revision, date, JLCPCB order-number
-        placeholder) in the clearest top-side spot, and the plate names after J1-J6's references
-        (same line where it fits, else reference and name together elsewhere around the header).
+silk    References: one size for all, 1.0 mm / 0.15 mm (JLCPCB's minimum text height); 0 or 90 deg,
+        keep-upright; outside every courtyard (mounting holes too); beside one side of its own part
+        (overlapping its span by >= 40 %, never off a corner), at most 1 mm from it and at least
+        0.05 mm nearer it than any other part; 0.15 mm from pads, mask openings and other silk,
+        0.3 mm from the edge; never over a via (a via in the way of the only good spot is moved,
+        plan_via_move, if it can); fewer tracks underneath preferred. Rows of like parts (GROUPS
+        plus the rows pcb_audit.py finds: same footprint and rotation, in line, < 5 mm apart)
+        share one side and line, in part order; a row of resistors / capacitors that finds no
+        line gets one range label instead ("R16-19", beside the row, members' references hidden).
+        No spot next to the part: a callout (label 1.15 - 10 mm off with a 0.15 mm leader that
+        stops 0.2 mm short of the part and keeps clear of pads, silk, text and vias). Never on
+        the bottom silkscreen (owner's review, rev 3). Plate names come after all references.
+        Then the board legend (name, revision, date, JLCPCB order-number placeholder) in the
+        clearest top-side spot, and the plate names after J1-J6's references (same line where it
+        fits, else reference and name together elsewhere around the header).
         U1's pin-1 mark is synced with the local library (gen_lib.py: smaller, off the edge).
-stitch  Every GND piece cut off from the main pour gets a via where one is legal on both layers,
-        over main ground on the other layer and clear of silkscreen text; where text is the only
-        thing in the way it moves (same rules, a row as a row); where tracks / vias of other nets
-        are, they are pushed aside (as in `jogs`) if the via then joins the main pour. Then a 5 mm
-        grid of stitching vias (searching 1 mm around each point) where both pours are solid, off
-        the labels and the U1/J7/J11 courtyards. Vias that only join floating pieces go; the final
+stitch  Every GND piece cut off from the main GND copper gets a via (0.45 / 0.2 mm) where one is
+        legal on every layer, over the neighbouring GND plane and clear of silkscreen text; where
+        text is the only thing in the way it moves (same rules, a row as a row); where tracks / vias
+        of other nets are, they are pushed aside (as in `jogs`) if the via then joins the main GND.
+        A GND via next to every layer change of a fast net (USB, SPI, WS2812 data: return path
+        between the planes). Then a 5 mm grid of stitching vias (searching 1 mm around each point)
+        where an outer pour is solid, off the labels and the U1/J7/J11 courtyards. Vias that only join floating pieces go; the final
         fill removes islands (ALWAYS), so no floating copper remains; route_prep.prune deletes
         stitching vias KiCad's DRC finds dangling.
 After the steps: KiCad DRC (all severities) on the saved board, the jogs left with the reason for
@@ -81,6 +95,7 @@ BOARD = R.BOARD
 MM = pcbnew.FromMM
 TOMM = pcbnew.ToMM
 F, B = pcbnew.F_Cu, pcbnew.B_Cu
+IN1, IN2 = R.IN1, R.IN2                     # solid GND planes (rev 3, stack-up option B)
 MAXERR = MM(0.005)
 UM = 1000                                   # nm per um
 
@@ -88,9 +103,10 @@ JOG_MAX_OFFSET = 1.5                        # mm, as pcb_audit.py
 JOG_MAX_RUN = 3.0                           # mm, slanted middle part shorter than this
 MINLEN = MM(0.05)                           # shortest segment a fix may leave
 EDGE = 0.3                                  # mm, copper to board edge
-HOLE_CLR = 0.25                             # mm, copper to hole (min_hole_clearance)
+HOLE_CLR = 0.28                             # mm, copper to a pad hole (JLCPCB PTH hole to track, DRU)
+HOLE2HOLE = MM(0.3)                         # via hole to any hole (board minimum 0.25 mm, JLCPCB 0.2)
 SKIP_NETS = ("USB_DP", "USB_DM")            # hand-routed differential pair: keep as drawn
-REVISION = "2.1"                            # board title block (the schematic stays rev 2)
+REVISION = "3"                              # board title block (the schematic stays rev 2)
 
 
 def bmm(v):
@@ -307,7 +323,7 @@ class Obstacles:
         for u, (c, hr) in self.holes.items():
             if u in ignore:
                 continue
-            if norm(sub(c, p)) < hr + drill / 2 + MM(0.5):
+            if norm(sub(c, p)) < hr + drill / 2 + HOLE2HOLE:
                 out.append(("hole", u))
                 if first:
                     return out
@@ -516,7 +532,7 @@ def anchored_tracks(board, where=None):
                     out.setdefault(uid(o), []).append(("onto", t, ei))
             for v in nvias:
                 p = pt(v.GetPosition())
-                if key(p) not in own and seg.Distance(V(p)) < hw + v.GetWidth(F) / 2 and \
+                if key(p) not in own and seg.Distance(V(p)) < hw and \
                         not (v.HitTest(t.GetStart(), 0) or v.HitTest(t.GetEnd(), 0)):
                     out.setdefault(uid(t), []).append(("via", v))
                     out.setdefault(uid(v), []).append(("pin", t))       # the via stays as well
@@ -716,8 +732,9 @@ class Txn:
             elif kind == "addvia":                  # ("addvia", netcode, position)
                 v = pcbnew.PCB_VIA(self.ctx.board)
                 v.SetPosition(V(ch[2]))
-                v.SetWidth(R.VIA_D)
-                v.SetDrill(R.VIA_DRILL)
+                small = ch[1] == self.ctx.board.FindNet("GND").GetNetCode()
+                v.SetWidth(R.GND_VIA_D if small else R.VIA_D)
+                v.SetDrill(R.GND_VIA_DRILL if small else R.VIA_DRILL)
                 v.SetLayerPair(F, B)
                 v.SetNetCode(ch[1])
                 self.ctx.board.Add(v)
@@ -981,10 +998,70 @@ def entry_center(e):
     return ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2)
 
 
+def fanout_of(ctx, it):
+    """(via, stub, pad) when it is a GND fan-out via or its stub: a GND via with exactly one track,
+    on F.Cu, whose other end lies in a GND SMD pad (route_prep.gnd_fanout); else None."""
+    gnd = ctx.board.FindNet("GND").GetNetCode()
+    if it.GetNetCode() != gnd or not ctx.movable(it):
+        return None
+    if it.GetClass() == "PCB_VIA":
+        v = it
+    else:
+        v = None
+        for q in (it.GetStart(), it.GetEnd()):
+            v = v or via_at(ctx.board, gnd, pt(q))
+        if v is None or not ctx.movable(v):
+            return None
+    tr = [t for t in ctx.board.GetTracks() if t.GetClass() == "PCB_TRACK" and t.GetNetCode() == gnd
+          and (v.HitTest(t.GetStart(), 0) or v.HitTest(t.GetEnd(), 0))]
+    if len(tr) != 1 or tr[0].GetLayer() != F or not ctx.movable(tr[0]) or uid(tr[0]) in ctx.anchored:
+        return None
+    t = tr[0]
+    far = pt(t.GetEnd()) if v.HitTest(t.GetStart(), 0) else pt(t.GetStart())
+    pd = pad_at(ctx.board, gnd, F, far)
+    if pd is None or pd.HasHole():
+        return None
+    return v, t, pd
+
+
+def relocate_fanout(ctx, txn, fo, toward):
+    """Rebuild a GND fan-out (via + stub from its pad) at another spot around the pad, preferring
+    directions along `toward`, inside the open transaction. GND reaches the planes from anywhere,
+    so fan-out vias are as free to move as stitching vias. True if done."""
+    v, t, pd = fo
+    gnd = v.GetNetCode()
+    c = pt(pd.GetPosition())
+    bb = pd.GetBoundingBox()
+    hw, hh = bb.GetWidth() / 2, bb.GetHeight() / 2
+    tw = unit(toward) if norm(toward) else (0.0, 0.0)
+    dirs = sorted([(math.cos(a * math.pi / 8), math.sin(a * math.pi / 8)) for a in range(16)],
+                  key=lambda d: -dot(d, tw))
+    avoid = [ctx.board.FindFootprintByReference(r).GetCourtyard(pcbnew.F_CrtYd) for r in R.FAN_AVOID]
+    width = t.GetWidth()
+    for extra in (0.0, 0.2, 0.4, 0.7, 1.0):
+        for d in dirs:
+            reach = abs(d[0]) * hw + abs(d[1]) * hh
+            dist = reach + MM(R.FAN_CLEAR + 0.05 + extra) + R.GND_VIA_D / 2
+            q = add(c, mul(d, dist))
+            if any(a.Contains(V(q)) for a in avoid):
+                continue
+            mk = txn.mark()
+            txn.apply([("del", t), ("del", v), ("addvia", gnd, q), ("add", gnd, F, width, c, q)])
+            if not txn.conflicts(mk, first=True):
+                return True
+            txn.rollback(mk)
+    return False
+
+
 def clear_blocker(ctx, txn, e, toward):
     """Move the via / track of entry e out of the way of the changes in txn (all clearances kept):
-    the smallest push that works, preferring directions along `toward` (nm vector). True if moved."""
+    the smallest push that works, preferring directions along `toward` (nm vector); a GND fan-out
+    in the way is rebuilt elsewhere around its pad if pushing does not work. True if moved."""
     it = e[7]
+    fo = fanout_of(ctx, it)
+    if fo is not None and uid(fo[0]) not in {uid(x) for x in txn.touched()}:
+        if relocate_fanout(ctx, txn, fo, toward):
+            return True
     if e[6] == "via":
         p = pt(it.GetPosition())
         dirs = list(OCT)
@@ -1111,7 +1188,7 @@ RGRID = MM(0.05)                            # router grid pitch (adjusted per wi
 TIGHT = MM(0.1)                             # nodes this much closer than needed to copper cost more
 STEP8 = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
 SQ2 = math.sqrt(2)
-WIN_CORRIDORS = (1.0, 2.5)                  # mm around the old path
+WIN_CORRIDORS = (1.0, 2.5, 4.0)             # mm around the old path
 WIN_SLACK = MM(2.5)                         # extra length a re-routed window may take
 
 
@@ -1492,6 +1569,232 @@ def merge_collinear(board, obs=None):
     return n
 
 
+CHAMFERS = (1.0, 0.8, 0.6, 0.5, 0.4, 0.3, 0.25, 0.2, 0.15, 0.1, 0.07)   # mm, corner cut-back tried in order
+
+
+def right_angles(ctx):
+    """[(chain index, point index)] of 90 deg corners (both legs > 0.05 mm, as pcb_audit.py)."""
+    out = []
+    for ci, (net, layer, pts, ts) in enumerate(ctx.chains):
+        for i in range(1, len(pts) - 1):
+            d1, d2 = sub(pts[i], pts[i - 1]), sub(pts[i + 1], pts[i])
+            if norm(d1) > MM(0.05) and norm(d2) > MM(0.05) and abs(dot(unit(d1), unit(d2))) < 1e-3:
+                out.append((ci, i))
+    return out
+
+
+def chamfer_pass(board, skip=(), log=print):
+    """Every 90 deg corner becomes two 45 deg bends: the corner point is cut back along both legs
+    by the largest of CHAMFERS that leaves each leg >= MINLEN, keeps every clearance and every
+    mid-segment connection (follow_anchors) and adds no jog. Pre-routes and the USB pair stay.
+    Returns (fixed [(net, layer, at, cut mm, how, uuids)], left [(net, layer, at)])."""
+    fixed = []
+    ctx = Ctx(board)
+    tried = set()
+    while True:
+        cand = None
+        for ci, i in right_angles(ctx):
+            net, layer, pts, ts = ctx.chains[ci]
+            tag = (ts[0].GetNetname(), board.GetLayerName(layer), bmm(pts[i]))
+            if tag in tried or tag in skip:
+                continue
+            cand = (ci, i, tag)
+            break
+        if cand is None:
+            break
+        ci, i, tag = cand
+        tried.add(tag)
+        net, layer, pts, ts = ctx.chains[ci]
+        ta, tb = ts[i - 1], ts[i]
+        if tag[0] in SKIP_NETS or not (ctx.movable(ta) and ctx.movable(tb)):
+            continue
+        a, c, b = pts[i - 1], pts[i], pts[i + 1]
+        ua, ub = unit(sub(c, a)), unit(sub(b, c))
+        room = min(norm(sub(c, a)), norm(sub(b, c))) - MINLEN
+        w = min(ta.GetWidth(), tb.GetWidth())
+        before = sum(count_jogs(c2[2]) for c2 in ctx.chains if c2[0] == net)
+        done = None
+
+        def segto(t, p_old, q_old, p_new, q_new):
+            """Change track t (joining p_old, q_old) to join p_new, q_new, keeping its orientation."""
+            return ("seg", t, p_new, q_new) if key(pt(t.GetStart())) == key(p_old) else ("seg", t, q_new, p_new)
+        ud = unit(add(ua, ub))
+        la, lb = norm(sub(c, a)), norm(sub(b, c))
+        plans = []
+        # the leg after the corner is followed by a 45 deg segment in the chamfer's direction: the
+        # chamfer runs into it and the leg goes (a plain chamfer would leave a jog: 45, short leg, 45)
+        if i + 1 < len(ts) and dot(unit(sub(pts[i + 2], pts[i + 1])), ud) > 0.9999 and la - lb >= MINLEN:
+            c1 = sub(c, mul(ua, lb))
+            plans.append((TOMM(int(lb)), [segto(ta, a, c, a, c1), ("del", tb), segto(ts[i + 1], b, pts[i + 2], c1, pts[i + 2])]))
+        if i >= 2 and dot(unit(sub(pts[i - 1], pts[i - 2])), ud) > 0.9999 and lb - la >= MINLEN:
+            c2 = add(c, mul(ub, la))
+            plans.append((TOMM(int(la)), [("del", ta), segto(tb, c, b, c2, b), segto(ts[i - 2], pts[i - 2], a, pts[i - 2], c2)]))
+        for k in CHAMFERS:
+            k = MM(k)
+            if k > room:
+                continue
+            c1, c2 = sub(c, mul(ua, k)), add(c, mul(ub, k))
+            ka = ("seg", ta, a, c1) if key(pt(ta.GetStart())) == key(a) else ("seg", ta, c1, a)
+            kb = ("seg", tb, c2, b) if key(pt(tb.GetEnd())) == key(b) else ("seg", tb, b, c2)
+            plans.append((TOMM(int(k)), [ka, kb, ("add", net, layer, w, c1, c2)]))
+        for kmm, raw in plans:
+            k = MM(kmm)
+            ch = follow_anchors(ctx, raw)
+            if ch is None:
+                continue                            # a connection sits on the cut-off part
+            txn = Txn(ctx)
+            txn.apply(ch)
+            if txn.conflicts(first=True):
+                txn.rollback()
+                continue
+            if sum(count_jogs(c3[2]) for c3 in chains(board, {net}, exclude={uid(t) for t in txn.dele})) > before:
+                txn.rollback()
+                continue
+            LAST_TOUCHED[:] = [uid(x) for x in txn.touched()]
+            txn.commit()
+            done = TOMM(int(k))
+            break
+        how = "45 deg chamfer"
+        if done is None:
+            # re-route the run (from the stop before to the stop after) with 90 deg turns barred
+            n = len(ts)
+            for a0, b0 in ((max(i - 2, 0), min(i + 2, n)), (0, n)):
+                for corridor in (1.0, 2.5):
+                    r = route_window(ctx, ci, a0, b0, corridor, bend90=MM(1000.0))
+                    if r is None:
+                        continue
+                    newP, w2 = r
+                    if not chain_turns_ok(newP) or any(abs(dot(unit(sub(newP[m], newP[m - 1])), unit(sub(newP[m + 1], newP[m])))) < 1e-3
+                                                       for m in range(1, len(newP) - 1)):
+                        continue
+                    if count_jogs(newP) > count_jogs(pts) or chain_len(newP) > chain_len(pts) + WIN_SLACK:
+                        continue
+                    if any(norm(sub(newP[m + 1], newP[m])) < MINLEN for m in range(len(newP) - 1)):
+                        continue
+                    oldseg = {(key(pts[m]), key(pts[m + 1])): ts[m] for m in range(n)}
+                    segs = [(newP[m], newP[m + 1], oldseg.get((key(newP[m]), key(newP[m + 1])))) for m in range(len(newP) - 1)]
+                    keep = {uid(t) for p_, q_, t in segs if t is not None}
+                    ch = [("add", net, layer, w2, p_, q_) for p_, q_, t in segs if t is None]
+                    ch += [("del", t) for t in ts if uid(t) not in keep]
+                    ch = follow_anchors(ctx, ch)
+                    if ch is None:
+                        continue
+                    txn = Txn(ctx)
+                    txn.apply(ch)
+                    if txn.conflicts(first=True):
+                        txn.rollback()
+                        continue
+                    LAST_TOUCHED[:] = [uid(x) for x in txn.touched()]
+                    txn.commit()
+                    done, how = 0.0, "re-routed without the 90 deg turn"
+                    break
+                if done is not None:
+                    break
+        if done is None:
+            continue
+        fixed.append(tag + (round(done, 2), how, list(LAST_TOUCHED)))
+        ctx.refresh()
+    left = []
+    for ci, i in right_angles(ctx):
+        net, layer, pts, ts = ctx.chains[ci]
+        left.append((ts[0].GetNetname(), board.GetLayerName(layer), bmm(pts[i])))
+    return fixed, left
+
+
+def stop_item(ctx, net, layer, p, mine):
+    """The item a chain end at p connects to: a pad or via of the net there, else a track of the
+    net (not in the chain) whose copper holds p (a T-junction or branch point)."""
+    pd = pad_at(ctx.board, net, layer, p)
+    if pd is not None:
+        return pd
+    v = via_at(ctx.board, net, p)
+    if v is not None:
+        return v
+    for t in ctx.board.GetTracks():
+        if t.GetClass() == "PCB_TRACK" and t.GetNetCode() == net and t.GetLayer() == layer and uid(t) not in mine \
+                and pcbnew.SEG(t.GetStart(), t.GetEnd()).Distance(V(p)) < t.GetWidth() / 2:
+            return t
+    return None
+
+
+def maze_jogs(board, skip=(), log=print):
+    """Jogs the local moves and the corridor router could not fix: the whole run (from its stop to
+    its stop, one layer) is ripped up and re-routed with route_prep's maze search (anywhere within
+    6 / 12 mm, 45 deg bends 1 mm dearer than going straight, no 90 deg turn, no via). Kept when
+    the net then has fewer jogs, no turn sharper than 90 deg, at most 20 % (2 mm at least) more
+    length, every clearance (checked again on the change list) and every connection. Returns
+    fixed [(net, layer, at, offset, how, uuids)]."""
+    fixed = []
+    tried = set()
+    ctx = Ctx(board)
+    while True:
+        cand = None
+        for ci, (net, layer, pts, ts) in enumerate(ctx.chains):
+            name = ts[0].GetNetname()
+            if name in SKIP_NETS or any(uid(t) in ctx.fixed for t in ts):
+                continue
+            for j, off in find_jogs(pts):
+                tag = (name, board.GetLayerName(layer), bmm(pts[j + 1]))
+                if tag in skip or tag in tried:
+                    continue
+                cand = (ci, j, off, tag)
+                break
+            if cand:
+                break
+        if cand is None:
+            break
+        ci, j, off, tag = cand
+        tried.add(tag)
+        net, layer, pts, ts = ctx.chains[ci]
+        mine = {uid(t) for t in ts}
+        dbg = (lambda why: log("    maze %s %s %s: %s" % (tag[0], tag[1], tag[2], why))) if os.environ.get("D32_MAZE_DEBUG") \
+            else (lambda why: None)
+        a_it = stop_item(ctx, net, layer, pts[0], mine)
+        b_it = stop_item(ctx, net, layer, pts[-1], mine)
+        if a_it is None or b_it is None:
+            dbg("no end item")
+            continue
+        w = max(t.GetWidth() for t in ts)
+        before = sum(count_jogs(c[2]) for c in ctx.chains if c[0] == net)
+        old_len = chain_len(pts)
+        res = None
+        for margin in (6.0, 12.0):
+            res = R.maze_route(board, ts[0].GetNetname(), a_it, b_it, margin, 0.05, b45=MM(1.0), b90=None,
+                               layers=[layer], width=w)
+            if res:
+                break
+        if not res or res[1] or len(res[0]) != 1:
+            dbg("no path")
+            continue
+        newP = res[0][0][1]
+        if not chain_turns_ok(newP) or count_jogs(newP) >= count_jogs(pts):
+            dbg("path has %d jogs (old %d)" % (count_jogs(newP), count_jogs(pts)))
+            continue
+        if chain_len(newP) > max(old_len * 1.2, old_len + MM(2.0)):
+            dbg("too long %.1f > %.1f" % (TOMM(int(chain_len(newP))), TOMM(int(old_len))))
+            continue
+        ch = [("add", net, layer, w, newP[m], newP[m + 1]) for m in range(len(newP) - 1)] + [("del", t) for t in ts]
+        ch = follow_anchors(ctx, ch)
+        if ch is None:
+            dbg("anchors %s" % FA_FAIL)
+            continue
+        txn = Txn(ctx)
+        txn.apply(ch)
+        bad = txn.conflicts(first=True)
+        if bad or not fewer_jogs(ctx, txn):
+            dbg("conflict %s" % [describe(e) for it, e in bad] if bad else "net jogs not fewer")
+            txn.rollback()
+            continue
+        LAST_TOUCHED[:] = [uid(x) for x in txn.touched()]
+        txn.commit()
+        merge_collinear(board, ctx.obs)
+        ctx.refresh()
+        fixed.append(tag + (round(TOMM(int(off)), 2), "maze re-route of the run", list(LAST_TOUCHED)))
+        log("  jog %s %s at %s (%.2f mm): maze re-route of the run (%d -> %d jogs on the net)" % (
+            tag[0], tag[1], tag[2], TOMM(int(off)), before, sum(count_jogs(c[2]) for c in ctx.chains if c[0] == net)))
+    return fixed
+
+
 def jog_pass(board, skip=(), push=True, log=print):
     """Straighten jogs until a whole pass fixes none. Returns (fixed [(net, layer, at, offset, how)],
     left {(net, layer name, at): offset})."""
@@ -1626,18 +1929,19 @@ ZONE_CLR, ZONE_MINW = 0.2, 0.2              # mm
 THERMAL_GAP, THERMAL_SPOKE = 0.3, 0.5       # mm
 STITCH_GRID = 5.0                           # mm
 STITCH_GAP = MM(1.5)                        # grid via to any other via
-ISLAND_GAP = MM(0.85)                       # island via to any other via (hole to hole 0.5 mm)
+ISLAND_GAP = MM(0.7)                        # island via to any other via (hole to hole 0.25 mm + margin)
 STITCH_AVOID = ("U1", "J7", "J11")          # no grid vias in these courtyards
 LABEL_VIA_GAP = MM(0.15)                    # via copper to silkscreen text box
 
 
 def add_zones(board):
-    """GND pours on F.Cu and B.Cu over the whole outline (replacing any old pours)."""
+    """GND pours on F.Cu and B.Cu and the solid GND planes on In1.Cu / In2.Cu, each over the whole
+    outline (replacing any old zones)."""
     for z in [z for z in board.Zones() if not z.GetIsRuleArea()]:
         board.Delete(z)
     gnd = board.FindNet("GND")
     zones = {}
-    for layer, name in ((F, "GND_F"), (B, "GND_B")):
+    for layer, name in ((F, "GND_F"), (IN1, "GND_L2"), (IN2, "GND_L3"), (B, "GND_B")):
         z = pcbnew.ZONE(board)
         z.SetLayer(layer)
         z.SetNetCode(gnd.GetNetCode())
@@ -1657,6 +1961,10 @@ def add_zones(board):
         board.Add(z)
         zones[layer] = z
     return zones
+
+
+# a stitching via in a pour piece lands in this layer's neighbouring GND plane (stack-up option B)
+PLANE_UNDER = {F: IN1, B: IN2, IN1: IN2, IN2: IN1}
 
 
 def fill(board, zones, mode):
@@ -1690,8 +1998,8 @@ def near_box(p, boxes, r):
 def new_via(board, obs, p):
     v = pcbnew.PCB_VIA(board)
     v.SetPosition(V(p))
-    v.SetWidth(R.VIA_D)
-    v.SetDrill(R.VIA_DRILL)
+    v.SetWidth(R.GND_VIA_D)
+    v.SetDrill(R.GND_VIA_DRILL)
     v.SetLayerPair(F, B)
     v.SetNet(board.FindNet("GND"))
     board.Add(v)
@@ -1700,12 +2008,12 @@ def new_via(board, obs, p):
 
 
 def via_ok(obs, p, gnd, boxes, near_vias=ISLAND_GAP):
-    if near_box(p, boxes, R.VIA_D / 2 + LABEL_VIA_GAP):
+    if near_box(p, boxes, R.GND_VIA_D / 2 + LABEL_VIA_GAP):
         return False
     for u, (c, hr) in obs.holes.items():
         if norm(sub(c, p)) < near_vias and hr < MM(0.2):
             return False
-    return not obs.via_conflicts(p, R.VIA_D, R.VIA_DRILL, gnd, first=True)
+    return not obs.via_conflicts(p, R.GND_VIA_D, R.GND_VIA_DRILL, gnd, first=True)
 
 
 def region_points(s, step=MM(0.1)):
@@ -1750,7 +2058,7 @@ def via_forbidden(obs, gnd, boxes):
     """Where a GND stitching via centre may not go: other-net copper on either layer grown by via
     radius + clearance, holes grown for hole-to-hole spacing, keep-outs, silkscreen text, edge."""
     vclr = obs.net_clearance(gnd)
-    r = R.VIA_D / 2
+    r = R.GND_VIA_D / 2
     forb = pcbnew.SHAPE_POLY_SET()
     for layer, net, s, bb, clr, u, kind, item in obs.ents.values():
         if net == gnd:
@@ -1759,7 +2067,7 @@ def via_forbidden(obs, gnd, boxes):
         g.Inflate(int(r + (clr if net < 0 else max(vclr, clr))), pcbnew.CORNER_STRATEGY_ROUND_ALL_CORNERS, MAXERR)
         forb.Append(g)
     for u, (c, hr) in obs.holes.items():
-        forb.Append(circle_poly(c, hr + R.VIA_DRILL / 2 + MM(0.5)))
+        forb.Append(circle_poly(c, hr + R.GND_VIA_DRILL / 2 + HOLE2HOLE))
     for b in boxes:
         forb.Append(box_poly(b, r + LABEL_VIA_GAP))
     try:
@@ -1788,7 +2096,7 @@ def stitch_islands(board, zones, boxes, log=print):
     gnd = board.FindNet("GND").GetNetCode()
     added = 0
     left = []
-    vin = board_inner(MM(EDGE) + R.VIA_D / 2)
+    vin = board_inner(MM(EDGE) + R.GND_VIA_D / 2)
     for _ in range(10):
         fill(board, zones, pcbnew.ISLAND_REMOVAL_MODE_NEVER)
         obs = Obstacles(board)
@@ -1803,7 +2111,7 @@ def stitch_islands(board, zones, boxes, log=print):
             pieces = sorted([(k[1], cls[k[1]][k[2]]) for k in comp if k[0] == "P"], key=lambda pc: -pc[1][2])
             done = False
             for layer, (i, poly, area, touch) in pieces:
-                other = B if layer == F else F
+                other = PLANE_UNDER[layer]
                 for m in mains[other]:
                     if not poly.BBox().Intersects(m.BBox()):
                         continue
@@ -1820,12 +2128,12 @@ def stitch_islands(board, zones, boxes, log=print):
                     bb = reg.BBox()
                     step = max(MM(0.02), int(math.sqrt(bb.GetWidth() * bb.GetHeight() / 3000.0)))
                     cands = ([pt(ip)] if ip is not None else [])
-                    if not cands or obs.via_conflicts(cands[0], R.VIA_D, R.VIA_DRILL, gnd, first=True):
+                    if not cands or obs.via_conflicts(cands[0], R.GND_VIA_D, R.GND_VIA_DRILL, gnd, first=True):
                         cands += region_points(reg, step)[:120]
                     for q in cands:
-                        if not obs.via_conflicts(q, R.VIA_D, R.VIA_DRILL, gnd, first=True):
+                        if not obs.via_conflicts(q, R.GND_VIA_D, R.GND_VIA_DRILL, gnd, first=True):
                             new_via(board, obs, q)
-                            forb.Append(circle_poly(q, R.VIA_DRILL + MM(0.5)))
+                            forb.Append(circle_poly(q, R.GND_VIA_DRILL + HOLE2HOLE))
                             n += 1
                             done = True
                             break
@@ -1994,7 +2302,7 @@ def stitch_push(board, zones, boxes, log=print, max_tries=24):
                 continue
             done = False
             for layer, (i, poly, area, touch) in pieces[:2]:
-                other = B if layer == F else F
+                other = PLANE_UNDER[layer]
                 inner = pcbnew.SHAPE_POLY_SET(poly)
                 inner.Deflate(MM(0.05), pcbnew.CORNER_STRATEGY_ROUND_ALL_CORNERS, MAXERR)
                 if not R.outlines(inner):
@@ -2003,9 +2311,9 @@ def stitch_push(board, zones, boxes, log=print, max_tries=24):
                 cands = ([pt(ip)] if ip is not None else []) + region_points(inner, MM(0.3))[:max_tries]
                 for p in cands:
                     q = V(p)
-                    if near_box(p, boxes, R.VIA_D / 2 + LABEL_VIA_GAP):
+                    if near_box(p, boxes, R.GND_VIA_D / 2 + LABEL_VIA_GAP):
                         continue
-                    if not Obstacles.in_board(p, MM(EDGE) + R.VIA_D / 2):
+                    if not Obstacles.in_board(p, MM(EDGE) + R.GND_VIA_D / 2):
                         continue
                     # the other layer must be main ground here, or a track that can move away
                     on_main = any(m.Contains(q) for m in mains[other])
@@ -2105,7 +2413,7 @@ def unblock_via_spots(board, zones, log=print):
     fill(board, zones, pcbnew.ISLAND_REMOVAL_MODE_NEVER)
     obs = Obstacles(board)
     forb = via_forbidden(obs, gnd, [])
-    vin = board_inner(MM(EDGE) + R.VIA_D / 2)
+    vin = board_inner(MM(EDGE) + R.GND_VIA_D / 2)
     cls, comps, main = R.gnd_components(board, zones)
     mains = {layer: [cls[layer][k[2]][1] for k in comps[main] if k[0] == "P" and k[1] == layer] for layer in cls}
     spots = []
@@ -2117,7 +2425,7 @@ def unblock_via_spots(board, zones, log=print):
             if k[0] != "P" or found:
                 continue
             layer, poly = k[1], cls[k[1]][k[2]][1]
-            other = B if layer == F else F
+            other = PLANE_UNDER[layer]
             for m in mains[other]:
                 if not poly.BBox().Intersects(m.BBox()):
                     continue
@@ -2135,7 +2443,7 @@ def unblock_via_spots(board, zones, log=print):
             spots.append(found)
     if not spots:
         return 0
-    rv = R.VIA_D / 2 + LABEL_VIA_GAP
+    rv = R.GND_VIA_D / 2 + LABEL_VIA_GAP
     moved = 0
     for p in spots:
         items = silk_text_items(board)
@@ -2149,7 +2457,7 @@ def unblock_via_spots(board, zones, log=print):
             ref = fp.GetReference()
             layer = it.GetLayer()
             # a label in a row moves with its row (same line kept), else alone
-            grp = [g for g in GROUPS if ref in g]
+            grp = [g for g in all_groups(board) if ref in g]
             members = [r for r in grp[0]] if grp else [ref]
             fpl = [board.FindFootprintByReference(r) for r in members]
             members = [r for r, f in zip(members, fpl) if f is not None and f.Reference().IsVisible()
@@ -2165,7 +2473,7 @@ def unblock_via_spots(board, zones, log=print):
 
             def with_spots(sm):
                 for q in spots:
-                    sm._add("via", (q, R.VIA_D / 2), (q[0] - rv, q[1] - rv, q[0] + rv, q[1] + rv), None)
+                    sm._add("via", (q, R.GND_VIA_D / 2), (q[0] - rv, q[1] - rv, q[0] + rv, q[1] + rv), None)
                 return sm
             if len(members) > 1:
                 sm = with_spots(text_map(board, layer, exclude=members))
@@ -2189,10 +2497,45 @@ def unblock_via_spots(board, zones, log=print):
     return moved
 
 
+FAST_NETS = ("USB_DP", "USB_DM", "SCK", "MOSI", "MISO", "SD_CS", "WS_DATA")   # USB, SPI, WS2812 data
+RETURN_VIA_MAX = MM(1.5)                    # a GND via this close to each layer change of a fast net
+
+
+def return_vias(board, boxes, log=print):
+    """A signal changing between F.Cu and B.Cu changes reference plane (In1 -> In2): a GND via next
+    to each via of a fast net (FAST_NETS) carries the return current between the two planes. For a
+    via with no GND via within RETURN_VIA_MAX, one is added at the nearest legal spot (rings of
+    0.75 - 1.5 mm, clear of labels). Returns (added, [(net, at)] left without one)."""
+    gnd = board.FindNet("GND").GetNetCode()
+    obs = Obstacles(board)
+    added, left = 0, []
+    for v in [t for t in board.GetTracks() if t.GetClass() == "PCB_VIA" and t.GetNetname() in FAST_NETS]:
+        c = pt(v.GetPosition())
+        gv = [pt(g.GetPosition()) for g in board.GetTracks() if g.GetClass() == "PCB_VIA" and g.GetNetCode() == gnd]
+        if any(norm(sub(q, c)) <= RETURN_VIA_MAX for q in gv):
+            continue
+        done = False
+        for r in (0.75, 0.85, 1.0, 1.15, 1.3, 1.5):
+            for k in range(24):
+                a = 2 * math.pi * k / 24
+                q = (c[0] + MM(r) * math.cos(a), c[1] + MM(r) * math.sin(a))
+                if via_ok(obs, q, gnd, boxes, MM(0.6)):
+                    new_via(board, obs, q)
+                    added += 1
+                    done = True
+                    break
+            if done:
+                break
+        if not done:
+            left.append((v.GetNetname(), bmm(c)))
+    return added, left
+
+
 def stitch_grid(board, zones, boxes):
     """Stitching vias on a STITCH_GRID lattice (searching up to 1 mm around each lattice point)
-    where both pours are solid and belong to the main GND component, clear of the labels and of
-    the U1 / J7 / J11 courtyards."""
+    where an outer pour is solid and belongs to the main GND component (both outer pours preferred),
+    clear of the labels and of the U1 / J7 / J11 courtyards. Every via joins the outer pours to the
+    two GND planes."""
     fill(board, zones, pcbnew.ISLAND_REMOVAL_MODE_NEVER)
     gnd = board.FindNet("GND").GetNetCode()
     obs = Obstacles(board)
@@ -2214,36 +2557,83 @@ def stitch_grid(board, zones, boxes):
         for j in range(ny):
             x = (i + 0.5) * STITCH_GRID + (D.BOARD_W - nx * STITCH_GRID) / 2
             y = (j + 0.5) * STITCH_GRID + (D.BOARD_H - ny * STITCH_GRID) / 2
-            for dx, dy in offs:
-                q = R.P(x + dx, y + dy)
-                p = pt(q)
-                if not (solid[F].Contains(q) and solid[B].Contains(q)):
-                    continue
-                if any(c.Contains(q) for c in avoid):
-                    continue
-                if not via_ok(obs, p, gnd, boxes, STITCH_GAP):
-                    continue
-                new_via(board, obs, p)
-                added += 1
-                break
+            done = False
+            for both in (True, False):
+                for dx, dy in offs:
+                    q = R.P(x + dx, y + dy)
+                    p = pt(q)
+                    inf, inb = solid[F].Contains(q), solid[B].Contains(q)
+                    if not ((inf and inb) if both else (inf or inb)):
+                        continue
+                    if any(c.Contains(q) for c in avoid):
+                        continue
+                    if not via_ok(obs, p, gnd, boxes, STITCH_GAP):
+                        continue
+                    new_via(board, obs, p)
+                    added += 1
+                    done = True
+                    break
+                if done:
+                    break
     return added
 # ------------------------------------------------------------------------------ silkscreen
-REF_SIZES = (1.0, 0.8)                      # mm text height: every reference gets the first that fits
+REF_SIZES = (1.0,)                          # mm text height (JLCPCB minimum 1.0 mm): one size for all
 REF_STROKE = 0.15                           # mm
 SILK_GAP = MM(0.15)                         # text box to pads, mask openings, other silk
 TEXT_GAP = MM(0.15)                         # text box to another text box
 VIA_TEXT_GAP = MM(0.15)                     # via copper to text box
 TEXT_EDGE = MM(0.3)
-MAX_FROM_PART = MM(2.0)                     # label box to its own courtyard
+MAX_FROM_PART = MM(1.0)                     # label box to its own courtyard (owner: <= 1 mm)
+SIDE_OVERLAP = 0.4                          # a label overlaps its part's span by >= 40 % of its own size
+                                            # (beside one side, never off a corner; pcb_audit.py: 20 %)
 AMBIG_MARGIN = MM(0.05)                     # a label must be this much nearer its own part than any other
 WORD_GAP = MM(0.7)                          # between a reference and the plate name after it
 # rows / columns of like parts: one side, one line, labels in the order of the parts
 GROUPS = [("R6", "R9", "R5", "R4"), ("R16", "R17", "R18", "R19"), ("C10", "C9"), ("J1", "J2", "J3"), ("J4", "J5"),
           ("R12", "R13"), ("Q2", "Q3"), ("C4", "C3"), ("U3", "U2"), ("U6", "U5"), ("SW2", "SW1"), ("R11", "R8"),
           ("C11", "R10"), ("C14", "C16")]
+ROW_TOL, ROW_PITCH = 0.3, 5.0                # mm: rows of like parts as pcb_audit.py finds them
+
+
+def auto_rows(board):
+    """Rows / columns of 3+ like parts (same footprint, rotation and side, centres in line within
+    ROW_TOL, neighbours closer than ROW_PITCH), in part order, as pcb_audit.py checks them."""
+    out = []
+    kinds = {}
+    for f in board.GetFootprints():
+        if len(list(f.Pads())) and not f.GetReference().startswith("H"):
+            kinds.setdefault((f.GetFPIDAsString(), round(f.GetOrientationDegrees()) % 180, f.GetLayer()), []).append(f)
+    for parts in kinds.values():
+        if len(parts) < 3:
+            continue
+        for axis in (0, 1):
+            other = 1 - axis
+            pos = lambda f: (TOMM(f.GetPosition().x), TOMM(f.GetPosition().y))
+            cur, rows = [], []
+            for f in sorted(parts, key=lambda f: (round(pos(f)[other] / ROW_TOL), pos(f)[axis])):
+                if cur and abs(pos(f)[other] - pos(cur[-1])[other]) <= ROW_TOL and pos(f)[axis] - pos(cur[-1])[axis] < ROW_PITCH:
+                    cur.append(f)
+                else:
+                    if len(cur) >= 3:
+                        rows.append(cur)
+                    cur = [f]
+            if len(cur) >= 3:
+                rows.append(cur)
+            out += [tuple(f.GetReference() for f in r) for r in rows]
+    return out
+
+
+def all_groups(board):
+    """GROUPS plus the auto-detected rows no GROUPS entry already covers (auto rows first: the
+    audit checks them)."""
+    autos = [r for r in auto_rows(board) if not any(set(r) <= set(g) for g in GROUPS)]
+    rest = [g for g in GROUPS if not any(set(g) & set(r) for r in autos)]
+    return autos + rest
+
+
 # plate names (SPEC.md "Module plates", rev 0 plate grid) printed after the header references
 PLATES = {"J1": "M1 RADIO", "J2": "M2 TIMER", "J3": "M3 KEYPAD", "J4": "M4 WIRES", "J5": "M5 PROBE", "J6": "M6 SENSORS"}
-LEGEND = [[("DEFUSE32 CARRIER", 1.5, 0.22), ("rev 2.1  2026-10", 1.0, 0.15)], [("JLCJLCJLCJLC", 1.0, 0.15)]]
+LEGEND = [[("DEFUSE32 CARRIER", 1.5, 0.22), ("rev 3  2026-10", 1.0, 0.15)], [("JLCJLCJLCJLC", 1.0, 0.15)]]
 SIDE_COST = {"top": 0.0, "left": 0.25, "right": 0.35, "bottom": 0.5}
 
 
@@ -2314,7 +2704,7 @@ class SilkMap:
                 if p.HasHole():
                     p.TransformHoleToPolygon(s, 0, MAXERR, pcbnew.ERROR_OUTSIDE)
                 if s.OutlineCount():
-                    self._add("pad", s, bbox_t(s.BBox()), None)
+                    self._add("pad", s, bbox_t(s.BBox()), fp.GetReference())
             for g in fp.GraphicalItems():
                 if g.GetLayer() == side and g.GetClass() != "PCB_TEXT":
                     s = pcbnew.SHAPE_POLY_SET()
@@ -2486,9 +2876,20 @@ def unit_box(c, w, h):
     return (c[0] - w / 2, c[1] - h / 2, c[0] + w / 2, c[1] + h / 2)
 
 
+def beside(sm, ref, b):
+    """True when label box b sits beside one side of its part (overlaps the part's x span or y span
+    by SIDE_OVERLAP of its own width / height), not off a corner."""
+    if ref not in sm.part:
+        return True
+    pb = bbox_t(sm.part[ref].BBox())
+    ox = min(b[2], pb[2]) - max(b[0], pb[0])
+    oy = min(b[3], pb[3]) - max(b[1], pb[1])
+    return ox >= SIDE_OVERLAP * (b[2] - b[0]) or oy >= SIDE_OVERLAP * (b[3] - b[1])
+
+
 def spot_score(sm, ref, b, side, gap, off, angle, part_long_h):
     d_own = sm.d_own(b, ref)
-    if d_own > MAX_FROM_PART:
+    if d_own > MAX_FROM_PART or not beside(sm, ref, b):
         return None
     if d_own > sm.nearest_other(b, ref) - AMBIG_MARGIN:
         return None
@@ -2506,6 +2907,24 @@ def part_box(sm, fp):
     return bbox_t(fp.GetBoundingBox(False))
 
 
+def ref_box(unit, angle, c):
+    """Box of the first text (the reference) of a multi-text unit centred at c."""
+    w, h, items = unit.layout(angle)
+    t, dx, dy = items[0]
+    t.SetTextAngleDegrees(angle)
+    t.SetPosition(V((c[0] + dx, c[1] + dy)))
+    return bbox_t(t.GetBoundingBox())
+
+
+def ref_near(sm, ref, unit, angle, c):
+    """For a reference printed with its plate name: the reference text itself beside the part and
+    within MAX_FROM_PART (the plate name may run on past it)."""
+    if len(unit.texts) < 2:
+        return True
+    rb = ref_box(unit, angle, c)
+    return sm.d_own(rb, ref) <= MAX_FROM_PART and beside(sm, ref, rb)
+
+
 def best_single(sm, fp, unit):
     ref = fp.GetReference()
     pb = part_box(sm, fp)
@@ -2518,6 +2937,13 @@ def best_single(sm, fp, unit):
             if best is not None and 2.0 * gap + SIDE_COST[side] > best[0]:
                 continue
             if not sm.ok(b, ref):
+                continue
+            if len(unit.texts) > 1:
+                if sm.d_own(b, ref) > MAX_FROM_PART or not ref_near(sm, ref, unit, angle, c):
+                    continue
+                s = 2.0 * TOMM(int(sm.d_own(b, ref))) + SIDE_COST[side] + 0.15 * off + 0.6 * min(sm.tracks_under(b), 4)
+                if best is None or s < best[0]:
+                    best = (s, angle, c, b)
                 continue
             s = spot_score(sm, ref, b, side, gap, off, angle, long_h)
             if s is None:
@@ -2651,7 +3077,13 @@ def best_group(sm, fps, units, allow_vias=False):
                         ok = False
                         break
                     pb = boxes[i]
-                    s = spot_score(sm, fp.GetReference(), b, side, gap, 0, angle, (pb[2] - pb[0]) >= (pb[3] - pb[1]))
+                    if len(units[i].texts) > 1:
+                        if not ref_near(sm, fp.GetReference(), units[i], angle, cs[i]):
+                            ok = False
+                            break
+                        s = 2.0 * gap + SIDE_COST[side]
+                    else:
+                        s = spot_score(sm, fp.GetReference(), b, side, gap, 0, angle, (pb[2] - pb[0]) >= (pb[3] - pb[1]))
                     if s is None:
                         ok = False
                         break
@@ -2740,15 +3172,39 @@ def place_refs_top(board, fps, size, ctx=None):
             plates[ref] = plate_text(board, PLATES[ref], size, REF_STROKE)
     with_plate = lambda r: Unit(units[r].texts + [plates[r]]) if r in plates else units[r]
     placed, used = {}, {}
-    for grp in GROUPS:
+    RANGES[:] = []
+    for grp in all_groups(board):
         members = [r for r in grp if r in fps]
         runs = [members[i:i + n] for n in range(len(members), 1, -1) for i in range(len(members) - n + 1)]
         for run in runs:
             if any(r in placed for r in run):
                 continue
+            if len(run) < len(members) and len(members) >= 3 and not any(r in placed for r in members) \
+                    and all(r[0] in "RC" for r in members):
+                # the whole row found no line: one range label ("R16-19") for it rather than
+                # scattered labels that cannot line up (and may find no spot at all)
+                t = plate_text(board, range_label(members), size, REF_STROKE)
+                best = best_range_spot(sm, [fps[r] for r in members], Unit([t]))
+                if best is None and ctx is not None:
+                    for sc, angle, c, b, vs in best_range_spot(sm, [fps[r] for r in members], Unit([t]), vias=True)[:10]:
+                        if push_vias_off(ctx, sm, [b], vs):
+                            pushed += len(vs)
+                            best = (sc, angle, c, b)
+                            break
+                if best is not None:
+                    sc, angle, c, b = best
+                    Unit([t]).place(angle, c)
+                    board.Add(t)
+                    sm.add_text(b)
+                    RANGES.append((t.GetText(), members))
+                    for r in members:
+                        fps[r].Reference().SetVisible(False)
+                        placed[r] = b
+                    break
             res, ulist = None, None
-            for us in ([with_plate(r) for r in run], [units[r] for r in run]) if any(r in plates for r in run) \
-                    else ([units[r] for r in run],):
+            # references alone first: plate names come last (place_labels), so they never take the
+            # only spot of a small part's label
+            for us in ([units[r] for r in run],):
                 res = best_group(sm, [fps[r] for r in run], us)
                 if res is None and ctx is not None and len(run) == len(members):
                     # the whole row, with one to three vias moved out of its line
@@ -2770,9 +3226,24 @@ def place_refs_top(board, fps, size, ctx=None):
                     used[r] = plates[r]
     area = lambda r: (lambda b: (b[2] - b[0]) * (b[3] - b[1]))(part_box(sm, fps[r]))
     missing = []
-    for ref in sorted([r for r in units if r not in placed], key=lambda r: -area(r)):
+    def n_spots(r):
+        """Legal spots a part's label has on the map as it is now (fewest first: most constrained)."""
+        fp = fps[r]
+        pb = part_box(sm, fp)
+        long_h = (pb[2] - pb[0]) >= (pb[3] - pb[1])
+        n = 0
+        for angle in (0, 90):
+            w, h, _ = units[r].layout(angle)
+            for side, gap, off, c in label_candidates(pb, w, h, angle):
+                b = unit_box(c, w, h)
+                if sm.ok(b, r) and spot_score(sm, r, b, side, gap, off, angle, long_h) is not None:
+                    n += 1
+        return n
+    rest = [r for r in units if r not in placed]
+    spots = {r: n_spots(r) for r in rest}
+    for ref in sorted(rest, key=lambda r: (spots[r] == 0, spots[r], -area(r))):
         best, u = None, None
-        for cand in ([with_plate(ref), units[ref]] if ref in plates else [units[ref]]):
+        for cand in [units[ref]]:
             best = best_single(sm, fps[ref], cand)
             if best is None and ctx is not None:
                 for s, angle, c, b, vs in via_blocked_spots(sm, fps[ref], cand)[:12]:
@@ -2797,9 +3268,12 @@ def place_refs_top(board, fps, size, ctx=None):
 
 
 
+RANGES = []                                 # (range label text, members) placed by place_refs_top
 LEADER_W = MM(0.15)                         # silk leader from a callout label to its part
+LEADER_GAP = MM(0.2)                        # the leader stops this short of the part outline
 CALLOUT_REFS = []                           # references placed as callouts (their label stays put)
-CALLOUT_GAPS = (1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0)  # mm, label box to part
+CALLOUT_GAPS = (1.15, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0)  # mm, label box to part (a label within
+                                            # 1 mm is an ordinary one and must sit beside its part)
 
 
 def nearest_on_poly(poly, p):
@@ -2839,8 +3313,7 @@ def leader_ok(sm, p0, p1, own, vias_out=None):
             if data.SquaredDistanceToSeg(seg) < g * g:
                 return False
         elif kind == "crt":
-            if ref != own and data.SquaredDistanceToSeg(seg) < MM(0.02) ** 2:
-                return False
+            pass                                # a thin leader may cross another part's outline
         elif kind == "via":
             c, r = data
             if seg.Distance(V(c)) < r + g:
@@ -2854,15 +3327,22 @@ def leader_ok(sm, p0, p1, own, vias_out=None):
     return True
 
 
-def place_callout(board, sm, fp, lab, ctx=None):
-    """A label a short way off (1 - 6 mm) in free space with a thin silk leader to its part, for a
+def place_callout(board, sm, fp, lab, ctx=None, row=None):
+    """A label a short way off (1 - 10 mm) in free space with a thin silk leader to its part, for a
     part with no free spot next to it; with ctx, up to two vias in the way of the label or the
-    leader may be moved. Returns True if placed (label and leader added)."""
-    ref = fp.GetReference()
-    if ref not in sm.part:
-        return False
-    part = sm.part[ref]
-    pb = bbox_t(part.BBox())
+    leader may be moved. With row (a list of footprints), the leader goes to the row's bounding
+    box (range labels). Returns True if placed (label and leader added)."""
+    if row:
+        boxes = [part_box(sm, f) for f in row]
+        pb = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+        part = box_poly(pb, 0)
+        ref = tuple(f.GetReference() for f in row)
+    else:
+        ref = fp.GetReference()
+        if ref not in sm.part:
+            return False
+        part = sm.part[ref]
+        pb = bbox_t(part.BBox())
     best = callout_search(sm, part, pb, ref, lab, None)
     if best is None and ctx is not None:
         for cand in callout_search(sm, part, pb, ref, lab, ctx)[:10]:
@@ -2899,7 +3379,7 @@ def callout_search(sm, part, pb, ref, lab, allow_vias):
         mx, my = (x0 + x1) / 2, (y0 + y1) / 2
         for gap in CALLOUT_GAPS:
             g = MM(gap)
-            for k in range(0, 17):
+            for k in range(0, 21):
                 for sgn in ((0,) if k == 0 else (1, -1)):
                     off = sgn * k * MM(0.5)
                     for side, c in (("top", (mx + off, y0 - g - h / 2)), ("bottom", (mx + off, y1 + g + h / 2)),
@@ -2925,10 +3405,22 @@ def callout_search(sm, part, pb, ref, lab, allow_vias):
                             ty = ((b[3] - bc[1]) / abs(u[1])) if abs(u[1]) > 1e-9 else 1e18
                             t0 = min(tx, ty) + MM(0.2)
                             p0 = add(bc, mul(u, t0))
+                            p1 = sub(p1, mul(u, LEADER_GAP))       # stop short of the part outline
                             if dot(sub(p1, p0), u) < MM(0.3):
                                 continue
                             lv = []
-                            if not leader_ok(sm, p0, p1, ref, lv if allow_vias else None):
+                            # pull the end back (up to 0.3 mm more) until it clears the part's
+                            # own pads by the silk-to-mask gap too
+                            ok = False
+                            for k2 in range(7):
+                                q1 = sub(p1, mul(u, MM(0.05) * k2))
+                                if dot(sub(q1, p0), u) < MM(0.3):
+                                    break
+                                lv = []
+                                if leader_ok(sm, p0, q1, ref, lv if allow_vias else None):
+                                    ok, p1 = True, q1
+                                    break
+                            if not ok:
                                 continue
                             s = TOMM(int(norm(sub(p1, p0)))) + 0.6 * min(sm.tracks_under(b), 4) + 0.1 * k
                             if allow_vias:
@@ -2978,6 +3470,88 @@ def place_ref_bottom(board, smb, fp, size):
     return True
 
 
+def plate_spot(sm, fp, unit):
+    """A spot for a plate name on its own: within 3 mm of the header, along one of its sides,
+    nearer the header than any other part (plate names are text, not references)."""
+    ref = fp.GetReference()
+    pb = part_box(sm, fp)
+    x0, y0, x1, y1 = pb
+    mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+    best = None
+    for angle in (0, 90):
+        w, h, _ = unit.layout(angle)
+        for gap in (0.15, 0.3, 0.5, 0.8, 1.2, 1.8, 2.5, 3.0):
+            g = MM(gap)
+            span_x, span_y = (x1 - x0) / 2, (y1 - y0) / 2
+            for k in range(0, 41):
+                for sgn in ((0,) if k == 0 else (1, -1)):
+                    o = sgn * k * MM(0.5)
+                    for side, c in (("top", (mx + o, y0 - g - h / 2)), ("bottom", (mx + o, y1 + g + h / 2)),
+                                    ("left", (x0 - g - w / 2, my + o)), ("right", (x1 + g + w / 2, my + o))):
+                        if side in ("top", "bottom") and abs(o) > span_x or side in ("left", "right") and abs(o) > span_y:
+                            continue
+                        b = unit_box(c, w, h)
+                        if not sm.ok(b, ref):
+                            continue
+                        d = sm.d_own(b, ref)
+                        if d > MM(3.0) or d > sm.nearest_other(b, ref):
+                            continue
+                        sc = TOMM(int(d)) + SIDE_COST[side] + 0.6 * min(sm.tracks_under(b), 4)
+                        if best is None or sc < best[0]:
+                            best = (sc, angle, c, b)
+    return best
+
+
+def range_label(refs):
+    """'R16-19' for consecutive references of one prefix, 'C14,16' for others of one prefix, in
+    part order (left to right / top to bottom as the row runs)."""
+    import re
+    parts = [re.match(r"([A-Z]+)(\d+)$", r) for r in refs]
+    if all(parts) and len({m.group(1) for m in parts}) == 1:
+        nums = [int(m.group(2)) for m in parts]
+        if sorted(nums) == list(range(min(nums), min(nums) + len(nums))) and len(nums) > 2:
+            return "%s%d-%d" % (parts[0].group(1), min(nums), max(nums))
+        return parts[0].group(1) + ",".join(str(n) for n in nums)
+    return ",".join(refs)
+
+
+def best_range_spot(sm, fps, unit, vias=False):
+    """Best spot for a range label of a row of parts: beside the row's bounding box (overlapping
+    its span by SIDE_OVERLAP), within MAX_FROM_PART of the nearest member and nearer the row than
+    any other part. With vias, the spots only one or two vias are in the way of, best first, as
+    [(score, angle, centre, box, [via centres])]."""
+    boxes = [part_box(sm, fp) for fp in fps]
+    rb = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    refs = [fp.GetReference() for fp in fps]
+    best, cands = None, []
+    for angle in (0, 90):
+        w, h, _ = unit.layout(angle)
+        for side, gap, off, c in label_candidates(rb, w, h, angle):
+            b = unit_box(c, w, h)
+            vs = []
+            if not sm.ok(b, None, vs if vias else None) or (vias and not 0 < len(vs) <= 2):
+                continue
+            ox = min(b[2], rb[2]) - max(b[0], rb[0])
+            oy = min(b[3], rb[3]) - max(b[1], rb[1])
+            if not (ox >= SIDE_OVERLAP * (b[2] - b[0]) or oy >= SIDE_OVERLAP * (b[3] - b[1])):
+                continue
+            d = min(sm.d_own(b, r) for r in refs)
+            if d > MAX_FROM_PART:
+                continue
+            others = min([poly_rect_dist(s, b) for r, s in sm.part.items()
+                          if r not in refs and not r.startswith("H") and rect_dist(b, sm.crt[r][1]) < MM(3)] + [MM(10)])
+            if others < d + AMBIG_MARGIN:
+                continue
+            sc = 2.0 * TOMM(int(d)) + SIDE_COST[side] + 0.15 * off + 0.6 * min(sm.tracks_under(b), 4)
+            if vias:
+                cands.append((sc + 0.5 * len(vs), angle, c, b, vs))
+            elif best is None or sc < best[0]:
+                best = (sc, angle, c, b)
+    if vias:
+        return sorted(cands, key=lambda r: r[0])
+    return best
+
+
 def place_labels(board, log=print):
     """References (one size for all), plate names, legend. Returns a dict with the size used,
     references put on the bottom side, hidden references, plate names left out, legend spots."""
@@ -3012,35 +3586,55 @@ def place_labels(board, log=print):
     CALLOUT_REFS[:] = callouts
     if callouts:
         log("  callouts with a leader: %s" % " ".join(callouts))
-    smb = SilkMap(board, pcbnew.B_SilkS)
-    bottom, hidden = [], []
-    # a row that would end up mostly on the bottom goes there as a whole (one line, same order)
-    for grp in GROUPS:
-        members = [r for r in grp if r in fps]
-        if sum(1 for r in members if r in missing) * 2 <= len(members) or not any(r in missing for r in members):
+    # a row of like parts whose members have no spot (boxed in by each other, the parts around them
+    # and their silk, so not even a leader can reach them without crossing silk): one range label
+    # ("R16-R19") beside the row, in part order, and the members' own references hidden
+    grouped = {}
+    for grp in all_groups(board):
+        members = [r for r in grp if r in fps and r not in callouts]
+        if len(members) < 2 or not any(r in missing for r in members) or not all(r[0] in "RC" for r in members):
             continue
-        keep = {r: (pt(fps[r].Reference().GetPosition()), fps[r].Reference().GetTextAngleDegrees())
-                for r in members if r not in missing}
-        units = [Unit([ref_setup(fps[r], size, pcbnew.B_SilkS)]) for r in members]
-        res = best_group(smb, [fps[r] for r in members], units)
-        if res is None:
-            for r, (p, a) in keep.items():                 # back to the top side, same spot
-                t = ref_setup(fps[r], size)
-                t.SetTextAngleDegrees(a)
-                t.SetPosition(V(p))
+        txt = range_label(members)
+        t = plate_text(board, txt, size, REF_STROKE)
+        was = {r: fps[r].Reference().IsVisible() for r in members}
+        for r in members:                       # the members' own labels make room for it
+            fps[r].Reference().SetVisible(False)
+        sm2 = text_map(board, pcbnew.F_SilkS)
+        best = best_range_spot(sm2, [fps[r] for r in members], Unit([t]))
+        if best is None:
+            for sc, angle, c, b, vs in best_range_spot(sm2, [fps[r] for r in members], Unit([t]), vias=True)[:10]:
+                if push_vias_off(ctx, sm2, [b], vs):
+                    pushed += len(vs)
+                    best = (sc, angle, c, b)
+                    break
+        if best is not None:
+            s, angle, c, b = best
+            Unit([t]).place(angle, c)
+            board.Add(t)
+            sm = sm2
+            sm.add_text(b)
+        elif place_callout(board, sm2, None, Unit([t]), ctx, row=[fps[r] for r in members]):
+            board.Add(t)
+            sm = sm2
+            callouts.append(txt)
+        else:
+            for r, v in was.items():
+                fps[r].Reference().SetVisible(v)
             continue
-        for r, u, (angle, c, b) in zip(members, units, res):
-            u.place(angle, c)
-            smb.add_text(b)
-            bottom.append(r)
+        for r in members:
+            fps[r].Reference().SetVisible(False)
             if r in missing:
                 missing.remove(r)
+        grouped[txt] = members
+    if grouped:
+        log("  range labels for rows without a spot per part: %s" % ", ".join(grouped))
+    smb = SilkMap(board, pcbnew.B_SilkS)
+    # rev 3: never on the bottom silkscreen for a top-side part (owner's review); what has neither
+    # a spot nor a callout is hidden and reported
+    bottom, hidden = [], []
     for ref in missing:
-        if place_ref_bottom(board, smb, fps[ref], size):
-            bottom.append(ref)
-        else:
-            fps[ref].Reference().SetVisible(False)
-            hidden.append(ref)
+        fps[ref].Reference().SetVisible(False)
+        hidden.append(ref)
     legend = place_legend(board, sm, smb, log)          # before the plate names: those are optional
     # plate names after the header references (same line), else anywhere next to the header
     no_plate = []
@@ -3101,6 +3695,15 @@ def place_labels(board, log=print):
             else:
                 t.SetTextAngleDegrees(keep[1])
                 t.SetPosition(V(keep[0]))
+                # the plate name on its own next to the header (the reference stays where it is)
+                sm2 = text_map(board, pcbnew.F_SilkS)
+                best = plate_spot(sm2, fp, Unit([p]))
+                if best is not None:
+                    s, angle, c, b = best
+                    Unit([p]).place(angle, c)
+                    board.Add(p)
+                    sm = text_map(board, pcbnew.F_SilkS)
+                    done = True
         if not done:
             no_plate.append(ref)
     return {"size": size, "bottom": bottom, "hidden": hidden, "no_plate": no_plate, "legend": legend, "vias_moved": pushed, "callouts": callouts}
@@ -3196,6 +3799,43 @@ def drc_check(board, ignore_gnd=True):
     return res
 
 
+def fix_clearances(board, log=print):
+    """Freerouting leaves a few tracks a few um inside a clearance (its 10 um grid against KiCad's
+    exact pads, typically a 0.6 mm track on a SOT-223 pin next to the neighbouring pin). Each such
+    track is narrowed by twice the deficit plus 5 um (rounded down to 10 um). Returns how many."""
+    import re
+    n = 0
+    for _ in range(3):
+        bad = [v for v in drc_check(board) if v[0] == "clearance"]
+        if not bad:
+            break
+        byuid = {uid(t): t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK"}
+        done = 0
+        for typ, desc, uids in bad:
+            mn, ma = re.search(r"clearance ([0-9.]+) mm", desc), re.search(r"actual ([0-9.]+) mm", desc)
+            if not (mn and ma):
+                continue
+            deficit = MM(float(mn.group(1)) - float(ma.group(1)))
+            if deficit > MM(0.03):
+                continue                            # not a rounding problem: leave it to DRC
+            for u in uids:
+                t = byuid.get(u)
+                if t is None or t.GetNetname() in SKIP_NETS:
+                    continue
+                nw = int((t.GetWidth() - 2 * (deficit + MM(0.005))) // MM(0.01)) * MM(0.01)
+                if nw < MM(0.2):
+                    continue
+                log("  clearance: %s track at %s narrowed %.3f -> %.2f mm (%.3f mm short)" % (
+                    t.GetNetname(), bmm(t.GetStart()), TOMM(t.GetWidth()), TOMM(nw), TOMM(int(deficit))))
+                t.SetWidth(nw)
+                done += 1
+                break
+        n += done
+        if not done:
+            break
+    return n
+
+
 def jog_reason(ctx, net, layer, pts, ts, j):
     """Why a jog stays: what the candidate fixes would collide with."""
     if ts[0].GetNetname() in SKIP_NETS:
@@ -3229,12 +3869,23 @@ def cmd_all(*opts):
         board = R.load()
         board.GetDesignSettings().SetAuxOrigin(R.P(0, D.BOARD_H))
         nstrip = strip_stitching(board)
+        nclr = fix_clearances(board, log)
+        if nclr:
+            log("clearance: %d tracks narrowed to their clearance (router rounding)" % nclr)
         nsnap = snap_tiny_stubs(board, log)
         if "nojogs" in opts:
             fixed, left = [], {}
             break
         fixed, left = jog_pass(board, skip, log=log)
         merge_collinear(board)
+        mfix = maze_jogs(board, skip, log=log)
+        merge_collinear(board)
+        log("maze: %d more jogs fixed by re-routing their run" % len(mfix))
+        fixed += mfix
+        cfix, cleft = chamfer_pass(board, skip, log=log)
+        merge_collinear(board)
+        log("corners: %d right angles chamfered to 2 x 45 deg, %d left %s" % (len(cfix), len(cleft), cleft[:12]))
+        fixed += cfix
         bad = drc_check(board)
         if not bad:
             break
@@ -3262,6 +3913,9 @@ def cmd_all(*opts):
         n2, left_isl = stitch_islands(board, zones, boxes, log)
         nisl += n2
     npush = stitch_push(board, zones, boxes, log)
+    nret, ret_left = return_vias(board, boxes, log)
+    log("return vias: %d GND vias added next to fast-signal layer changes%s" % (
+        nret, "; none fits next to %s" % ret_left if ret_left else ""))
     ngrid = stitch_grid(board, zones, boxes)
     nfl = prune_floating_vias(board, zones)
     if nfl:

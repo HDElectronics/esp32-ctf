@@ -1,0 +1,93 @@
+{
+  "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A": {
+    "easyeda_footprint": "SW-SMD_4P-L5.1-W5.1-P3.70-LS6.5-TL_H1.5",
+    "file": "${KIPRJMOD}/3d/C318884_SW-SMD_4P-L5.1-W5.1-P3.70-LS6.5-TL_H1.5.step",
+    "lcsc": "C318884",
+    "match": {
+      "max_err_mm": 0.025,
+      "pads_easyeda": 4,
+      "pads_matched": 4,
+      "pads_ours": 4,
+      "theta": 0
+    },
+    "offset": [
+      0.0,
+      -0.0005,
+      0.05
+    ],
+    "refs": [
+      "SW1",
+      "SW2"
+    ],
+    "rotate": [
+      0,
+      0,
+      0.0
+    ],
+    "step_size_mm": [
+      6.5,
+      5.201,
+      1.55
+    ]
+  },
+  "Fuse:Fuse_1812_4532Metric": {
+    "easyeda_footprint": "F1812",
+    "file": "${KIPRJMOD}/3d/C18198338_F1812_L4.5-W3.2-H1.0.step",
+    "lcsc": "C18198338",
+    "match": {
+      "max_err_mm": 0.288,
+      "pads_easyeda": 2,
+      "pads_matched": 0,
+      "pads_ours": 2,
+      "theta": 0
+    },
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "refs": [
+      "F1"
+    ],
+    "rotate": [
+      0,
+      0,
+      0.0
+    ],
+    "step_size_mm": [
+      4.5,
+      3.2,
+      1.04
+    ]
+  },
+  "defuse32:USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge": {
+    "easyeda_footprint": "USB-C_SMD-TYPE-C-31-M-12_1",
+    "file": "${KIPRJMOD}/3d/C165948_USB-C_SMD-TYPE-C-31-M-12_1.step",
+    "lcsc": "C165948",
+    "match": {
+      "max_err_mm": 0.128,
+      "pads_easyeda": 18,
+      "pads_matched": 18,
+      "pads_ours": 22,
+      "theta": 0
+    },
+    "offset": [
+      0.0,
+      -0.9929,
+      -0.0001
+    ],
+    "refs": [
+      "J7"
+    ],
+    "rotate": [
+      0,
+      0,
+      -180.0
+    ],
+    "step_size_mm": [
+      8.94,
+      7.9,
+      4.101
+    ]
+  }
+}

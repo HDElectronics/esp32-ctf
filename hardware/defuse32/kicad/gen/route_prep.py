@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
-"""Route the rev 2 carrier (defuse32-carrier.kicad_pcb) with Freerouting: KiCad 10.0.7 DSN/SES
-round trip, then GND pours, stitching vias, silkscreen references and a report.
+"""Route the carrier (defuse32-carrier.kicad_pcb) with Freerouting: KiCad 10.0.7 DSN/SES round
+trip, then the GND zones and a report; gen/polish.py finishes the board (jogs, pours, stitching,
+silkscreen).
 
-Used for the rev 2 routing (2026-10-23); kept as the record and for a full re-route. The rev 1b
-version (DevKitC board, decoupling fix) is in git, tag carrier-rev1b. The routed board is edited
-by hand in KiCad from now on; re-running this from `gen_pcb.py --force` throws that work away.
+Rev 3 (2026-10-23, 4 layers, stack-up option B): Freerouting routes signals and power on F.Cu and
+B.Cu only; In1.Cu and In2.Cu are solid GND planes (layer type "power" in the board, exported as
+planes, so Freerouting never routes on them and takes every GND pin as connected). GND pins reach
+the planes through the fan-out vias (prep). The rev 2 (2-layer) version is in git (commit 7412eb7)
+and the rev 1b version (DevKitC board) under tag carrier-rev1b. Re-running this from
+`gen_pcb.py --force` throws the routed board away.
 Run from hardware/defuse32/kicad/ with KiCad's Python (/usr/bin/python3, not conda):
 
   /usr/bin/python3 gen/gen_pcb.py --force            # placed, unrouted board (design.PCB)
   /usr/bin/python3 gen/route_prep.py prep            # locked pre-routes + GND fan-out vias
-  /usr/bin/python3 gen/route_prep.py export /tmp/d32/r2.dsn
-  java -jar ~/tools/freerouting-2.4.1/freerouting-2.4.1.jar -de /tmp/d32/r2.dsn -do /tmp/d32/r2.ses \\
-       -mp 40 -mt 1 --gui.enabled=false --router.fanout.enabled=false --router.automatic_neckdown=true \\
-       --router.scoring.via_costs=150 \\
-       --router.optimizer.improvement_threshold=0 --router.optimizer.max_passes=10 \\
+  /usr/bin/python3 gen/route_prep.py export /tmp/d32/r3.dsn
+  java -jar ~/tools/freerouting-2.4.1/freerouting-2.4.1.jar -de /tmp/d32/r3.dsn -do /tmp/d32/r3.ses \\
+       -mp 60 -mt 1 --gui.enabled=false --router.fanout.enabled=false --router.automatic_neckdown=true \\
+       --router.scoring.via_costs=150 --router.optimizer.enabled=false \\
        --usage_and_diagnostic_data.disable_analytics=true --profile.allow_telemetry=false
-  /usr/bin/python3 gen/route_prep.py import /tmp/d32/r2.ses
+  /usr/bin/python3 gen/route_prep.py import /tmp/d32/r3.ses
+  /usr/bin/python3 gen/route_prep.py maze            # what Freerouting left open
   /usr/bin/python3 gen/route_prep.py finish
-  /usr/bin/python3 gen/route_prep.py report          # numbers only (also printed by finish)
+  /usr/bin/python3 gen/polish.py all
+  /usr/bin/python3 gen/route_prep.py report          # numbers only (also printed by finish / polish)
 
 Freerouting options: `-mt 1` because the multi-threaded optimizer is documented to break
-clearances; without the two optimizer options Freerouting 2.4.1 skips the optimizer; its SMD
-fan-out stage is off (it put a via on almost every SMD pin); neck-down lets Power-class tracks
-narrow at fine-pitch pins; a via cost of 150 gave fewer vias than the default in test runs. The session the
+clearances; the optimizer is off: in Freerouting 2.4.1 its stage starts from an older, less routed
+board than the routing stage ended with (rev 3 runs: 1 open connection after routing, 23 after
+the optimizer); its SMD fan-out stage is off (it put a via on almost every SMD pin); neck-down
+lets Power-class tracks narrow at fine-pitch pins; a via cost of 150 gave fewer vias than the
+default in test runs. The routing is deterministic with these options. The session the
 board was built from is kept as out/defuse32-carrier.ses (`import` it after `prep` to rebuild the
-same board); a new run differs and then needs its own HAND_FIXES. The settings options apply to this run only; the user's
+same board); a new run differs and may need its own HAND_FIXES. The settings options apply to this run only; the user's
 ~/.config/freerouting/freerouting.json is not written. One run takes about 10 minutes here.
 
 Freerouting 2.4.1 does not count locked KiCad tracks (exported as `type fix` wiring) as connecting
@@ -52,27 +59,26 @@ prep    Adds PREROUTE / PREVIAS, all locked:
         then the GND fan-out (gnd_fanout): every SMD GND pad not served above gets a 0.4 mm stub
         and a via to the bottom pour, at the first spot that keeps 0.25 mm from other copper,
         0.3 mm from the edge and stays out of the U1/J7/J11 courtyards and footprint keep-outs.
-export  Writes the Specctra DSN with a temporary GND zone on each layer, so the DSN has a GND plane
-        on F.Cu and B.Cu: Freerouting then takes every GND pin as connected (it routes no GND) but
-        keeps the Power-class 0.25 mm clearance to them. (With GND pins simply left out of the
-        network it treated them as netless and kept only 0.2 mm.) Checks the U1 antenna keep-out
-        is in the DSN (footprint keep-out, all outside the outline), empties the HAND_NETS pin lists
-        and takes the PIN_EXCLUDE pins out.
+export  Writes the Specctra DSN with a temporary GND zone on each of the four layers, so the DSN
+        has a GND plane on every layer: Freerouting then takes every GND pin as connected (it
+        routes no GND) but keeps the Power-class 0.25 mm clearance to them. (With GND pins simply
+        left out of the network it treated them as netless and kept only 0.2 mm.) In1/In2 are
+        "power" layers in the DSN: Freerouting routes on F.Cu and B.Cu only. Checks the U1 antenna
+        keep-out is in the DSN (footprint keep-out, all outside the outline), empties the
+        HAND_NETS pin lists and takes the PIN_EXCLUDE pins out.
 import  Reads the Freerouting session into the board (unlocked tracks and vias are replaced,
         locked ones stay; stops if a footprint moved by more than 1 um) and saves.
+maze    Routes what KiCad's DRC still reports unconnected (GND excepted) with a two-layer
+        octilinear A* search (maze_route), ripping up other nets' tracks around a pad that has no
+        way out and routing them again after it, then deletes dangling leftovers. Rev 3: one
+        connection (the LIS3DH supply group to the rest of 3V3P), 5 segments, no via.
 finish  Unlocks everything, removes Freerouting's sub-0.01 mm stubs, applies HAND_FIXES, sets the
-        drill/place origin to the board's bottom-left corner, adds the GND pours on F.Cu and B.Cu
-        (whole outline, 0.25 mm clearance, thermal reliefs) and stitches them:
-          - the GND copper is split into connected components (pour pieces of both layers, pads,
-            tracks, vias); every component apart from the main one (largest pour area) that has
-            copper of its own, or a pour piece of A_MIN or more, gets a via at a spot inside one
-            of its pieces and inside a main-component piece on the other layer (repeated until
-            nothing changes; what cannot be joined is printed);
-          - a grid of stitching vias (GRID mm) wherever both pours are solid, 1.5 mm from any
-            other via, outside the U1/J7/J11 courtyards;
-        refills with island removal, places the silkscreen references (gen_pcb.place_refs) and
-        saves; then runs KiCad's DRC and deletes stitching vias it finds unconnected (a via that
-        only joins two pour islands), refilling until none is left; prints the report.
+        drill/place origin to the board's bottom-left corner, adds the GND zones (pours on F.Cu
+        and B.Cu, solid planes on In1.Cu and In2.Cu, whole outline), fills, places provisional
+        silkscreen references (gen_pcb.place_refs), saves and prints the report. Stitching and the
+        final pours, labels and track clean-up are polish.py's job.
+        (The 2-layer stitching functions below, stitch_islands / stitch_grid / prune, are kept
+        for reference; gnd_components and the geometry helpers are used by polish.py.)
 report  Via count, track length per layer, Power tracks narrower than their class, decoupling
         distances (cap pad to IC supply pad, edge to edge and centre to centre), USB D+/D- lengths.
 """
@@ -93,7 +99,8 @@ KDIR = os.path.normpath(os.path.join(HERE, ".."))
 BOARD = os.environ.get("D32_BOARD") or os.path.join(KDIR, "defuse32-carrier.kicad_pcb")
 MM = pcbnew.FromMM
 MAXERR = MM(0.005)
-VIA_D, VIA_DRILL = MM(0.6), MM(0.3)
+VIA_D, VIA_DRILL = MM(0.6), MM(0.3)            # signal and power vias (net classes)
+GND_VIA_D, GND_VIA_DRILL = MM(0.45), MM(0.2)   # GND fan-out and stitching vias (JLCPCB: no extra cost)
 POWER_W = {n: D.NETCLASS["Power"][0] for n in D.POWER_NETS}
 
 
@@ -129,11 +136,11 @@ def add_track(board, layer, net, w, a, b, locked=False):
 
 
 def add_via(board, pos, net="GND", locked=False):
-    """pos: VECTOR2I (page coordinates)."""
+    """pos: VECTOR2I (page coordinates). GND vias are the small 0.45 / 0.2 mm stitching size."""
     v = pcbnew.PCB_VIA(board)
     v.SetPosition(pos)
-    v.SetWidth(VIA_D)
-    v.SetDrill(VIA_DRILL)
+    v.SetWidth(GND_VIA_D if net == "GND" else VIA_D)
+    v.SetDrill(GND_VIA_DRILL if net == "GND" else VIA_DRILL)
     v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
     v.SetNet(board.FindNet(net))
     v.SetLocked(locked)
@@ -143,15 +150,17 @@ def add_via(board, pos, net="GND", locked=False):
 
 # ------------------------------------------------------------------------------------- prep
 F, B = pcbnew.F_Cu, pcbnew.B_Cu
+IN1, IN2 = pcbnew.In1_Cu, pcbnew.In2_Cu
+PLANES = (IN1, IN2)                    # solid GND planes (stack-up option B)
 # (layer, net, width mm, [points in board mm]); vias: (net, x, y). U8 at (38.0, 34.5), rotation 0:
 # pads 1 VDD_IO (36.77, 33.5), 4 SCL (36.77, 35.0), 5 GND (36.77, 35.5), 6 SDA (37.5, 35.73),
 # 7 SA0 (38.0, 35.73), 8 CS (38.5, 35.73), 10/12 GND (39.23, 35.0/34.0), 14 VDD (38.5, 33.27).
 PREROUTE = [
     (F, "3V3P", 0.25, [(38.5, 33.27), (38.5, 31.5)]),                              # U8.14 - C14.1
-    (F, "3V3P", 0.25, [(36.77, 33.5), (36.2, 33.5), (36.2, 32.6), (38.5, 32.6)]),  # U8.1 - U8.14
+    (F, "3V3P", 0.25, [(36.77, 33.5), (36.45, 33.5), (36.2, 33.25), (36.2, 32.85), (36.45, 32.6), (38.5, 32.6)]),  # U8.1 - U8.14
     (F, "3V3P", 0.25, [(36.78, 31.5), (36.78, 32.6)]),                              # C16.1
     (F, "3V3P", 0.25, [(38.5, 35.73), (38.5, 36.45), (39.62, 37.57)]),              # U8.8 (CS) - R20.1
-    (F, "3V3P", 0.25, [(39.62, 37.7), (40.75, 37.7), (40.75, 32.4), (41.4, 32.4)]),  # R20.1 - C15.1
+    (F, "3V3P", 0.25, [(39.62, 37.7), (40.35, 37.7), (40.75, 37.3), (40.75, 32.7), (41.05, 32.4), (41.4, 32.4)]),  # R20.1 - C15.1
     (F, "GND", 0.25, [(39.23, 34.0), (40.06, 34.0)]),                               # U8.12
     (F, "GND", 0.25, [(39.23, 35.0), (40.06, 35.0)]),                               # U8.10
     (F, "GND", 0.25, [(40.06, 31.5), (40.06, 35.9)]),                               # C14.2 - via
@@ -175,10 +184,11 @@ PREROUTE = [
     (F, "USB_DP", 0.2, [(82.635, 45.475), (82.635, 47.4)]),                          # U7.5 - via
     (B, "USB_DP", 0.2, [(82.635, 47.4), (83.785, 48.55), (85.3, 48.55)]),            # under D-
     (F, "USB_DP", 0.2, [(85.3, 48.55), (86.66, 48.55), (88.94, 48.55), (90.5, 48.55), (90.7, 48.75),
-                        (92.31, 48.75), (93.55, 48.75), (93.55, 49.75), (92.31, 49.75)]),  # U9.1-6, J7 B6, A6
+                        (92.31, 48.75), (93.25, 48.75), (93.55, 49.05), (93.55, 49.45), (93.25, 49.75),
+                        (92.31, 49.75)]),                                             # U9.1-6, J7 B6, A6
     (F, "USB_DM", 0.2, [(83.905, 45.475), (83.905, 49.0), (85.355, 50.45), (86.66, 50.45), (88.94, 50.45),
                         (90.5, 50.45), (90.7, 50.25), (92.31, 50.25)]),               # U7.6 - U9.3-4 - J7 B7
-    (F, "USB_DM", 0.2, [(92.31, 49.25), (91.1, 49.25), (91.1, 50.25)]),              # J7 A7 - B7
+    (F, "USB_DM", 0.2, [(92.31, 49.25), (91.4, 49.25), (91.1, 49.55), (91.1, 50.25)]),  # J7 A7 - B7
     (F, "CC2", 0.2, [(92.31, 47.75), (90.2, 47.75), (89.9, 47.45), (89.9, 46.02)]),  # J7 B5 - R15.1
     (F, "CC1", 0.2, [(92.31, 50.75), (91.45, 50.75), (91.0, 51.2), (90.2, 52.0), (90.2, 53.18)]),  # J7 A5 - R14.1
     # VBUS: both receptacle pads go to the board side (the alignment pegs, NPTH at (93.75, 46.61) and
@@ -216,20 +226,21 @@ PREVIAS = [("GND", 40.06, 35.9), ("GND", 35.9, 36.0), ("GND", 1.1, 49.8),
            ("GND", 92.56, 40.0), ("GND", 93.83, 13.1)]
 # Nets Freerouting does not route because they are completely hand-routed (their pins are taken
 # out of the DSN network; pads and pre-routes stay as obstacles). GND is not routed either: it is a
-# plane on both layers in the DSN (see cmd_export) and made by the pours, the fan-out vias below
-# and the stitching in `finish`.
+# plane on every layer in the DSN (see cmd_export) and made by the planes, pours, the fan-out vias
+# below and polish.py's stitching.
 HAND_NETS = ("VBUS", "USB_DP", "USB_DM", "CC1", "CC2", "LIS_SA0")
 # Pins of partly pre-routed nets taken out of the DSN: each pre-routed group keeps one open pin
-# (C15.1 for the LIS3DH 3V3P group, C9.1 for U1 3V3, R3.2 / R2.2 for SCL / SDA at the LIS3DH).
+# (C14.1 for the LIS3DH supply group U8.1/U8.14/C14/C16/R3, C15.1 for the U8.8/R20/C15 group, C9.1
+# for U1 3V3, R3.2 / R2.2 for SCL / SDA at the LIS3DH).
 PIN_EXCLUDE = {
-    "3V3P": ("U8-1", "U8-14", "U8-8", "C14-1", "C16-1", "R20-1", "R3-1"),
+    "3V3P": ("U8-1", "U8-14", "U8-8", "C16-1", "R20-1", "R3-1"),
     "3V3": ("U1-2", "C10-1"),
     "SCL": ("U8-4",),
     "SDA": ("U8-6",),
 }
 
-# GND fan-out: a short stub and a via to the bottom pour next to every SMD GND pad that the
-# pre-routes do not already serve (classic 2-layer practice: every return path one via long).
+# GND fan-out: a short stub and a via to the GND planes next to every SMD GND pad that the
+# pre-routes do not already serve (every return path one via long).
 FAN_CLEAR = 0.25                  # Power-class clearance
 FAN_STUB = 0.4
 FAN_AVOID = ("J7", "J11", "U1")   # no fan-out via inside these courtyards (shells, module body)
@@ -299,7 +310,7 @@ def gnd_fanout(board):
             for extra in (0.0, 0.3, 0.6, 1.0):
                 for vx, vy in dirs:
                     reach = abs(vx) * hw + abs(vy) * hh          # pad extent along the direction (rect approx.)
-                    dist = reach + MM(FAN_CLEAR + 0.3 + 0.05 + extra)
+                    dist = reach + MM(FAN_CLEAR + 0.05 + extra) + VIA_R
                     p = pcbnew.VECTOR2I(int(c.x + vx * dist), int(c.y + vy * dist))
                     if not (lo.x <= p.x <= hi.x and lo.y <= p.y <= hi.y):
                         continue
@@ -371,10 +382,11 @@ def cmd_export(dst):
     if any(not z.GetIsRuleArea() for z in board.Zones()):
         raise SystemExit("export: the board has copper zones (export before `finish`)")
     os.makedirs(os.path.dirname(os.path.abspath(dst)), exist_ok=True)
-    # temporary GND zones on both layers (not saved): exported as `plane GND`, so Freerouting takes
-    # every GND pin as connected and routes no GND, but still knows those pins are GND (Power class,
-    # 0.25 mm clearance). The real pours, fan-out vias and stitching come in `prep` / `finish`.
-    for layer in (F, B):
+    # temporary GND zones on all four layers (not saved): exported as `plane GND`, so Freerouting
+    # takes every GND pin as connected and routes no GND, but still knows those pins are GND (Power
+    # class, 0.25 mm clearance). The real pours, fan-out vias and stitching come in `prep` / `finish`
+    # / polish.py.
+    for layer in (F, IN1, IN2, B):
         z = pcbnew.ZONE(board)
         z.SetLayer(layer)
         z.SetNetCode(board.FindNet("GND").GetNetCode())
@@ -387,13 +399,17 @@ def cmd_export(dst):
     if not pcbnew.ExportSpecctraDSN(board, dst):
         raise SystemExit("ExportSpecctraDSN failed")
     t = open(dst).read()
-    if t.count("(plane GND (polygon F.Cu") != 1 or t.count("(plane GND (polygon B.Cu") != 1 or t.count("(plane") != 2:
-        raise SystemExit("expected exactly the two GND planes in the DSN")
+    names = [board.GetLayerName(layer) for layer in (F, IN1, IN2, B)]     # DSN uses the user names (GND1, GND2)
+    if any(t.count("(plane GND (polygon %s" % n) != 1 for n in names) or t.count("(plane") != 4:
+        raise SystemExit("expected exactly the four GND planes in the DSN")
+    for n in names[1:3]:
+        if not re.search(r"\(layer %s\s*\n?\s*\(type power\)" % re.escape(n), t):
+            raise SystemExit("export: %s is not a power (plane) layer in the DSN" % n)
     # U1 antenna keep-out (footprint local y -27.75 .. -6.56, x +-24) exported in the U1 image
     want = "-24000 27750  24000 27750  24000 6560  -24000 6560"
     n = sum(1 for line in t.splitlines() if "(keepout" in line and want in line)
-    if n != 2:
-        raise SystemExit("U1 antenna keep-out not found on F.Cu and B.Cu (%d)" % n)
+    if n != 4:
+        raise SystemExit("U1 antenna keep-out not found on all four layers (%d)" % n)
     # HAND_NETS: empty pin lists, so Freerouting leaves them alone; their pads and pre-routes stay
     # in the DSN as obstacles
     for net in HAND_NETS:
@@ -409,7 +425,7 @@ def cmd_export(dst):
         keep = " ".join(p for p in have if p not in pins)
         t = t[:m.start(1)] + " " + keep + t[m.end(1):]
     open(dst, "w").write(t)
-    print("wrote %s: GND planes on F.Cu/B.Cu, U1 antenna keep-out, %d fixed wires; hand-routed nets left out: %s"
+    print("wrote %s: GND planes on all layers (In1/In2 power layers), U1 antenna keep-out, %d fixed wires; hand-routed nets left out: %s"
           % (dst, t.count("(type fix)") + t.count("(type protect)"), " ".join(HAND_NETS)))
 
 
@@ -430,19 +446,348 @@ def cmd_import(ses):
                                                sum(1 for t in tr if t.GetClass() == "PCB_VIA")))
 
 
+# ------------------------------------------------------------------------------------- complete
+# Freerouting 2.4.1 can stop with a connection or two open (its optimizer stage even starts from
+# an older, less routed board, so the session is written with --router.optimizer.enabled=false).
+# `complete` routes what KiCad's DRC still reports unconnected (GND excepted: planes and pours)
+# with a two-layer octilinear A* search: 0.05 mm grid in a window around the two items, the net
+# class's width and clearance against every other item, 45 deg bends cheap, 90 deg dear, a via
+# (net class size, legal on all four layers, hole-to-hole kept) for VIA_COST.
+MAZE_TRIES = ((8.0, 0.05), (16.0, 0.05), (60.0, 0.1))   # (mm around the two items, grid mm), in turn
+VIA_COST = MM(4.0)
+
+
+def _maze_masks(board, net, layer_list, x0, y0, W, H, g, w, vd, vdrill):
+    """Blocked masks (track centre, via centre) per layer and a via mask for holes, as numpy."""
+    import numpy as np
+    from polish import fill_poly           # rasteriser (even-odd, node centres)
+    obs_track = {L: np.zeros((H, W), dtype=bool) for L in layer_list}
+    obs_via = np.zeros((H, W), dtype=bool)
+    own = MM(D.NETCLASS["Power" if net in D.POWER_NETS else "Default"][1])
+    nd = lambda p: ((p[0] - x0) / g, (p[1] - y0) / g)
+    win = (x0 - MM(2), y0 - MM(2), x0 + W * g + MM(2), y0 + H * g + MM(2))
+
+    def put(mask, s, grow):
+        s2 = pcbnew.SHAPE_POLY_SET(s)
+        s2.Inflate(int(grow), pcbnew.CORNER_STRATEGY_ROUND_ALL_CORNERS, MAXERR)
+        for k in range(s2.OutlineCount()):
+            o = s2.Outline(k)
+            fill_poly(mask, [nd((o.CPoint(m).x, o.CPoint(m).y)) for m in range(o.PointCount())], W, H)
+    items = [p for fp in board.GetFootprints() for p in fp.Pads()] + list(board.GetTracks())
+    for it in items:
+        bb = it.GetBoundingBox()
+        if bb.GetRight() < win[0] or bb.GetLeft() > win[2] or bb.GetBottom() < win[1] or bb.GetTop() > win[3]:
+            continue
+        same = it.GetNetname() == net
+        holes = it.GetClass() == "PCB_VIA" or (it.GetClass() == "PAD" and it.HasHole())
+        if holes:
+            h = pcbnew.SHAPE_POLY_SET()
+            if it.GetClass() == "PAD":
+                it.TransformHoleToPolygon(h, 0, MAXERR, pcbnew.ERROR_OUTSIDE)
+                hc = MM(0.28)
+            else:
+                c, r = it.GetPosition(), it.GetDrillValue() // 2
+                h.NewOutline()
+                for k in range(24):
+                    a = 2 * math.pi * k / 24
+                    h.Append(int(c.x + r * math.cos(a)), int(c.y + r * math.sin(a)))
+                hc = MM(0.2)
+            if h.OutlineCount():
+                put(obs_via, h, vdrill // 2 + MM(0.3))              # hole to hole (0.25 + margin)
+                if not same:
+                    for L in layer_list:
+                        if not it.IsOnLayer(L):                    # NPTH: the hole is the obstacle
+                            put(obs_track[L], h, w // 2 + hc)
+        if same:
+            continue
+        for L in layer_list:
+            if it.IsOnLayer(L):
+                s = pcbnew.SHAPE_POLY_SET()
+                it.TransformShapeToPolygon(s, L, 0, MAXERR, pcbnew.ERROR_OUTSIDE)
+                if not s.OutlineCount():
+                    continue
+                c = max(own, it.GetOwnClearance(L))
+                put(obs_track[L], s, w // 2 + c + MM(0.005))
+                put(obs_via, s, vd // 2 + c + MM(0.005))
+        # through-hole pads and vias also sit on the planes: a via must clear them there too
+    for z in [z for fp in board.GetFootprints() for z in fp.Zones()] + list(board.Zones()):
+        if z.GetIsRuleArea():
+            for L in layer_list:
+                if z.IsOnLayer(L) and z.GetDoNotAllowTracks():
+                    put(obs_track[L], pcbnew.SHAPE_POLY_SET(z.Outline()), w // 2)
+            if z.GetDoNotAllowVias():
+                put(obs_via, pcbnew.SHAPE_POLY_SET(z.Outline()), vd // 2)
+    # board edge band
+    jj, ii = np.mgrid[0:H, 0:W]
+    X, Y = x0 + ii * g, y0 + jj * g
+    lo = MM(0.3)
+    for mask, r in [(obs_track[L], w // 2) for L in layer_list] + [(obs_via, vd // 2)]:
+        mask |= (X < MM(OX) + lo + r) | (X > MM(OX + D.BOARD_W) - lo - r) | (Y < MM(OY) + lo + r) | (Y > MM(OY + D.BOARD_H) - lo - r)
+    return obs_track, obs_via
+
+
+def maze_route(board, net, a_item, b_item, margin, grid=0.05, b45=MM(0.3), b90=MM(1.5), via_cost=None, layers=None, width=None):
+    """Path from item a to item b (both of net): [(layer, [points nm])], [via points] or None."""
+    import heapq
+    import numpy as np
+    from polish import fill_poly
+    layers = list(layers) if layers else [F, B]
+    w = width or MM(D.NETCLASS["Power" if net in D.POWER_NETS else "Default"][0])
+    vd, vdrill = VIA_D, VIA_DRILL
+    ba, bb_ = a_item.GetBoundingBox(), b_item.GetBoundingBox()
+    x0 = min(ba.GetLeft(), bb_.GetLeft()) - MM(margin)
+    y0 = min(ba.GetTop(), bb_.GetTop()) - MM(margin)
+    x1 = max(ba.GetRight(), bb_.GetRight()) + MM(margin)
+    y1 = max(ba.GetBottom(), bb_.GetBottom()) + MM(margin)
+    x0, y0 = max(x0, MM(OX)), max(y0, MM(OY))
+    x1, y1 = min(x1, MM(OX + D.BOARD_W)), min(y1, MM(OY + D.BOARD_H))
+    g = MM(grid)
+    W, H = int((x1 - x0) / g) + 1, int((y1 - y0) / g) + 1
+    obs, obs_v = _maze_masks(board, net, layers, x0, y0, W, H, g, w, vd, vdrill)
+    nd = lambda p: ((p[0] - x0) / g, (p[1] - y0) / g)
+
+    def cells(item):
+        out = {}
+        for L in layers:
+            if item.IsOnLayer(L):
+                s = pcbnew.SHAPE_POLY_SET()
+                item.TransformShapeToPolygon(s, L, 0, MAXERR, pcbnew.ERROR_INSIDE)
+                m = np.zeros((H, W), dtype=bool)
+                for k in range(s.OutlineCount()):
+                    o = s.Outline(k)
+                    fill_poly(m, [nd((o.CPoint(q).x, o.CPoint(q).y)) for q in range(o.PointCount())], W, H)
+                out[L] = m
+        return out
+    src, dst = cells(a_item), cells(b_item)
+    goal = {L: dst[L] for L in dst}
+    gx = (bb_.GetLeft() + bb_.GetRight()) / 2
+    gy = (bb_.GetTop() + bb_.GetBottom()) / 2
+    ge = nd((gx, gy))
+    diag = math.sqrt(2)
+    STEP = [(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1)]
+
+    def h(i, j):
+        dx, dy = abs(i - ge[0]), abs(j - ge[1])
+        return (max(dx, dy) - min(dx, dy) + min(dx, dy) * diag) * g * 0.999
+    heap, best, prev = [], {}, {}
+    for li, L in enumerate(layers):
+        if L not in src:
+            continue
+        js, iss = np.nonzero(src[L])
+        for j, i in zip(js, iss):
+            k = (li, int(i), int(j), -1)
+            best[k] = 0.0
+            prev[k] = None
+            heapq.heappush(heap, (h(i, j), 0.0, li, int(i), int(j), -1))
+    via_cost = VIA_COST if via_cost is None else via_cost
+    found = None
+    n = 0
+    while heap:
+        f, c, li, i, j, d = heapq.heappop(heap)
+        if best.get((li, i, j, d), 1e30) < c:
+            continue
+        L = layers[li]
+        if L in goal and goal[L][j, i] and prev[(li, i, j, d)] is not None:
+            found = (li, i, j, d)
+            break
+        n += 1
+        if n > 6_000_000:
+            break
+        for nd_ in range(8):
+            if d >= 0:
+                t = (nd_ - d) % 8
+                if t in (3, 4, 5) or (b90 is None and t in (2, 6)):
+                    continue
+                pen = 0 if t == 0 else b45 if t in (1, 7) else b90
+            else:
+                pen = 0
+            di, dj = STEP[nd_]
+            ni, nj = i + di, j + dj
+            if not (0 <= ni < W and 0 <= nj < H):
+                continue
+            free = not obs[L][nj, ni] or (src.get(L) is not None and src[L][nj, ni]) or (L in goal and goal[L][nj, ni])
+            if not free:
+                continue
+            nc2 = c + (diag if nd_ % 2 else 1.0) * g + pen
+            k2 = (li, ni, nj, nd_)
+            if nc2 < best.get(k2, 1e30):
+                best[k2] = nc2
+                prev[k2] = (li, i, j, d)
+                heapq.heappush(heap, (nc2 + h(ni, nj), nc2, li, ni, nj, nd_))
+        if len(layers) > 1 and not obs_v[j, i]:
+            oli = 1 - li
+            if not obs[layers[oli]][j, i]:
+                k2 = (oli, i, j, -1)
+                nc2 = c + via_cost
+                if nc2 < best.get(k2, 1e30):
+                    best[k2] = nc2
+                    prev[k2] = (li, i, j, d)
+                    heapq.heappush(heap, (nc2 + h(i, j), nc2, oli, i, j, -1))
+    if found is None:
+        return None
+    nodes = []
+    k = found
+    while k is not None:
+        nodes.append(k)
+        k = prev[k]
+    nodes.reverse()
+    pt_ = lambda k: (x0 + k[1] * g, y0 + k[2] * g)
+    runs, vias = [], []
+    cur = [nodes[0]]
+    for k in nodes[1:]:
+        if k[0] != cur[-1][0]:
+            runs.append(cur)
+            vias.append(pt_(k))
+            cur = [k]
+        else:
+            cur.append(k)
+    runs.append(cur)
+    out = []
+    for run in runs:
+        pts = [pt_(run[0])]
+        for m in range(1, len(run) - 1):
+            if run[m][3] != run[m + 1][3]:
+                pts.append(pt_(run[m]))
+        pts.append(pt_(run[-1]))
+        if len(pts) >= 2 and pts[0] != pts[-1]:
+            out.append((layers[run[0][0]], pts))
+    return out, vias, w, vd, vdrill
+
+
+def _open_pairs(board):
+    save(board)
+    d = drc_json(BOARD)
+    out = []
+    for v in d.get("unconnected_items", []):
+        its = v["items"]
+        if not any("[GND]" in it.get("description", "") for it in its):
+            out.append([it["uuid"] for it in its])
+    return out
+
+
+def _add_route(board, net, res):
+    runs, vias, w, vd, vdrill = res
+    for layer, pts in runs:
+        for p, q in zip(pts, pts[1:]):
+            t = pcbnew.PCB_TRACK(board)
+            t.SetStart(pcbnew.VECTOR2I(int(p[0]), int(p[1])))
+            t.SetEnd(pcbnew.VECTOR2I(int(q[0]), int(q[1])))
+            t.SetWidth(w)
+            t.SetLayer(layer)
+            t.SetNet(board.FindNet(net))
+            board.Add(t)
+    for p in vias:
+        v = pcbnew.PCB_VIA(board)
+        v.SetPosition(pcbnew.VECTOR2I(int(p[0]), int(p[1])))
+        v.SetWidth(vd)
+        v.SetDrill(vdrill)
+        v.SetLayerPair(F, B)
+        v.SetNet(board.FindNet(net))
+        board.Add(v)
+
+
+RIP_RADIUS = MM(1.2)               # tracks of other nets this close to a boxed-in pad are ripped up
+
+
+def cmd_complete():
+    """Route the non-GND connections KiCad's DRC reports open (maze_route). A connection with no
+    path at all (a pad boxed in by other nets' tracks) gets the unlocked tracks of other nets
+    within RIP_RADIUS of its pads ripped up; it is routed first in the next round, the ripped nets
+    after it. Saves the board."""
+    board = load()
+    first, ripped_nets, failed = set(), set(), []
+    routed = 0
+    for rnd in range(8):
+        todo = _open_pairs(board)
+        if not todo:
+            break
+        byuid = {}
+        for fp in board.GetFootprints():
+            for pd in fp.Pads():
+                byuid[pd.m_Uuid.AsString()] = pd
+        for t in board.GetTracks():
+            byuid[t.m_Uuid.AsString()] = t
+        pairs = [(byuid.get(u[0]), byuid.get(u[1])) for u in todo]
+        pairs = [pr for pr in pairs if pr[0] is not None and pr[1] is not None]
+        pairs.sort(key=lambda pr: pr[0].GetNetname() not in first)
+        failed = []
+        for a, b in pairs:
+            net = a.GetNetname()
+            res = None
+            for margin, grid in MAZE_TRIES:
+                res = maze_route(board, net, a, b, margin, grid)
+                if res:
+                    break
+            if not res:
+                failed.append((a, b))
+                print("maze: no path for %s between %s and %s" % (net, bmm(a.GetPosition()), bmm(b.GetPosition())))
+                continue
+            _add_route(board, net, res)
+            routed += 1
+            print("maze: %s routed (%d segments, %d vias)" % (net, sum(len(p) - 1 for _, p in res[0]), len(res[1])))
+        if not failed:
+            continue
+        # rip up around the boxed-in pads of the failed connections
+        n = 0
+        for a, b in failed:
+            first.add(a.GetNetname())
+            for it in (a, b):
+                if it.GetClass() != "PAD":
+                    continue
+                bb = it.GetBoundingBox()
+                bb.Inflate(RIP_RADIUS)
+                for t in list(board.GetTracks()):
+                    if t.GetClass() != "PCB_TRACK" or t.IsLocked() or t.GetNetname() in (a.GetNetname(), "GND") \
+                            or t.GetNetname() in HAND_NETS or not any(it.IsOnLayer(L) and t.GetLayer() == L for L in (F, B)):
+                        continue
+                    if bb.Intersects(t.GetBoundingBox()) and pcbnew.SEG(t.GetStart(), t.GetEnd()).Distance(it.GetPosition()) < \
+                            RIP_RADIUS + max(bb.GetWidth(), bb.GetHeight()) // 2:
+                        ripped_nets.add(t.GetNetname())
+                        board.Delete(t)
+                        n += 1
+        print("maze: ripped up %d track segments of %s around %d boxed-in connection(s)" % (
+            n, " ".join(sorted(ripped_nets)) or "nothing", len(failed)))
+        if not n:
+            break
+    ndang = remove_dangling(board)
+    save(board)
+    left = _open_pairs(board)
+    print("maze: %d connections routed, %d dangling tracks/vias removed, %d still open%s" % (
+        routed, ndang, len(left), "" if not left else " (route them by hand)"))
+
+
+def remove_dangling(board):
+    """Unlocked non-GND tracks and vias KiCad's DRC finds dangling (router or rip-up leftovers)
+    are deleted, repeatedly. Returns how many."""
+    total = 0
+    for _ in range(6):
+        save(board)
+        d = drc_json(BOARD)
+        bad = {it["uuid"] for v in d.get("violations", []) if v["type"] in ("track_dangling", "via_dangling")
+               for it in v["items"] if "[GND]" not in it.get("description", "")}
+        dead = [t for t in board.GetTracks() if t.m_Uuid.AsString() in bad and not t.IsLocked()]
+        if not dead:
+            break
+        for t in dead:
+            board.Delete(t)
+        total += len(dead)
+        del dead
+    return total
+
+
 # ------------------------------------------------------------------------------------- finish
 A_MIN = 4.0                       # mm2: smaller unconnected GND areas are left to island removal
 GRID = 5.0                        # mm: stitching via grid
-VIA_R = VIA_D // 2
+VIA_R = GND_VIA_D // 2              # GND fan-out / stitching via radius
 VIA_GAP = MM(1.0)                 # island stitch via to any other via, centre to centre
 GRID_GAP = MM(1.5)                # grid via to any other via
 STITCH_AVOID = ("U1", "J7", "J11")   # no grid vias inside these courtyards
 ZONE_CLEARANCE = 0.25
 
-# Hand fixes after the Freerouting pass (session r12, see README "Routing"), board coordinates.
+# Hand fixes after the rev 2 Freerouting pass (session r12), kept as the record; rev 3 needed none so far.
 # ("delete", net, layer, (x0, y0, x1, y1)) removes that net's tracks on that layer with both ends in
 # the box; (layer, net, width, [points]) adds tracks; ("via", net, x, y) adds a via.
-HAND_FIXES = [
+HAND_FIXES_REV2 = [
     # T4 looped round both EN pads of SW1 and crossed the EN jumper twice (Freerouting optimizer):
     # straight under the switch body between its pad rows instead
     ("delete", "T4", F, (19.0, 37.3, 28.65, 39.5)),
@@ -457,6 +802,7 @@ HAND_FIXES = [
     # to the 3V3P track at C4
     (F, "3V3P", 0.25, [(38.5, 31.5), (40.6, 29.4)]),
 ]
+HAND_FIXES = []
 
 
 def apply_hand_fixes(board):
@@ -493,7 +839,7 @@ def add_gnd_zones(board):
         board.Delete(z)
     gnd = board.FindNet("GND")
     zones = {}
-    for layer, name in ((pcbnew.F_Cu, "GND_F"), (pcbnew.B_Cu, "GND_B")):
+    for layer, name in ((pcbnew.F_Cu, "GND_F"), (IN1, "GND_L2"), (IN2, "GND_L3"), (pcbnew.B_Cu, "GND_B")):
         z = pcbnew.ZONE(board)
         z.SetLayer(layer)
         z.SetNetCode(gnd.GetNetCode())
@@ -561,6 +907,18 @@ def classify(board, zones):
             touch = []
             for it, s, ibb in items:
                 if not bb.Intersects(ibb):
+                    continue
+                if it.GetClass() == "PCB_VIA":
+                    # a GND via sits in solid copper (vias join zones solid): its centre is inside
+                    # the piece; a point test instead of a boolean on a whole-plane polygon
+                    if p.Contains(it.GetPosition()):
+                        touch.append(it)
+                    continue
+                if layer in PLANES:
+                    # through-hole pads on a plane: thermal spokes reach the pad edge
+                    r = max(ibb.GetWidth(), ibb.GetHeight()) // 2
+                    if p.Collide(it.GetPosition(), r + MM(0.01)):
+                        touch.append(it)
                     continue
                 t = pcbnew.SHAPE_POLY_SET(p)
                 t.BooleanIntersection(s)
@@ -885,18 +1243,9 @@ def cmd_finish():
     cleanup(board)
     apply_hand_fixes(board)
     zones = add_gnd_zones(board)
-    print("GND before stitching:")
-    report_islands(board, zones)
-    isl = stitch_islands(board, zones)
-    for a in isl:
-        print("  stitch via at (%.2f, %.2f): %s, %s, %.1f mm2" % (a[0][0], a[0][1], a[1], a[3], a[2]))
-    grid = stitch_grid(board, zones)
-    print("GND after %d island/thermal vias and %d grid vias:" % (len(isl), len(grid)))
-    report_islands(board, zones)
     fill(board, zones, pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)
     place_refs(board)
     save(board)
-    prune(board, zones)
     report(board)
 
 
@@ -1000,7 +1349,7 @@ def report(board=None):
 
 
 def main():
-    cmds = {"prep": cmd_prep, "finish": cmd_finish, "report": report}
+    cmds = {"prep": cmd_prep, "maze": cmd_complete, "finish": cmd_finish, "report": report}
     if len(sys.argv) >= 2 and sys.argv[1] in cmds:
         cmds[sys.argv[1]]()
     elif len(sys.argv) == 3 and sys.argv[1] == "export":

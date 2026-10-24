@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
-"""Generate the rev 2 defuse32-carrier.kicad_pcb (outline, holes, every footprint with its nets,
-placed after design.PCB, unrouted) and the project file (net classes, JLCPCB 2-layer design rules).
-Routing, GND pours and stitching are added afterwards by route_prep.py (see its docstring).
+"""Generate the defuse32-carrier.kicad_pcb (outline, holes, every footprint with its nets,
+placed after design.PCB, unrouted) and the project file (net classes, JLCPCB design rules).
+Routing, GND pours and stitching are added afterwards by route_prep.py and polish.py (see their
+docstrings).
+
+Rev 3 (2026-10-23): 4 copper layers on JLCPCB's JLC04161H-7628 stack-up, placement, schematic
+and netlist as rev 2. Stack-up option B of the pcb-layout-pro skill (references/four-layer.md):
+F.Cu signals + power + GND pour, In1.Cu solid GND plane, In2.Cu solid GND plane, B.Cu signals +
+power + GND pour (reasons in kicad/README.md "Rev 3"). The stack-up is written into the board
+file (STACKUP), the JLCPCB 4-layer limits into the project rules and the .kicad_dru (RULES, DRU);
+3D models that KiCad's library lacks come from gen/models3d.json (fetch_3d.py).
 
 Needs KiCad's Python:  /usr/bin/python3 kicad/gen/gen_pcb.py [--force]
 Footprint-to-symbol links use the same deterministic UUIDs as gen_sch.py (path /sheet/symbol).
@@ -81,19 +89,110 @@ def read_netlist():
 
 
 # ---------------------------------------------------------------- project: net classes + rules
-# JLCPCB 2-layer standard capabilities (mm): track/space 0.127, drill 0.3, annular ring 0.13,
-# hole-to-hole 0.5, copper to board edge 0.3.
-# Silkscreen (JLCPCB legible minimum): clearance to pads / mask / other silk, text height, stroke.
-SILK_RULES = (0.15, 0.8, 0.15)
+# JLCPCB 4-layer capabilities (https://jlcpcb.com/capabilities/pcb-capabilities, read 2026-10-23;
+# summary in the pcb-layout-pro skill, references/jlcpcb.md). The board minimums are JLCPCB's
+# limits at standard price (nothing here makes the order cost more):
+#   trace / space 0.09 / 0.09 mm on 4 layers -> 0.1 / 0.1 (the net classes use 0.2 / 0.2 and 0.6 / 0.25);
+#   drill 0.15 mm costs extra, 0.2 mm holes are free with a via diameter >= 0.45 mm -> holes >= 0.2,
+#   vias >= 0.45 (stitching 0.45 / 0.2, signal and power 0.6 / 0.3), annular ring >= 0.1;
+#   via hole to via hole 0.2 -> 0.25; pad hole to pad hole (different nets) 0.45 (DRU);
+#   via hole to track 0.2 -> hole clearance 0.2; PTH hole to track 0.28 (DRU), inner-layer PTH
+#   hole to copper 0.3 (DRU); copper to routed edge 0.2 -> 0.3;
+#   silkscreen: line >= 0.15 mm, text height >= 1.0 mm, 0.15 mm from pads.
+SILK_RULES = (0.15, 1.0, 0.15)       # silk clearance, min text height, min text stroke (mm)
 RULES = {
-    "min_clearance": 0.127,
-    "min_track_width": 0.127,
-    "min_through_hole_diameter": 0.3,
-    "min_via_annular_width": 0.13,
-    "min_via_diameter": 0.56,
-    "min_hole_to_hole": 0.5,
+    "min_clearance": 0.1,
+    "min_track_width": 0.1,
+    "min_through_hole_diameter": 0.2,
+    "min_via_annular_width": 0.1,
+    "min_via_diameter": 0.45,
+    "min_hole_to_hole": 0.25,
     "min_copper_edge_clearance": 0.3,
 }
+HOLE_CLEARANCE = 0.2
+VIAS = ((0.6, 0.3), (0.45, 0.2))     # signal / power vias; GND fan-out and stitching vias
+BOARD_REV = "3"
+LAYER_NAMES = {pcbnew.In1_Cu: "GND1", pcbnew.In2_Cu: "GND2"}
+# JLC04161H-7628 (https://jlcpcb.com/impedance): 1 oz outer, 0.5 oz inner copper, 7628 prepreg
+# 0.2104 mm (Er 4.4) between L1-L2 and L3-L4, 1.065 mm core (Er 4.6), 1.6 mm finished.
+STACKUP = """		(stackup
+			(layer "F.SilkS"
+				(type "Top Silk Screen")
+				(color "White")
+			)
+			(layer "F.Paste"
+				(type "Top Solder Paste")
+			)
+			(layer "F.Mask"
+				(type "Top Solder Mask")
+				(color "Green")
+				(thickness 0.01)
+			)
+			(layer "F.Cu"
+				(type "copper")
+				(thickness 0.035)
+			)
+			(layer "dielectric 1"
+				(type "prepreg")
+				(thickness 0.2104)
+				(material "7628")
+				(epsilon_r 4.4)
+				(loss_tangent 0.02)
+			)
+			(layer "In1.Cu"
+				(type "copper")
+				(thickness 0.0152)
+			)
+			(layer "dielectric 2"
+				(type "core")
+				(thickness 1.065)
+				(material "FR4")
+				(epsilon_r 4.6)
+				(loss_tangent 0.02)
+			)
+			(layer "In2.Cu"
+				(type "copper")
+				(thickness 0.0152)
+			)
+			(layer "dielectric 3"
+				(type "prepreg")
+				(thickness 0.2104)
+				(material "7628")
+				(epsilon_r 4.4)
+				(loss_tangent 0.02)
+			)
+			(layer "B.Cu"
+				(type "copper")
+				(thickness 0.035)
+			)
+			(layer "B.Mask"
+				(type "Bottom Solder Mask")
+				(color "Green")
+				(thickness 0.01)
+			)
+			(layer "B.Paste"
+				(type "Bottom Solder Paste")
+			)
+			(layer "B.SilkS"
+				(type "Bottom Silk Screen")
+				(color "White")
+			)
+			(copper_finish "HAL lead-free")
+			(dielectric_constraints no)
+		)
+"""
+STACKUP_THICKNESS = 1.6062
+
+
+def write_stackup(path):
+    """pcbnew's Python has no stack-up API: put the JLC04161H-7628 stack-up into a saved board."""
+    t = open(path).read()
+    t = re.sub(r"\t\t\(stackup\n.*?\n\t\t\)\n", "", t, flags=re.S)
+    if t.count("\t(setup\n") != 1:
+        raise SystemExit("write_stackup: no (setup) block in " + path)
+    t = t.replace("\t(setup\n", "\t(setup\n" + STACKUP, 1)
+    t = re.sub(r"\(general\n\t\t\(thickness [0-9.]+\)", "(general\n\t\t(thickness %s)" % STACKUP_THICKNESS, t, count=1)
+    open(path, "w").write(t)
 
 
 def netclass(name, track, clearance, priority):
@@ -104,7 +203,7 @@ def netclass(name, track, clearance, priority):
             "priority": priority, "tuning_profile": ""}
 
 
-# Custom rules: the 0.5 mm pitch parts have 0.15-0.2 mm gaps between their own pads, below the
+# Custom rules: first the JLCPCB limits that KiCad's board setup has no field for. Then: the 0.5 mm pitch parts have 0.15-0.2 mm gaps between their own pads, below the
 # Default (0.2) / Power (0.25) clearances. Inside their courtyards the clearance drops to 0.15 mm
 # (JLCPCB minimum 0.127 mm), so the footprints themselves and the fan-out pass DRC. The USB-C GND
 # pads sit between the VBUS pad and the shell legs, where a thermal relief keeps one spoke only:
@@ -112,6 +211,19 @@ def netclass(name, track, clearance, priority):
 # (box headers) are connected on both layers; where tracks pass close by, one 0.5 mm spoke per
 # layer is accepted instead of two (hand soldering keeps its thermal reliefs).
 DRU = """(version 1)
+
+(rule "JLCPCB: PTH hole to track 0.28 mm"
+  (constraint hole_clearance (min 0.28mm))
+  (condition "A.Type == 'Pad' && A.isPlated() && A.Pad_Type == 'Through-hole'"))
+
+(rule "JLCPCB: inner-layer PTH hole to copper 0.3 mm"
+  (layer inner)
+  (constraint hole_clearance (min 0.3mm))
+  (condition "A.Type == 'Pad' && A.isPlated() && A.Pad_Type == 'Through-hole'"))
+
+(rule "JLCPCB: pad hole to pad hole 0.45 mm (different nets)"
+  (constraint hole_to_hole (min 0.45mm))
+  (condition "A.Type == 'Pad' && B.Type == 'Pad' && A.NetName != B.NetName"))
 
 (rule "LIS3DH LGA-16 0.5 mm pitch"
   (constraint clearance (min 0.15mm))
@@ -142,13 +254,13 @@ def write_project():
             "design_settings": {
                 "meta": {"version": 2},
                 "rules": dict(RULES, allow_blind_buried_vias=False, allow_microvias=False,
-                              min_hole_clearance=0.25, min_resolved_spokes=2, min_silk_clearance=SILK_RULES[0],
+                              min_hole_clearance=HOLE_CLEARANCE, min_resolved_spokes=2, min_silk_clearance=SILK_RULES[0],
                               min_text_height=SILK_RULES[1], min_text_thickness=SILK_RULES[2], max_error=0.005),
                 # silkscreen problems are errors (rev 2.1): text over pads / mask openings, text over
                 # text or footprint silk, silk clipped by the board edge
                 "rule_severities": {"silk_over_copper": "error", "silk_overlap": "error", "silk_edge_clearance": "error"},
                 "track_widths": [0.0, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0],
-                "via_dimensions": [{"diameter": 0.0, "drill": 0.0}, {"diameter": 0.6, "drill": 0.3}],
+                "via_dimensions": [{"diameter": 0.0, "drill": 0.0}] + [{"diameter": d, "drill": h} for d, h in VIAS],
                 "diff_pair_dimensions": [],
             },
         },
@@ -170,13 +282,17 @@ def write_project():
 
 def build():
     board = pcbnew.CreateEmptyBoard()
+    board.SetCopperLayerCount(4)
+    for layer, name in LAYER_NAMES.items():
+        board.SetLayerName(layer, name)
+        board.SetLayerType(layer, pcbnew.LT_POWER)       # planes: Freerouting does not route on them
     tb = board.GetTitleBlock()
-    tb.SetTitle(D.TITLE)
-    tb.SetRevision(D.REV)
+    tb.SetTitle("Defuse32 carrier")
+    tb.SetRevision(BOARD_REV)
     tb.SetDate(D.DATE)
     tb.SetCompany("ESP32 CTF / Defuse32")
-    tb.SetComment(0, "100 x 70 mm, 2 layers, 1.6 mm, SMD (JLCPCB assembly) + THT headers")
-    tb.SetComment(1, "rev 2: placed (design.py), routed with Freerouting + route_prep.py; rules in .kicad_pro")
+    tb.SetComment(0, "100 x 70 mm, 4 layers JLC04161H-7628 1.6 mm (sig+GND / GND / GND / sig+GND), SMD + THT headers")
+    tb.SetComment(1, "rev 3: schematic rev 2, placed (design.py), routed with Freerouting + route_prep.py, polish.py")
     tb.SetComment(2, "Generated by kicad/gen/gen_pcb.py")
     ds = board.GetDesignSettings()
     ds.SetBoardThickness(mm(1.6))
@@ -187,6 +303,7 @@ def build():
     ds.m_HoleToHoleMin = mm(RULES["min_hole_to_hole"])
     ds.m_ViasMinAnnularWidth = mm(RULES["min_via_annular_width"])
     ds.m_ViasMinSize = mm(RULES["min_via_diameter"])
+    ds.m_HoleClearance = mm(HOLE_CLEARANCE)
     # drill/place origin = board bottom-left corner: Gerbers, drill and the JLCPCB CPL use it
     ds.SetAuxOrigin(P(0, D.BOARD_H))
 
@@ -235,19 +352,23 @@ def build():
                 pad.SetNet(nets[net])
         board.Add(fp)
 
+    import fetch_3d
+    got = fetch_3d.apply(board)
+    if got:
+        print("3D models from gen/models3d.json:", " ".join(got))
     place_refs(board)
-    silk_text(board, "DEFUSE32 CARRIER  rev 2  2026-10-23", 50, 68.2, 1.2, bold=True, layer=pcbnew.B_SilkS).SetMirrored(True)
     silk_text(board, "U1 antenna region and keep-out beyond the board edge x = 0 (Espressif placement)",
               50, -3, 1.0, layer=pcbnew.F_Fab)
 
     out = os.path.join(KDIR, PROJECT + ".kicad_pcb")
     pcbnew.SaveBoard(out, board)
+    write_stackup(out)
     write_project()      # after SaveBoard, which rewrites the .kicad_pro with defaults
     print("wrote", out, "footprints:", len(board.GetFootprints()), "nets:", len(nets))
 
 
 # ---------------------------------------------------------------- silkscreen reference designators
-REF_SIZE, REF_THICK = 0.8, 0.15      # mm (JLCPCB: 0.8 mm text height, 0.15 mm line is the minimum legible);
+REF_SIZE, REF_THICK = 1.0, 0.15      # mm (JLCPCB: 1.0 mm text height, 0.15 mm line);
                                      # the routed board's final references come from polish.py
 SILK_GAP = 0.15                      # text box to pads, silk lines, other references
 EDGE_GAP = 0.3

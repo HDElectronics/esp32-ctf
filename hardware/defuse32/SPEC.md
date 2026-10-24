@@ -38,6 +38,16 @@ Preview the owner approved: https://claude.ai/artifact/G4984uR9xEvDVbf2QLoGjv (p
 - **Plate connectors**: one keyed 2.54 mm IDC box header per plate, ribbon cable to the plate. Sizes: J1 M1 2×5, J2 M2 2×6, J3 M3 2×8, J4 M4 2×10, J5 M5 2×7, J6 M6 2×10. Pinout rule: pin 1 = 5V, pin 2 = GND, then 3V3P, SDA, SCL, LDI, LDO, then the plate's signals (same signal sets as the rev 1 Jn_B table), spare positions = GND. Back-row plates (J1–J3) on the top edge, J4–J5 on the bottom edge, J6 vertical on the right edge above the USB-C. Small headers: J_KEY 1×2, J_SERVO 1×3 (GND, 5V, SIG), J_SPARE 1×5 (outputs only + GND).
 - **Placement** follows the approved preview (positions ±5 mm): module left, expanders in the middle, CH340C + USB-C bottom right, regulators near the USB path, microSD bottom right edge.
 
+## Rev 3 carrier (2026-10-23, after the owner's review of rev 2.1) — 4 layers
+
+Same schematic, netlist, pin map and placement as rev 2 (the schematic stays rev 2; the board is rev 3). Rev 2.1 (2 layers) stays in git history (commit 7412eb7).
+
+- **Board**: 100 × 70 mm, **4 layers**, 1.6 mm on JLCPCB's standard **JLC04161H-7628** stack-up (1 oz outer, 0.5 oz inner; 0.21 mm prepreg L1-L2 / L3-L4, 1.065 mm core), no impedance control.
+- **Stack-up option B**: L1 signals + power + GND pour, **L2 solid GND plane**, **L3 solid GND plane**, L4 signals + power + GND pour; no tracks on L2/L3. Chosen over "power planes on L3" because the three rails (5V, 3V3, 3V3P) run over the whole board and meet on adjacent pins of every box header, so L3 could not be split into areas without becoming a layer of power tracks cutting the plane under L4; on this stack-up L3 is 1.065 mm from L2, so a power plane there would add almost no plane capacitance either. Power stays as 0.6 mm tracks on L1/L4.
+- **Design rules = JLCPCB 4-layer capabilities at standard price** (project rules + `.kicad_dru`, numbers and source in the pcb-layout-pro skill `references/jlcpcb.md`): vias 0.6/0.3 mm (signals, power) and 0.45/0.2 mm (GND fan-out and stitching), no 0.15 mm holes, PTH hole to track 0.28 mm, inner PTH hole to copper 0.3 mm, pad hole to pad hole 0.45 mm, copper to edge 0.3 mm, silkscreen text ≥ 1.0 mm / 0.15 mm.
+- **Finish**: no 90° corners, jogs straightened, every outer-layer GND pour piece stitched to the planes (no floating copper), a GND via next to each layer change of USB, SPI and WS2812 data, reference designators 1.0 mm beside their parts on the top side only (none on the bottom), rows aligned.
+- **3D models** for J7, SW1/SW2 and F1 from LCSC/EasyEDA (`kicad/gen/fetch_3d.py`, files git-ignored); BOM/CPL in the JLCPCB Tools plugin's format with its rotation corrections.
+
 ## Rev 1 changes (2026-10-22)
 
 - **Challenge packs on microSD**: a 3.3 V-only microSD breakout (no level shifter; e.g. Adafruit 4682 style: 3V, GND, CLK, SO, SI, CS, DET) on a 1×7 female socket on the carrier, on the existing VSPI bus (SCK 18, MOSI 23, MISO 19) with **SD_CS = GPIO2** and a 10 kΩ pull-down on GPIO2 (keeps the boot/download strapping valid). Card detect DET → MCP U2 GPB5 (was SPARE1). Avoid 5 V "catalex" modules: their level shifter does not release MISO and would fight the probe plate's W25Q32. The SD sits on the carrier, under the panel: only the game master reaches it.

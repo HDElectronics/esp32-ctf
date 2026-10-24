@@ -1,4 +1,4 @@
-# Defuse32 carrier PCB, rev 2.1 (KiCad 10)
+# Defuse32 carrier PCB, rev 3 (KiCad 10, 4 layers)
 
 The carrier board sits on the case floor and connects to the six plates by ribbon cables. Rev 2 is an SMD board assembled by JLCPCB: ESP32-WROOM-32E module, USB-C programming port with a CH340C, two MCP23017 expanders, LIS3DH tilt sensor, push-push microSD, WS2812 buffer, buzzer driver and one keyed IDC box header per plate. The source of truth is [`../SPEC.md`](../SPEC.md), section "Rev 2 carrier (2026-10-23)", plus the sections it keeps: ESP32 pin map, MCP23017 allocation (rev 1b), WS2812 chain, I2C addresses and the plate signal sets (rev 1 Jn_B table).
 
@@ -17,7 +17,7 @@ Changes against SPEC "Rev 2 carrier" made on 2026-10-23 (SPEC.md not edited yet)
 
 ## Rev 2 overview
 
-- **Board**: 100 x 70 mm, 2 layers, 1.6 mm, 4 x M3 (Ø3.2) non-plated holes 4 mm from the corners. SMD on the top side (JLCPCB assembly); the IDC box headers and the 2.54 mm pin headers are through-hole.
+- **Board**: 100 x 70 mm, 4 layers (rev 3; rev 2/2.1 had 2), 1.6 mm, 4 x M3 (Ø3.2) non-plated holes 4 mm from the corners. SMD on the top side (JLCPCB assembly); the IDC box headers and the 2.54 mm pin headers are through-hole.
 - **ESP32**: U1 ESP32-WROOM-32E-N4 at the left edge, turned 90° so the antenna end points left. The antenna region (footprint y < -6.56 mm) lies beyond the board edge x = 0. The footprint keeps KiCad's antenna keep-out zone (no tracks, vias, pads, pours or footprints) and the antenna outline on F.Fab. EN (SW1) and BOOT (SW2) buttons; EN RC 10 kΩ + 1 µF; GPIO0 10 kΩ pull-up.
 - **USB-C** J7 (16-pin, HRO TYPE-C-31-M-12): power input and programming port only. CC1/CC2 5.1 kΩ to GND (5 V sink). VBUS -> F1 PTC (2 A hold, 4 A trip) -> `5V`. U9 USBLC6-2SC6 on D+/D-. Shield to GND.
 - **USB-UART**: U7 CH340C at 3.3 V (V3 tied to VCC), no crystal, on UART0: CH340C TXD -> `U0RXD` (GPIO3), RXD <- `U0TXD` (GPIO1). Auto-reset with two MMBT3904 (Q2 DTR -> EN, Q3 RTS -> IO0, 10 kΩ base resistors).
@@ -278,11 +278,11 @@ What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are t
 
 ## Board and design rules
 
-- `defuse32-carrier.kicad_pcb`: 100 x 70 mm, 2 layers, 1.6 mm; H1-H4 (MountingHole_3.2mm_M3) 4 mm from the corners; placed (design.py `PCB`), routed, GND pours on both layers (zones `GND_F` / `GND_B`: clearance 0.2 mm, minimum width 0.2 mm, thermal reliefs 0.3 / 0.5 mm, island removal always), title block rev 2.1.
-- Silkscreen rules (in `defuse32-carrier.kicad_pro`, written by `gen_pcb.write_project`): silk clearance 0.15 mm, text height >= 0.8 mm, stroke >= 0.15 mm; silk_over_copper, silk_overlap and silk_edge_clearance are errors.
-- Net classes (in `defuse32-carrier.kicad_pro`): **Power** = `5V`, `3V3`, `3V3P`, `GND`, `VBUS`: 0.6 mm track, 0.25 mm clearance. **Default**: 0.2 mm track, 0.2 mm clearance. Vias 0.6/0.3 mm.
-- Board minimums = JLCPCB 2-layer standard: track/space 0.127 mm, hole 0.3 mm, via ring 0.13 mm, via 0.56 mm, hole-to-hole 0.5 mm, copper to edge 0.3 mm.
-- Custom rules (`defuse32-carrier.kicad_dru`): clearance 0.15 mm between items inside the U8 (LIS3DH) and J7 (USB-C) courtyards (0.5 mm pitch: their own pad gaps are 0.15 / 0.2 mm); J7 GND pads join the pours solid; through-hole GND pins may resolve with one thermal spoke per layer (box headers, hand-soldered: thermal reliefs kept).
+- `defuse32-carrier.kicad_pcb`: 100 x 70 mm, 4 copper layers on JLCPCB's JLC04161H-7628 stack-up (written into the board's Physical Stackup by `gen_pcb.write_stackup`: 1 oz outer / 0.5 oz inner, 0.2104 mm 7628 prepreg, 1.065 mm core, 1.6 mm), In1.Cu named `GND1`, In2.Cu `GND2` (layer type "power": planes); H1-H4 (MountingHole_3.2mm_M3) 4 mm from the corners; placed (design.py `PCB`), routed, zones `GND_F` / `GND_B` (pours) and `GND_L2` / `GND_L3` (planes): whole outline, clearance 0.2 mm, minimum width 0.2 mm, thermal reliefs 0.3 / 0.5 mm, island removal always; title block rev 3.
+- **Board minimums = JLCPCB 4-layer capabilities at standard price** (https://jlcpcb.com/capabilities/pcb-capabilities, read 2026-10-23; summary with every number in the pcb-layout-pro skill, `references/jlcpcb.md`): clearance and track 0.1 mm (JLCPCB 0.09), smallest hole 0.2 mm, smallest via 0.45 mm (JLCPCB charges extra for 0.15 mm holes and for 0.2 mm holes under 0.45 mm), via ring 0.1 mm, hole to hole 0.25 mm, hole clearance 0.2 mm, copper to edge 0.3 mm. Silkscreen: clearance 0.15 mm, text >= 1.0 mm (JLCPCB's minimum height) / 0.15 mm stroke; silk_over_copper, silk_overlap and silk_edge_clearance are errors.
+- Net classes (in `defuse32-carrier.kicad_pro`): **Power** = `5V`, `3V3`, `3V3P`, `GND`, `VBUS`: 0.6 mm track, 0.25 mm clearance. **Default**: 0.2 mm track, 0.2 mm clearance. Vias 0.6/0.3 mm; GND fan-out and stitching vias 0.45/0.2 mm.
+- Custom rules (`defuse32-carrier.kicad_dru`): JLCPCB PTH hole to track 0.28 mm, inner-layer PTH hole to copper 0.3 mm, pad hole to pad hole (different nets) 0.45 mm; clearance 0.15 mm between items inside the U8 (LIS3DH) and J7 (USB-C) courtyards (0.5 mm pitch: their own pad gaps are 0.15 / 0.2 mm); J7 GND pads join the pours solid; through-hole GND pins may resolve with one thermal spoke per layer (box headers, hand-soldered: thermal reliefs kept).
+- 3D models: KiCad's library for everything except J7 (HRO TYPE-C-31-M-12), SW1/SW2 (XKB TS-1187A) and F1 (1812 PTC), which use the LCSC/EasyEDA STEP models fetched by `gen/fetch_3d.py` into `3d/` (git-ignored; see "3D models").
 
 ## Files
 
@@ -291,12 +291,15 @@ What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are t
 | `defuse32-carrier.kicad_pro/.kicad_sch/.kicad_pcb/.kicad_dru` | The project: root sheet, net classes, rules, routed board |
 | `power_usb.kicad_sch`, `esp32.kicad_sch`, `io.kicad_sch`, `connectors.kicad_sch` | Sub-sheets (pages 2-5) |
 | `defuse32.kicad_sym`, `defuse32.pretty/` | Local library (CH340C_3V3, ESP32-WROOM-32E_JLC, USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge) |
+| `3d/` | git-ignored: STEP models of J7, SW1/SW2, F1 from LCSC/EasyEDA, rebuilt by `gen/fetch_3d.py fetch` |
 | `gen/design.py` | Single source of truth: parts, pin-to-net map, LCSC data, sheet layout, PCB placement, net classes |
 | `gen/gen_lib.py` | Writes the local library from the installed KiCad libraries |
 | `gen/gen_sch.py` | Writes the five schematic files: power symbols and global labels on short pin stubs |
-| `gen/gen_pcb.py` | Writes the placed, unrouted board (outline, footprints, nets from the schematic netlist, LCSC fields, silkscreen references), the `.kicad_pro` and the `.kicad_dru`. Refuses to overwrite a routed board (tracks, vias or zones; `--force` overrides) |
-| `gen/route_prep.py` | Rev 2 routing: pre-routes, GND fan-out, DSN export, SES import, hand fixes, pours, stitching, report |
-| `gen/polish.py` | Rev 2.1 finish of the routed board: jogs, GND pour and stitching, narrow strips, silkscreen (references, callouts, legend, plate names), DRC, report |
+| `gen/gen_pcb.py` | Writes the placed, unrouted 4-layer board (stack-up, outline, footprints, nets from the schematic netlist, LCSC fields, 3D models from `models3d.json`, silkscreen references), the `.kicad_pro` (JLCPCB rules) and the `.kicad_dru`. Refuses to overwrite a routed board (tracks, vias or zones; `--force` overrides) |
+| `gen/route_prep.py` | Routing: pre-routes, GND fan-out, DSN export (GND planes), SES import, `maze` (A* for what Freerouting leaves open, with local rip-up), zones, report |
+| `gen/polish.py` | Finish of the routed board (rev 2.1, extended for rev 3): jogs, 90 deg corners, GND pours + planes, stitching and return vias, narrow strips, silkscreen (references, callouts, legend, plate names), DRC, report |
+| `gen/fetch_3d.py`, `gen/models3d.json` | Missing 3D models via easyeda2kicad, matched onto our footprints (offsets / rotations in the JSON, applied by `gen_pcb.py` or `fetch_3d.py apply`) |
+| `gen/renders.py` | The `../renders/carrier-*.png` renders and 2D plots |
 | `gen/pcb_audit.py` | Finish audit (copy of the pcb-layout-pro skill's script): copper voids, jogs, silkscreen problems DRC does not flag |
 | `gen/gen_jlcpcb.py` | JLCPCB Gerbers, drill, zip, BOM and CPL into `out/jlcpcb/` |
 | `gen/check_netlist.py` | Rev 2 checks (see Status) |
@@ -306,20 +309,31 @@ What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are t
 | `out/defuse32-carrier.net` | Schematic netlist, input of `check_netlist.py` |
 | `out/defuse32-carrier.ses` | The Freerouting session the board was built from |
 | `out/erc.rpt`, `out/drc.rpt`, `out/audit.json` | Latest check reports (DRC, ERC, finish audit) |
-| `out/jlcpcb/` | JLCPCB fabrication and assembly files (rev 2.1) |
-| `../renders/carrier-top.png`, `carrier-iso.png` | 3D renders (kicad-cli) |
-| `../renders/carrier-f-cu.png`, `carrier-b-cu.png`, `carrier-silk.png` | 2D plots, 300 dpi: F.Cu + F.Silkscreen, B.Cu, F.Silkscreen + F.Mask + F.Fab (each with Edge.Cuts) |
+| `out/jlcpcb/` | JLCPCB fabrication and assembly files (rev 3, 4 layers) |
+| `../renders/carrier-top.png`, `carrier-iso.png`, `carrier-bottom.png` | 3D renders (kicad-cli) |
+| `../renders/carrier-f-cu.png`, `carrier-in1-cu.png`, `carrier-in2-cu.png`, `carrier-b-cu.png`, `carrier-silk.png` | 2D plots, 300 dpi: F.Cu + F.Silkscreen, In1.Cu, In2.Cu, B.Cu, F.Silkscreen + F.Mask + F.Fab (each with Edge.Cuts) |
 
 ## Regenerate
 
-From `hardware/defuse32/kicad/`. Scripts that import `pcbnew` need KiCad's Python (`/usr/bin/python3`, not conda).
+From `hardware/defuse32/kicad/`. Scripts that import `pcbnew` need KiCad's Python (`/usr/bin/python3`, not conda). Tools: KiCad 10.0.7, Freerouting 2.4.1 (`~/tools/freerouting-2.4.1`), easyeda2kicad 1.0.1 in its own venv (`~/tools/easyeda2kicad-1.0.1`, `pip install easyeda2kicad==1.0.1`; only for the 3D models).
 
 ```sh
 python3 gen/gen_lib.py                      # local symbols + footprints
 python3 gen/gen_sch.py                      # five schematic files
+/usr/bin/python3 gen/fetch_3d.py fetch      # 3D models of J7, SW1/SW2, F1 into 3d/ (git-ignored) + gen/models3d.json
 
-# finish (rev 2.1) on the routed board: jogs, pour + stitching, silkscreen, DRC, report (~9 min)
-/usr/bin/python3 gen/polish.py all          # `all nojogs` skips the jog step; `jogs` lists what is left
+# rev 3 board from scratch (throws the routed board away): placement, routing, finish
+/usr/bin/python3 gen/gen_pcb.py --force     # 4 layers, stack-up, JLCPCB rules, 3D models
+/usr/bin/python3 gen/route_prep.py prep     # locked pre-routes + GND fan-out vias
+/usr/bin/python3 gen/route_prep.py export /tmp/d32/r3.dsn
+java -jar ~/tools/freerouting-2.4.1/freerouting-2.4.1.jar -de /tmp/d32/r3.dsn -do /tmp/d32/r3.ses -mp 60 -mt 1 \
+     --gui.enabled=false --router.fanout.enabled=false --router.automatic_neckdown=true \
+     --router.scoring.via_costs=150 --router.optimizer.enabled=false \
+     --usage_and_diagnostic_data.disable_analytics=true --profile.allow_telemetry=false
+/usr/bin/python3 gen/route_prep.py import /tmp/d32/r3.ses   # or out/defuse32-carrier.ses (this board's session)
+/usr/bin/python3 gen/route_prep.py maze     # A* for the connections Freerouting left open
+/usr/bin/python3 gen/route_prep.py finish   # zones, provisional references, report
+/usr/bin/python3 gen/polish.py all          # finish: jogs, corners, pours + planes, stitching, silkscreen, DRC (~45 min)
 # (D32_BOARD=/path/copy.kicad_pcb runs any of it on a copy with its own .kicad_pro/.kicad_dru)
 
 # checks
@@ -327,24 +341,16 @@ kicad-cli sch export netlist -o out/defuse32-carrier.net defuse32-carrier.kicad_
 kicad-cli sch erc --severity-all -o out/erc.rpt defuse32-carrier.kicad_sch
 kicad-cli pcb drc --severity-all --schematic-parity --refill-zones -o out/drc.rpt defuse32-carrier.kicad_pcb
 /usr/bin/python3 gen/check_netlist.py out/defuse32-carrier.net defuse32-carrier.kicad_pcb
-/usr/bin/python3 gen/pcb_audit.py defuse32-carrier.kicad_pcb --json out/audit.json   # exit 1 while jogs remain
+/usr/bin/python3 gen/pcb_audit.py defuse32-carrier.kicad_pcb --json out/audit.json   # exit 1 while violations remain
 
 # exports
 kicad-cli sch export pdf -o out/defuse32-carrier.pdf defuse32-carrier.kicad_sch
 kicad-cli sch export bom --fields 'Reference,Value,Footprint,${QUANTITY},LCSC,MPN,Manufacturer,JLC' \
   --labels 'Refs,Value,Footprint,Qty,LCSC,MPN,Manufacturer,JLC' --group-by 'Value,Footprint,LCSC' \
   --sort-field 'Reference' -o out/bom.csv defuse32-carrier.kicad_sch
-/usr/bin/python3 gen/gen_jlcpcb.py          # out/jlcpcb/
+/usr/bin/python3 gen/gen_jlcpcb.py          # out/jlcpcb/ (4-layer Gerbers, BOM, CPL with JLCPCB Tools rotations)
 kicad-cli pcb export step --force --subst-models -o ../cad/carrier.step defuse32-carrier.kicad_pcb
-kicad-cli pcb render --side top --quality high -w 1568 -h 1176 --background opaque \
-  -o ../renders/carrier-top.png defuse32-carrier.kicad_pcb
-kicad-cli pcb render --quality high --perspective --rotate '-50,0,-35' --zoom 0.9 -w 1568 -h 1064 \
-  --background opaque -o ../renders/carrier-iso.png defuse32-carrier.kicad_pcb
-# 2D plots (carrier-f-cu: "F.Cu,F.Silkscreen,Edge.Cuts", carrier-b-cu: "B.Cu,Edge.Cuts",
-# carrier-silk: "F.Silkscreen,F.Mask,F.Fab,Edge.Cuts")
-kicad-cli pcb export svg --layers "F.Cu,F.Silkscreen,Edge.Cuts" --mode-single --fit-page-to-board \
-  --exclude-drawing-sheet -o /tmp/f-cu.svg defuse32-carrier.kicad_pcb
-inkscape /tmp/f-cu.svg --export-type=png --export-dpi=300 --export-background=white -o ../renders/carrier-f-cu.png
+/usr/bin/python3 gen/renders.py             # ../renders/carrier-*.png (3D renders, 2D layer plots)
 ```
 
-The board is now edited in KiCad: circuit changes go through `design.py` + `gen_sch.py`, then KiCad *Tools > Update PCB from Schematic*. `gen_pcb.py` stops on the routed board; `gen_pcb.py --force` followed by the `route_prep.py` steps and `polish.py all` rebuilds placement, routing and finish from scratch (and loses hand edits). `polish.py all` can be run again after hand edits: it rebuilds the pours, stitching and silkscreen and only moves tracks where a jog or a narrow strip is fixed.
+The board is edited in KiCad from here: circuit changes go through `design.py` + `gen_sch.py`, then KiCad *Tools > Update PCB from Schematic*. `gen_pcb.py` stops on the routed board; `gen_pcb.py --force` followed by the `route_prep.py` steps and `polish.py all` rebuilds placement, routing and finish from scratch (and loses hand edits). `polish.py all` can be run again after hand edits: it rebuilds the pours, stitching and silkscreen and only moves tracks where a jog, a corner or a narrow strip is fixed.
