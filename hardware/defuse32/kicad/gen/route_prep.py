@@ -183,11 +183,13 @@ PREROUTE = [
     # at J7, B6-A6 (D+) are joined by a loop under the receptacle and A7-B7 (D-) on the board side.
     (F, "USB_DP", 0.2, [(82.635, 45.475), (82.635, 47.4)]),                          # U7.5 - via
     (B, "USB_DP", 0.2, [(82.635, 47.4), (83.785, 48.55), (85.3, 48.55)]),            # under D-
-    (F, "USB_DP", 0.2, [(85.3, 48.55), (86.66, 48.55), (88.94, 48.55), (90.5, 48.55), (90.7, 48.75),
+    # rev 3: D+ / D- leave U9's pins 6 / 4 on the line of J7's pads (0.2 mm off the pad centres,
+    # inside the pads) and run straight to J7, instead of a 0.2 mm double bend just past U9
+    (F, "USB_DP", 0.2, [(85.3, 48.55), (86.66, 48.55), (88.94, 48.55), (88.94, 48.75),
                         (92.31, 48.75), (93.25, 48.75), (93.55, 49.05), (93.55, 49.45), (93.25, 49.75),
                         (92.31, 49.75)]),                                             # U9.1-6, J7 B6, A6
     (F, "USB_DM", 0.2, [(83.905, 45.475), (83.905, 49.0), (85.355, 50.45), (86.66, 50.45), (88.94, 50.45),
-                        (90.5, 50.45), (90.7, 50.25), (92.31, 50.25)]),               # U7.6 - U9.3-4 - J7 B7
+                        (88.94, 50.25), (92.31, 50.25)]),                             # U7.6 - U9.3-4 - J7 B7
     (F, "USB_DM", 0.2, [(92.31, 49.25), (91.4, 49.25), (91.1, 49.55), (91.1, 50.25)]),  # J7 A7 - B7
     (F, "CC2", 0.2, [(92.31, 47.75), (90.2, 47.75), (89.9, 47.45), (89.9, 46.02)]),  # J7 B5 - R15.1
     (F, "CC1", 0.2, [(92.31, 50.75), (91.45, 50.75), (91.0, 51.2), (90.2, 52.0), (90.2, 53.18)]),  # J7 A5 - R14.1
@@ -290,7 +292,9 @@ def gnd_fanout(board):
     lo, hi = P(0.7, 0.7), P(D.BOARD_W - 0.7, D.BOARD_H - 0.7)
     gnd = board.FindNet("GND")
     done, failed = [], []
-    for fp in board.GetFootprints():
+    # sorted, so the fan-out does not depend on the order the board file happens to list the parts
+    # in (it sorts by UUID, new on every gen_pcb.py run): the same board gets the same vias
+    for fp in sorted(board.GetFootprints(), key=lambda f: f.GetReference()):
         fc = fp.GetPosition()
         for pd in fp.Pads():
             if pd.GetNetname() != "GND" or pd.HasHole() or not pd.IsOnLayer(F):
@@ -457,7 +461,7 @@ MAZE_TRIES = ((8.0, 0.05), (16.0, 0.05), (60.0, 0.1))   # (mm around the two ite
 VIA_COST = MM(4.0)
 
 
-def _maze_masks(board, net, layer_list, x0, y0, W, H, g, w, vd, vdrill):
+def _maze_masks(board, net, layer_list, x0, y0, W, H, g, w, vd, vdrill, ignore=()):
     """Blocked masks (track centre, via centre) per layer and a via mask for holes, as numpy."""
     import numpy as np
     from polish import fill_poly           # rasteriser (even-odd, node centres)
@@ -473,7 +477,7 @@ def _maze_masks(board, net, layer_list, x0, y0, W, H, g, w, vd, vdrill):
         for k in range(s2.OutlineCount()):
             o = s2.Outline(k)
             fill_poly(mask, [nd((o.CPoint(m).x, o.CPoint(m).y)) for m in range(o.PointCount())], W, H)
-    items = [p for fp in board.GetFootprints() for p in fp.Pads()] + list(board.GetTracks())
+    items = [p for fp in board.GetFootprints() for p in fp.Pads()] + [t for t in board.GetTracks() if t.m_Uuid.AsString() not in ignore]
     for it in items:
         bb = it.GetBoundingBox()
         if bb.GetRight() < win[0] or bb.GetLeft() > win[2] or bb.GetBottom() < win[1] or bb.GetTop() > win[3]:
@@ -526,8 +530,15 @@ def _maze_masks(board, net, layer_list, x0, y0, W, H, g, w, vd, vdrill):
     return obs_track, obs_via
 
 
-def maze_route(board, net, a_item, b_item, margin, grid=0.05, b45=MM(0.3), b90=MM(1.5), via_cost=None, layers=None, width=None):
-    """Path from item a to item b (both of net): [(layer, [points nm])], [via points] or None."""
+JOG_RUN = MM(2.2)                  # a 45 deg run shorter than this between two parallel ones is a jog
+
+
+def maze_route(board, net, a_item, b_item, margin, grid=0.05, b45=MM(0.3), b90=MM(1.5), via_cost=None, layers=None, width=None,
+               nojog=False, ignore=()):
+    """Path from item a to item b (both of net): [(layer, [points nm])], [via points] or None.
+    With nojog, no turn may return to the heading before a 45 deg run shorter than JOG_RUN (that
+    would be a jog, pcb_audit.py's double bend); the extra state (which way the last turn went,
+    how long the run since) rides along with each search node, dominance by cost only."""
     import heapq
     import numpy as np
     from polish import fill_poly
@@ -543,7 +554,7 @@ def maze_route(board, net, a_item, b_item, margin, grid=0.05, b45=MM(0.3), b90=M
     x1, y1 = min(x1, MM(OX + D.BOARD_W)), min(y1, MM(OY + D.BOARD_H))
     g = MM(grid)
     W, H = int((x1 - x0) / g) + 1, int((y1 - y0) / g) + 1
-    obs, obs_v = _maze_masks(board, net, layers, x0, y0, W, H, g, w, vd, vdrill)
+    obs, obs_v = _maze_masks(board, net, layers, x0, y0, W, H, g, w, vd, vdrill, ignore)
     nd = lambda p: ((p[0] - x0) / g, (p[1] - y0) / g)
 
     def cells(item):
@@ -569,38 +580,56 @@ def maze_route(board, net, a_item, b_item, margin, grid=0.05, b45=MM(0.3), b90=M
     def h(i, j):
         dx, dy = abs(i - ge[0]), abs(j - ge[1])
         return (max(dx, dy) - min(dx, dy) + min(dx, dy) * diag) * g * 0.999
-    heap, best, prev = [], {}, {}
+    heap, best, prev, aux = [], {}, {}, {}
+    # search node: (layer, i, j, heading, e); in jog-free mode e = (which way the last turn went,
+    # run since it in quarters of JOG_RUN), so a short run does not shadow a long one
+    efree = (0, 4) if nojog else (0, 0)
+    ekey = (lambda sd_, run_: (sd_, min(int(run_ / (JOG_RUN / 4)), 4))) if nojog else (lambda sd_, run_: (0, 0))
     for li, L in enumerate(layers):
         if L not in src:
             continue
         js, iss = np.nonzero(src[L])
         for j, i in zip(js, iss):
-            k = (li, int(i), int(j), -1)
+            k = (li, int(i), int(j), -1, efree)
             best[k] = 0.0
             prev[k] = None
-            heapq.heappush(heap, (h(i, j), 0.0, li, int(i), int(j), -1))
+            aux[k] = (0, JOG_RUN)
+            heapq.heappush(heap, (h(i, j), 0.0, k))
     via_cost = VIA_COST if via_cost is None else via_cost
     found = None
     n = 0
     while heap:
-        f, c, li, i, j, d = heapq.heappop(heap)
-        if best.get((li, i, j, d), 1e30) < c:
+        f, c, k = heapq.heappop(heap)
+        li, i, j, d, e = k
+        if best.get(k, 1e30) < c:
             continue
         L = layers[li]
-        if L in goal and goal[L][j, i] and prev[(li, i, j, d)] is not None:
-            found = (li, i, j, d)
+        if L in goal and goal[L][j, i] and prev[k] is not None:
+            found = k
             break
         n += 1
         if n > 6_000_000:
             break
+        sd, run = aux.get(k, (0, JOG_RUN))
         for nd_ in range(8):
+            stepl = (diag if nd_ % 2 else 1.0) * g
             if d >= 0:
                 t = (nd_ - d) % 8
                 if t in (3, 4, 5) or (b90 is None and t in (2, 6)):
                     continue
                 pen = 0 if t == 0 else b45 if t in (1, 7) else b90
+                if t == 0:
+                    nsd, nrun = sd, min(run + stepl, JOG_RUN)
+                elif t in (1, 7):
+                    tt = 1 if t == 1 else -1
+                    if nojog and sd and tt == -sd and run < JOG_RUN:
+                        continue                # back to the heading before a short run: a jog
+                    nsd, nrun = tt, stepl
+                else:
+                    nsd, nrun = 0, JOG_RUN
             else:
                 pen = 0
+                nsd, nrun = 0, JOG_RUN
             di, dj = STEP[nd_]
             ni, nj = i + di, j + dj
             if not (0 <= ni < W and 0 <= nj < H):
@@ -608,21 +637,24 @@ def maze_route(board, net, a_item, b_item, margin, grid=0.05, b45=MM(0.3), b90=M
             free = not obs[L][nj, ni] or (src.get(L) is not None and src[L][nj, ni]) or (L in goal and goal[L][nj, ni])
             if not free:
                 continue
-            nc2 = c + (diag if nd_ % 2 else 1.0) * g + pen
-            k2 = (li, ni, nj, nd_)
+            nc2 = c + stepl + pen
+            k2 = (li, ni, nj, nd_, ekey(nsd, nrun))
             if nc2 < best.get(k2, 1e30):
                 best[k2] = nc2
-                prev[k2] = (li, i, j, d)
-                heapq.heappush(heap, (nc2 + h(ni, nj), nc2, li, ni, nj, nd_))
-        if len(layers) > 1 and not obs_v[j, i]:
+                prev[k2] = k
+                aux[k2] = (nsd, nrun)
+                heapq.heappush(heap, (nc2 + h(ni, nj), nc2, k2))
+        if len(layers) > 1 and not obs_v[j, i] and not (src.get(L) is not None and src[L][j, i]) \
+                and not (L in goal and goal[L][j, i]):          # no via inside the end items
             oli = 1 - li
             if not obs[layers[oli]][j, i]:
-                k2 = (oli, i, j, -1)
+                k2 = (oli, i, j, -1, efree)
                 nc2 = c + via_cost
                 if nc2 < best.get(k2, 1e30):
                     best[k2] = nc2
-                    prev[k2] = (li, i, j, d)
-                    heapq.heappush(heap, (nc2 + h(i, j), nc2, oli, i, j, -1))
+                    prev[k2] = k
+                    aux[k2] = (0, JOG_RUN)
+                    heapq.heappush(heap, (nc2 + h(i, j), nc2, k2))
     if found is None:
         return None
     nodes = []

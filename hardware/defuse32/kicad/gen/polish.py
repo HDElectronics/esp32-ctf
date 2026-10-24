@@ -553,7 +553,7 @@ def _fa_fail():
     return None
 
 
-def follow_anchors(ctx, ch):
+def follow_anchors(ctx, ch, regone=False):
     """The change list ch extended so that every mid-segment connection survives: a track ending
     on a moved segment slides its end along its own direction onto the segment's new line; a
     track whose end sits on another segment may move that end only along that segment. None when
@@ -599,6 +599,8 @@ def follow_anchors(ctx, ch):
             if c[0] == "del" and kind == "tee":
                 # the carrier goes: the track ending on it slides onto the new path of the chain
                 U, ei = a[1], a[2]
+                if regone and geo.get(uid(U), 0) is None:
+                    continue                        # the branch goes too (maze_jogs routes it again)
                 if uid(U) in geo or uid(U) in ctx.fixed:
                     return _fa_fail()
                 s0, s1 = cur(U)
@@ -630,6 +632,8 @@ def follow_anchors(ctx, ch):
                 # a deleted track that ended on S: some new segment must end on S instead
                 S = a[1]
                 g = cur(S)
+                if g is None and regone:
+                    continue                        # its carrier goes too (maze_jogs routes again)
                 if g is None:
                     return _fa_fail()
                 ok = False
@@ -1717,14 +1721,49 @@ def stop_item(ctx, net, layer, p, mine):
     return None
 
 
-def maze_jogs(board, skip=(), log=print):
+def snap_end(P, item, at_start):
+    """A maze path ends anywhere inside its end item; when that item is a track, run the end
+    segment on (along its own direction) to the track's centre line, so the joint is a clean
+    T-junction (KiCad and follow_anchors both see the end on the track). Returns the points."""
+    if item is None or item.GetClass() != "PCB_TRACK" or len(P) < 2:
+        return P
+    P = list(P)
+    e, n = (P[0], P[1]) if at_start else (P[-1], P[-2])
+    a, b = pt(item.GetStart()), pt(item.GetEnd())
+    d = unit(sub(e, n))
+    X = intersect(n, d, a, unit(sub(b, a)))
+    if X is None:
+        X = proj(e, a, unit(sub(b, a)))            # parallel: slide onto the line
+    t = dot(sub(X, a), unit(sub(b, a)))
+    if not (0 <= t <= norm(sub(b, a))) or norm(sub(X, e)) > MM(0.3) or dot(sub(X, n), d) < MINLEN:
+        return P
+    if at_start:
+        P[0] = X
+    else:
+        P[-1] = X
+    return P
+
+
+def maze_jogs(board, skip=(), log=print, rounds=4):
     """Jogs the local moves and the corridor router could not fix: the whole run (from its stop to
-    its stop, one layer) is ripped up and re-routed with route_prep's maze search (anywhere within
-    6 / 12 mm, 45 deg bends 1 mm dearer than going straight, no 90 deg turn, no via). Kept when
-    the net then has fewer jogs, no turn sharper than 90 deg, at most 20 % (2 mm at least) more
-    length, every clearance (checked again on the change list) and every connection. Returns
-    fixed [(net, layer, at, offset, how, uuids)]."""
+    its stop) is ripped up and re-routed with route_prep's maze search in jog-free mode (no turn
+    back to the heading before a 45 deg run shorter than 2.2 mm), anywhere within 6 / 12 mm, 45 deg
+    bends 1 mm dearer than going straight, no 90 deg turn: on the run's own layer, else (not for
+    the fast nets) on both outer layers with at most two vias. Kept when the net then has fewer
+    jogs, no turn sharper than 90 deg, at most 20 % (2 mm at least, 4 mm with vias) more length,
+    every clearance (checked again on the change list) and every connection. Repeated while it
+    helps. Returns fixed [(net, layer, at, offset, how, uuids)]."""
     fixed = []
+    for _ in range(rounds):
+        n0 = len(fixed)
+        _maze_jogs_round(board, skip, log, fixed)
+        if len(fixed) == n0:
+            break
+    return fixed
+
+
+def _maze_jogs_round(board, skip, log, fixed):
+    base = len(drc_check(board))                 # problems already there (none expected)
     tried = set()
     ctx = Ctx(board)
     while True:
@@ -1760,38 +1799,217 @@ def maze_jogs(board, skip=(), log=print):
         res = None
         for margin in (6.0, 12.0):
             res = R.maze_route(board, ts[0].GetNetname(), a_it, b_it, margin, 0.05, b45=MM(1.0), b90=None,
-                               layers=[layer], width=w)
+                               layers=[layer], width=w, nojog=True)
             if res:
                 break
-        if not res or res[1] or len(res[0]) != 1:
+        two = False
+        if not res:
+            # the other outer layer for part of the way (both planes are GND, so the reference
+            # stays; return_vias adds a GND via next to a fast net's new vias)
+            for margin in (6.0, 12.0):
+                res = R.maze_route(board, ts[0].GetNetname(), a_it, b_it, margin, 0.05, b45=MM(1.0), b90=None,
+                                   width=w, nojog=True, via_cost=MM(4.0))
+                if res:
+                    break
+            two = bool(res) and 0 < len(res[1]) <= 2
+            if res and not two and res[1]:
+                res = None
+        if not res or (res[1] and not two) or (not two and len(res[0]) != 1):
             dbg("no path")
             continue
-        newP = res[0][0][1]
-        if not chain_turns_ok(newP) or count_jogs(newP) >= count_jogs(pts):
-            dbg("path has %d jogs (old %d)" % (count_jogs(newP), count_jogs(pts)))
+        runs = [list(r) for r in res[0]]
+        runs[0][1] = snap_end(runs[0][1], a_it, True)
+        runs[-1][1] = snap_end(runs[-1][1], b_it, False)
+        if any(not chain_turns_ok(P_) or count_jogs(P_) > 0 for L_, P_ in runs) or \
+                (not two and count_jogs(runs[0][1]) >= count_jogs(pts)):
+            dbg("path has jogs")
             continue
-        if chain_len(newP) > max(old_len * 1.2, old_len + MM(2.0)):
-            dbg("too long %.1f > %.1f" % (TOMM(int(chain_len(newP))), TOMM(int(old_len))))
+        newlen = sum(chain_len(P_) for L_, P_ in runs)
+        if newlen > max(old_len * 1.2, old_len + (MM(4.0) if two else MM(2.0))):
+            dbg("too long %.1f > %.1f" % (TOMM(int(newlen)), TOMM(int(old_len))))
             continue
-        ch = [("add", net, layer, w, newP[m], newP[m + 1]) for m in range(len(newP) - 1)] + [("del", t) for t in ts]
-        ch = follow_anchors(ctx, ch)
+        new = [("add", net, L_, w, P_[m], P_[m + 1]) for L_, P_ in runs for m in range(len(P_) - 1)]
+        new += [("addvia", net, q) for q in res[1]]
+        ch = follow_anchors(ctx, new + [("del", t) for t in ts])
+        branches = []
         if ch is None:
-            dbg("anchors %s" % FA_FAIL)
-            continue
+            # tracks that end on the run (T-junctions): their runs go too and are routed again from
+            # their far stop to the new run (jog-free as well)
+            tees = {uid(a[1]): a[1] for t in ts for a in ctx.anchors.get(uid(t), []) if a[0] == "tee"}
+            bch = []
+            for u, U in tees.items():
+                w2 = ctx.where.get(u)
+                if w2 is None:
+                    bch = None
+                    break
+                bnet, blayer, bP, bT = ctx.chains[w2[0]]
+                if any(uid(x) in ctx.fixed for x in bT) or w2[0] == ci:
+                    bch = None
+                    break
+                # the far end of the branch: the end that is not on the run
+                far = bP[-1] if min(dist_point_seg(bP[0], pts[m], pts[m + 1]) for m in range(len(pts) - 1)) < MM(0.01) else bP[0]
+                fi = stop_item(ctx, net, blayer, far, {uid(x) for x in bT})
+                if fi is None:
+                    bch = None
+                    break
+                branches.append((blayer, bT, fi, chain_len(bP)))
+            if bch is None or not branches:
+                dbg("anchors %s" % FA_FAIL)
+                continue
+            ch = follow_anchors(ctx, new + [("del", t) for t in ts] + [("del", x) for bl, bT, fi, bl0 in branches for x in bT],
+                                regone=True)
+            if ch is None:
+                dbg("anchors (with branches) %s" % FA_FAIL)
+                continue
         txn = Txn(ctx)
         txn.apply(ch)
+        ok = True
+        for blayer, bT, fi, bl0 in branches:
+            # route the branch from its far stop to the nearest new track of the run
+            tgt = [x for x in txn.touched() if x.GetClass() == "PCB_TRACK" and x.GetLayer() == blayer and x.GetNetCode() == net]
+            if not tgt:
+                ok = False
+                break
+            fp_ = pt(fi.GetPosition())
+            tgt.sort(key=lambda x: dist_point_seg(fp_, pt(x.GetStart()), pt(x.GetEnd())))
+            br = R.maze_route(board, ts[0].GetNetname(), fi, tgt[0], 6.0, 0.05, b45=MM(1.0), b90=None,
+                              layers=[blayer], width=bT[0].GetWidth(), nojog=True)
+            if not br or br[1] or len(br[0]) != 1 or count_jogs(br[0][0][1]) or not chain_turns_ok(br[0][0][1]) \
+                    or chain_len(br[0][0][1]) > max(bl0 * 1.5, bl0 + MM(3.0)):
+                ok = False
+                break
+            BP = snap_end(snap_end(br[0][0][1], tgt[0], False), fi, True)
+            txn.apply([("add", net, blayer, bT[0].GetWidth(), BP[m], BP[m + 1]) for m in range(len(BP) - 1)])
+        if not ok:
+            dbg("branch could not be re-routed")
+            txn.rollback()
+            continue
         bad = txn.conflicts(first=True)
+        if not bad and fewer_jogs(ctx, txn):
+            bad = [(None, d) for d in drc_check(board)][base:base + 1]      # KiCad has the last word
         if bad or not fewer_jogs(ctx, txn):
-            dbg("conflict %s" % [describe(e) for it, e in bad] if bad else "net jogs not fewer")
+            dbg("conflict %s" % (bad[:1],) if bad else "net jogs not fewer")
             txn.rollback()
             continue
         LAST_TOUCHED[:] = [uid(x) for x in txn.touched()]
         txn.commit()
         merge_collinear(board, ctx.obs)
         ctx.refresh()
-        fixed.append(tag + (round(TOMM(int(off)), 2), "maze re-route of the run", list(LAST_TOUCHED)))
-        log("  jog %s %s at %s (%.2f mm): maze re-route of the run (%d -> %d jogs on the net)" % (
-            tag[0], tag[1], tag[2], TOMM(int(off)), before, sum(count_jogs(c[2]) for c in ctx.chains if c[0] == net)))
+        how = "maze re-route of the run" + (" over both outer layers (%d vias)" % len(res[1]) if two else "")
+        fixed.append(tag + (round(TOMM(int(off)), 2), how, list(LAST_TOUCHED)))
+        log("  jog %s %s at %s (%.2f mm): %s (%d -> %d jogs on the net)" % (
+            tag[0], tag[1], tag[2], TOMM(int(off)), how, before, sum(count_jogs(c[2]) for c in ctx.chains if c[0] == net)))
+
+
+def route_run(board, name, layer, a_it, b_it, w, old_len, ignore=()):
+    """A jog-free maze path for one run: its own layer first, else both outer layers with at most
+    two vias. Returns ([(layer, points)], [via points]) or None."""
+    res = None
+    for margin in (6.0, 12.0):
+        res = R.maze_route(board, name, a_it, b_it, margin, 0.05, b45=MM(1.0), b90=None, layers=[layer], width=w,
+                           nojog=True, ignore=ignore)
+        if res:
+            break
+    if not res:
+        for margin in (6.0, 12.0):
+            res = R.maze_route(board, name, a_it, b_it, margin, 0.05, b45=MM(1.0), b90=None, width=w, nojog=True,
+                               via_cost=MM(4.0), ignore=ignore)
+            if res:
+                break
+        if res and len(res[1]) > 2:
+            res = None
+    if not res:
+        return None
+    runs = [list(r) for r in res[0]]
+    runs[0][1] = snap_end(runs[0][1], a_it, True)
+    runs[-1][1] = snap_end(runs[-1][1], b_it, False)
+    if any(not chain_turns_ok(P_) or count_jogs(P_) for L_, P_ in runs):
+        return None
+    if sum(chain_len(P_) for L_, P_ in runs) > max(old_len * 1.25, old_len + MM(4.0)):
+        return None
+    return runs, res[1]
+
+
+def ripup_jogs(board, skip=(), log=print, max_nbrs=4):
+    """Jogs with no jog-free path as the board stands: the run and up to four runs of other nets
+    beside it (same layer, within 1 mm, no mid-segment connections, not pre-routed, not the USB
+    pair or GND) are ripped up; the jogged run is routed first (route_run), then each ripped run
+    (jog-free too). Kept when every run is routed, every clearance holds and the nets involved end
+    up with fewer jogs in total. Returns fixed [(net, layer, at, offset, how, uuids)]."""
+    fixed, tried = [], set()
+    gnd = board.FindNet("GND").GetNetCode()
+    base = len(drc_check(board))                 # problems already there (none expected)
+    while True:
+        ctx = Ctx(board)
+        cand = None
+        for ci, (net, layer, pts, ts) in enumerate(ctx.chains):
+            name = ts[0].GetNetname()
+            if name in SKIP_NETS or any(uid(t) in ctx.fixed for t in ts):
+                continue
+            for j, off in find_jogs(pts):
+                tag = (name, board.GetLayerName(layer), bmm(pts[j + 1]))
+                if tag not in skip and tag not in tried:
+                    cand = (ci, j, off, tag)
+                    break
+            if cand:
+                break
+        if cand is None:
+            break
+        ci, j, off, tag = cand
+        tried.add(tag)
+        net, layer, pts, ts = ctx.chains[ci]
+        name = ts[0].GetNetname()
+        # a run whose own ends sit on other tracks ("onto") can go: its new ends are snapped back
+        # onto them; tracks ending on it ("tee"), vias or pads along it pin it
+        if any(a[0] != "onto" for t in ts for a in ctx.anchors.get(uid(t), [])):
+            continue
+        a_it = stop_item(ctx, net, layer, pts[0], {uid(t) for t in ts})
+        b_it = stop_item(ctx, net, layer, pts[-1], {uid(t) for t in ts})
+        if a_it is None or b_it is None:
+            continue
+        w = max(t.GetWidth() for t in ts)
+        nbrs = []
+        for cj, (n2, l2, P2, T2) in enumerate(ctx.chains):
+            if n2 == net or l2 != layer or n2 == gnd or T2[0].GetNetname() in SKIP_NETS:
+                continue
+            if any(uid(t) in ctx.fixed or any(a[0] != "onto" for a in ctx.anchors.get(uid(t), [])) for t in T2):
+                continue
+            dmin = min(dist_point_seg(p, pts[m], pts[m + 1]) for p in P2 for m in range(len(pts) - 1))
+            dmin = min(dmin, min(dist_point_seg(p, P2[m], P2[m + 1]) for p in pts for m in range(len(P2) - 1)))
+            if dmin < MM(1.0) + w / 2 + T2[0].GetWidth() / 2:
+                ia = stop_item(ctx, n2, l2, P2[0], {uid(t) for t in T2})
+                ib = stop_item(ctx, n2, l2, P2[-1], {uid(t) for t in T2})
+                if ia is not None and ib is not None:
+                    nbrs.append((dmin, cj, ia, ib))
+        nbrs.sort(key=lambda r: r[0])
+        nbrs = nbrs[:max_nbrs]
+        if not nbrs:
+            continue
+        gone = {uid(t) for t in ts} | {uid(t) for d_, cj, ia, ib in nbrs for t in ctx.chains[cj][3]}
+        nbr_names = sorted({ctx.chains[cj][3][0].GetNetname() for d_, cj, ia, ib in nbrs})
+        txn = Txn(ctx)
+        txn.apply([("del", t) for t in ts] + [("del", t) for d_, cj, ia, ib in nbrs for t in ctx.chains[cj][3]])
+        ok = True
+        order = [(ci, a_it, b_it)] + [(cj, ia, ib) for d_, cj, ia, ib in nbrs]
+        for k, it_a, it_b in order:
+            n_, l_, P_, T_ = ctx.chains[k]
+            r = route_run(board, T_[0].GetNetname(), l_, it_a, it_b, max(t.GetWidth() for t in T_), chain_len(P_), ignore=gone)
+            if r is None:
+                ok = False
+                break
+            runs, vias = r
+            txn.apply([("add", n_, L_, max(t.GetWidth() for t in T_), Q[m], Q[m + 1]) for L_, Q in runs for m in range(len(Q) - 1)]
+                      + [("addvia", n_, q) for q in vias])
+        if not ok or txn.conflicts(first=True) or not fewer_jogs(ctx, txn) or len(drc_check(board)) > base:
+            txn.rollback()
+            continue
+        names = nbr_names
+        LAST_TOUCHED[:] = [uid(x) for x in txn.touched()]
+        txn.commit()
+        merge_collinear(board)
+        how = "re-routed with its neighbours %s" % " ".join(names)
+        fixed.append(tag + (round(TOMM(int(off)), 2), how, list(LAST_TOUCHED)))
+        log("  jog %s %s at %s (%.2f mm): %s" % (tag[0], tag[1], tag[2], TOMM(int(off)), how))
     return fixed
 
 
@@ -1906,6 +2124,43 @@ def snap_tiny_stubs(board, log=print):
         n += done
         if not done:
             break
+    return n
+
+
+MICRO = MM(0.03)                            # router slivers at the end of a run
+
+
+def drop_micro_ends(board, log=print):
+    """A run ending in a sliver (< 0.03 mm) whose inner end already lies in the pad, via or track
+    the run ends on: the sliver goes (it reads as a jog and carries nothing). Returns how many."""
+    n = 0
+    ctx = Ctx(board)
+    dead = []
+    for net, layer, pts, ts in ctx.chains:
+        if len(ts) < 2 or ts[0].GetNetname() in SKIP_NETS:
+            continue
+        for end, inner, t in ((pts[0], pts[1], ts[0]), (pts[-1], pts[-2], ts[-1])):
+            if norm(sub(end, inner)) >= MICRO or uid(t) in ctx.fixed or uid(t) in ctx.anchored:
+                continue
+            it = stop_item(ctx, net, layer, end, {uid(x) for x in ts})
+            if it is None:
+                continue
+            q = V(inner)
+            if it.GetClass() == "PAD":
+                inside = it.HitTest(q)
+            elif it.GetClass() == "PCB_VIA":
+                inside = it.HitTest(q, 0)
+            else:
+                inside = pcbnew.SEG(it.GetStart(), it.GetEnd()).Distance(q) < it.GetWidth() / 2 - UM
+            if inside:
+                dead.append(t)
+    seen = set()
+    for t in dead:
+        if uid(t) not in seen:
+            seen.add(uid(t))
+            board.Delete(t)
+            n += 1
+    del dead
     return n
 
 
@@ -3000,6 +3255,19 @@ def push_vias_off(ctx, sm, boxes, centres, segs=()):
         away = sub(c, ((near_b[0] + near_b[2]) / 2, (near_b[1] + near_b[3]) / 2))
         dirs = sorted(OCT, key=lambda d: -dot(d, unit(away)))
         done = False
+        fo = fanout_of(ctx, v)
+        if fo is not None:
+            # a GND fan-out: rebuilt at another spot round its pad, off the texts
+            mk = txn.mark()
+            if relocate_fanout(ctx, txn, fo, away):
+                nv = [x for x in txn.touched(mk) if x.GetClass() == "PCB_VIA"]
+                q = pt(nv[0].GetPosition()) if nv else None
+                qb = (q[0] - r, q[1] - r, q[0] + r, q[1] + r) if q else None
+                if q is not None and clear_of(q, r, boxes) and \
+                        clear_of(q, r, [bb for k, dd, bb, rf in sm.near(qb) if k == "text"]):
+                    moved.append((c, q, r))
+                    continue
+                txn.rollback(mk)
         for step in [MM(0.05 * k) for k in range(1, 25)]:
             for d in dirs[:5]:
                 q = add(c, mul(d, step))
@@ -3241,6 +3509,15 @@ def place_refs_top(board, fps, size, ctx=None):
         return n
     rest = [r for r in units if r not in placed]
     spots = {r: n_spots(r) for r in rest}
+    # parts with no spot next to them get their callout first, before the other labels take the
+    # free space a short way off
+    EARLY_CALLOUTS[:] = []
+    if ctx is not None:
+        for ref in sorted([r for r in rest if spots[r] == 0], key=lambda r: -area(r)):
+            if place_callout(board, sm, fps[ref], units[ref], ctx):
+                placed[ref] = None
+                EARLY_CALLOUTS.append(ref)
+        rest = [r for r in rest if r not in placed]
     for ref in sorted(rest, key=lambda r: (spots[r] == 0, spots[r], -area(r))):
         best, u = None, None
         for cand in [units[ref]]:
@@ -3269,11 +3546,11 @@ def place_refs_top(board, fps, size, ctx=None):
 
 
 RANGES = []                                 # (range label text, members) placed by place_refs_top
+EARLY_CALLOUTS = []                         # references place_refs_top gave a callout
 LEADER_W = MM(0.15)                         # silk leader from a callout label to its part
 LEADER_GAP = MM(0.2)                        # the leader stops this short of the part outline
 CALLOUT_REFS = []                           # references placed as callouts (their label stays put)
-CALLOUT_GAPS = (1.15, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0)  # mm, label box to part (a label within
-                                            # 1 mm is an ordinary one and must sit beside its part)
+CALLOUT_GAPS = (0.6, 0.9, 1.15, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0)  # mm, label box to part
 
 
 def nearest_on_poly(poly, p):
@@ -3425,7 +3702,7 @@ def callout_search(sm, part, pb, ref, lab, allow_vias):
                             s = TOMM(int(norm(sub(p1, p0)))) + 0.6 * min(sm.tracks_under(b), 4) + 0.1 * k
                             if allow_vias:
                                 allv = sorted(set(vs + lv))
-                                if 0 < len(allv) <= 2:
+                                if 0 < len(allv) <= 3:
                                     cands.append((s + 0.5 * len(allv), angle, c, b, p0, p1, allv))
                                     break
                                 continue
@@ -3533,7 +3810,8 @@ def best_range_spot(sm, fps, unit, vias=False):
                 continue
             ox = min(b[2], rb[2]) - max(b[0], rb[0])
             oy = min(b[3], rb[3]) - max(b[1], rb[1])
-            if not (ox >= SIDE_OVERLAP * (b[2] - b[0]) or oy >= SIDE_OVERLAP * (b[3] - b[1])):
+            # a range label is a board text, longer than its row is wide: 25 % overlap is enough
+            if not (ox >= 0.25 * (b[2] - b[0]) or oy >= 0.25 * (b[3] - b[1])):
                 continue
             d = min(sm.d_own(b, r) for r in refs)
             if d > MAX_FROM_PART:
@@ -3577,7 +3855,7 @@ def place_labels(board, log=print):
         sm, placed, missing, n, used = place_refs_top(board, fps, size, ctx)
         pushed += n
     # no free spot next to the part: a label a short way off with a leader to its part
-    callouts = []
+    callouts = list(EARLY_CALLOUTS)
     for ref in list(missing):
         u = Unit([ref_setup(fps[ref], size)])
         if place_callout(board, sm, fps[ref], u, ctx):
@@ -3799,6 +4077,50 @@ def drc_check(board, ignore_gnd=True):
     return res
 
 
+def fix_fanout_shorts(board, log=print):
+    """A GND fan-out via or stub that a router track runs into (the fan-out spots were chosen
+    before routing; a session imported onto a board whose fan-out came out differently can hit
+    one): the fan-out is rebuilt at another spot round its pad, away from the other item.
+    Returns how many."""
+    n = 0
+    for _ in range(12):
+        bad = [v for v in drc_check(board) if v[0] in ("shorting_items", "clearance", "hole_clearance", "hole_to_hole")]
+        if not bad:
+            break
+        ctx = Ctx(board)
+        byuid = {uid(t): t for t in board.GetTracks()}
+        done = 0
+        for typ, desc, uids in bad:
+            items = [byuid[u] for u in uids if u in byuid]
+            fo = None
+            for it in items:
+                fo = fanout_of(ctx, it)
+                if fo is not None:
+                    break
+            if fo is None:
+                continue
+            other = [it for it in items if it.GetNetname() != "GND"]
+            away = (0.0, 0.0)
+            if other:
+                o = other[0]
+                oc = pt(o.GetPosition()) if o.GetClass() == "PCB_VIA" else \
+                    pt(pcbnew.SEG(o.GetStart(), o.GetEnd()).NearestPoint(fo[0].GetPosition()))
+                away = sub(pt(fo[0].GetPosition()), oc)
+            txn = Txn(ctx)
+            if relocate_fanout(ctx, txn, fo, away) and not txn.conflicts(first=True):
+                txn.commit()
+                done += 1
+                log("  fan-out of %s.%s rebuilt clear of %s" % (fo[2].GetParentFootprint().GetReference(), fo[2].GetNumber(),
+                                                                   other[0].GetNetname() if other else "?"))
+                break                       # the DRC list now names deleted items: check again
+            else:
+                txn.rollback()
+        n += done
+        if not done:
+            break
+    return n
+
+
 def fix_clearances(board, log=print):
     """Freerouting leaves a few tracks a few um inside a clearance (its 10 um grid against KiCad's
     exact pads, typically a 0.6 mm track on a SOT-223 pin next to the neighbouring pin). Each such
@@ -3869,10 +4191,16 @@ def cmd_all(*opts):
         board = R.load()
         board.GetDesignSettings().SetAuxOrigin(R.P(0, D.BOARD_H))
         nstrip = strip_stitching(board)
+        nfo = fix_fanout_shorts(board, log)
+        if nfo:
+            log("fan-out: %d GND fan-outs rebuilt clear of router tracks" % nfo)
         nclr = fix_clearances(board, log)
         if nclr:
             log("clearance: %d tracks narrowed to their clearance (router rounding)" % nclr)
         nsnap = snap_tiny_stubs(board, log)
+        nmicro = drop_micro_ends(board, log)
+        if nmicro:
+            log("slivers: %d router slivers at run ends removed" % nmicro)
         if "nojogs" in opts:
             fixed, left = [], {}
             break
@@ -3880,7 +4208,12 @@ def cmd_all(*opts):
         merge_collinear(board)
         mfix = maze_jogs(board, skip, log=log)
         merge_collinear(board)
-        log("maze: %d more jogs fixed by re-routing their run" % len(mfix))
+        rfix = ripup_jogs(board, skip, log=log)
+        merge_collinear(board)
+        if rfix:
+            mfix += rfix + maze_jogs(board, skip, log=log)
+            merge_collinear(board)
+        log("maze: %d more jogs fixed by re-routing their run (%d with neighbouring runs ripped up)" % (len(mfix), len(rfix)))
         fixed += mfix
         cfix, cleft = chamfer_pass(board, skip, log=log)
         merge_collinear(board)
