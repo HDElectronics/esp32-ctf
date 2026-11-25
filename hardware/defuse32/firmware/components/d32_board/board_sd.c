@@ -58,6 +58,13 @@ esp_err_t board_sd_mount(void)
     if (err != ESP_OK) {
         s_card = NULL;
         ESP_LOGW(TAG, "mount failed: %s", esp_err_to_name(err));
+        /* Do not leave SCK/MOSI driven after a failed mount: the probe
+         * plate's SPI header shares these lines. Same clean-up as unmount. */
+        if (s_bus_ready) {
+            spi_bus_free(SD_SPI_HOST);
+            s_bus_ready = false;
+        }
+        board_sd_park_cs();
         return err;
     }
     char info[48];

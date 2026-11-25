@@ -103,7 +103,7 @@ extern "C" {
 /* ---- Bus settings -------------------------------------------------------- */
 #define BOARD_I2C_TIMEOUT_MS    20            /* per transaction; never block longer */
 #define BOARD_SD_MOUNT_POINT    "/sd"
-#define BOARD_SD_FREQ_KHZ       10000         /* shared bus with plate stubs: stay at 10 MHz */
+#define BOARD_SD_FREQ_KHZ       4000          /* shared bus, 120-230 mm of track plus the probe ribbon, no series resistor: 4 MHz */
 #define BOARD_UART2_NUM         2
 
 /* ---- Device presence table ---------------------------------------------- */

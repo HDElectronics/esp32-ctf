@@ -5,3 +5,5 @@ fp-info-cache
 _autosave-*
 *.lck
 gen/__pycache__/
+# KiCad local history (GUI)
+.history/

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""JLCPCB fabrication and assembly files for the rev 3 carrier (4 layers), into out/jlcpcb/.
+"""JLCPCB fabrication and assembly files for the rev 3.1 carrier (4 layers), into out/jlcpcb/.
 
   gerber/                         Gerbers (F.Cu, In1.Cu, In2.Cu, B.Cu, mask, paste, silkscreen,
                                   outline), Excellon drill (plated / non-plated)
@@ -12,11 +12,14 @@ version 2026.04.03, the one JLCPCB documents): CPL position = centre of the foot
 box, relative to the drill/place (aux) origin = the board's bottom-left corner (x right, y up, mm,
 the same origin as the Gerbers and the drill file); rotation = KiCad's orientation plus the
 plugin's correction for the package (JLC_ROTATIONS: the plugin's table rows that match this board,
-first match on reference, then value, then footprint name, an exact match before a prefix match).
-Parts without a rule (resistors, capacitors, SOD-323, LGA-16, 1812, TS-1187A, microSD) go with
-KiCad's rotation: check them in JLCPCB's placement preview (out/jlcpcb/README.md).
+first match on reference, then value, then footprint name, an exact match before a prefix match),
+except where the part's own LCSC footprint says otherwise: rules on the reference (Q1-Q3, U4, J7)
+come first. Every polarised or multi-pin part was compared with its LCSC / EasyEDA footprint
+(out/jlcpcb/README.md, "CPL rotations"). Parts without a rule (resistors, capacitors, C1, SOD-323,
+LGA-16, 1812, TS-1187A, microSD) go with KiCad's rotation. JLCPCB's placement preview is the
+authority: check it before paying (out/jlcpcb/README.md).
 
-Run from hardware/defuse32/kicad/ with KiCad's Python, after polish.py and a clean DRC:
+Run from hardware/defuse32/kicad/ with KiCad's Python, after std_fixes.py and a clean DRC:
   /usr/bin/python3 gen/gen_jlcpcb.py [--corrections cpl_rotations_db.csv]
 --corrections uses a full copy of the plugin's table instead of JLC_ROTATIONS.
 """
@@ -43,11 +46,23 @@ LAYERS = "F.Cu,In1.Cu,In2.Cu,B.Cu,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,F.Ma
 # jlc_kicad_tools/cpl_rotations_db.csv; rows below as of commit 50ab537, 2026-10-23): only the rows
 # that match a footprint of this board. (regex, degrees, offset x, offset y).
 JLC_ROTATIONS = [
+    # Rules on the reference (matched before the package rules): the LCSC / EasyEDA footprint of the exact
+    # part decides, and one package rule cannot fit them all (final check N02, 2026-11-25):
+    #  Q1 SS8050 C2150, Q2 / Q3 MMBT3904 C20526: SOT-23-3_..._BR = KiCad's SOT-23 turned 180 (not -90);
+    #  U4 SN74AHCT1G125DBVR C7484: SOT-23-5_..._BR = KiCad's SOT-23-5 turned 180;
+    #  J7 TYPE-C-31-M-12 C165948: USB-C_SMD-TYPE-C-31-M-12_1 is drawn like KiCad's footprint: 0 (the table's
+    #  180 would turn the receptacle to face into the board).
+    ("^Q[1-3]$", 180, 0.0, 0.0),
+    ("^U4$", 180, 0.0, 0.0),
+    ("^J7$", 0, 0.0, 0.0),
+    # No rule for C1 (CP_Elec_6.3x5.4, C72494): its LCSC footprint CAP-SMD_BD6.3-L6.6-W6.6-FD has pad 1 (+) on
+    # the same side as KiCad's, so the rotation is KiCad's (final check N01). The table's 180 for the 8 and
+    # 10 mm cans is right for those parts (CAP-SMD_BD8.0-...-RD is mirrored), not for this one.
     ("^ESP32-W", 270, 0.0, 0.0),
     ("^SOIC-", 270, 0.0, 0.0),
     ("^SOT-223", 180, 0.0, 0.0),
-    ("^SOT-23", -90, 0.0, 0.0),
-    ("^USB_C_Receptacle_HRO_TYPE-C-31-M-12*", 180, 0.0, 0.0),
+    ("^SOT-23", -90, 0.0, 0.0),             # here: U9 USBLC6-2SC6 C7519 only (SOT-23-6_..._BL)
+    ("^USB_C_Receptacle_HRO_TYPE-C-31-M-12*", 180, 0.0, 0.0),   # the table's row; J7's reference rule wins
 ]
 
 
@@ -137,9 +152,9 @@ def assembly():
         return (r[:i], int(r[i:]))
     for fp in sorted(board.GetFootprints(), key=refkey):
         ref = fp.GetReference()
-        p = parts[ref]
-        if ref.startswith("H"):
+        if ref.startswith("H") or fp.IsBoardOnly():      # mounting holes; board-only fiducials FID1-3
             continue
+        p = parts[ref]
         if not is_smd(fp):
             tht.append(ref)
             continue

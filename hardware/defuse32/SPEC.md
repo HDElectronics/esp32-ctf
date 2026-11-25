@@ -48,6 +48,22 @@ Same schematic, netlist, pin map and placement as rev 2 (the schematic stays rev
 - **Finish**: no 90° corners, jogs straightened, every outer-layer GND pour piece stitched to the planes (no floating copper), a GND via next to each layer change of USB, SPI and WS2812 data, reference designators 1.0 mm beside their parts on the top side only (none on the bottom), rows aligned; a part with no free spot beside it gets a callout (label + 0.15 mm leader), and the boxed-in R16-R19 row one range label ("R16-19"); header names as one line along each header ("J1  M1 RADIO").
 - **3D models** for J7, SW1/SW2 and F1 from LCSC/EasyEDA (`kicad/gen/fetch_3d.py`, files git-ignored); BOM/CPL in the JLCPCB Tools plugin's format with its rotation corrections.
 
+## Rev 3.1 carrier, schematic rev 2.1 (2026-11-25, standards pass) — supersedes rev 3 where they differ
+
+A standards pass (independent audit, review, fix, final check; record in `kicad/README.md`, section "Standards pass (2026-11-25)") on the rev 3 board. Same placement, pin map, MCP23017 allocation, connector pinouts and stack-up as rev 3. No part moved.
+
+- **Schematic rev 2.1** (four changes, approved by the owner):
+  - **Buzzer driver**: Q1 is an SS8050 (LCSC C2150, SOT-23, same pads) instead of the MMBT3904, base resistor R7 330 Ω instead of 1 kΩ, so a 16-42 Ω magnetic buzzer is driven saturated. 1N4148WS stays across the buzzer pins; with a 16 Ω buzzer check that diode's temperature at bring-up (a 32 Ω or higher buzzer is preferred).
+  - **R21**, 10 kΩ pull-down on the WS2812 buffer input (WS_DATA, GPIO25 → U4 pin 2): the LED data line is defined while the ESP32 is in reset.
+  - **R22**, 10 kΩ pull-up to 3V3P on the microSD CMD line (MOSI), completing the pull-ups on DAT0/DAT1/DAT2. SD_CS keeps its pull-down on GPIO2 (boot strapping).
+- **Board rev 3.1** (copper and silkscreen):
+  - **5 V feed**: a wide track from the fuse F1 straight to both regulators (U5, U6) and the bulk capacitor; the loop round the board now only feeds the plate headers. Each AMS1117 tab sits in a copper area on its own output net (3V3 at U6, 3V3P at U5).
+  - No copper and no via under the LIS3DH body. A GND via within 2 mm of each layer change of USB, SPI and WS2812 data.
+  - Silkscreen: `EN` at SW1, `BOOT` at SW2, `G + S` at the servo header J9 (pin 1 GND, pin 2 5V, pin 3 signal), `OUT` at J10, `rev 3.1 2026-11`. Three board-only fiducials (FID1-FID3) for JLCPCB's Standard assembly.
+  - Track finish: the jogs, tight corners and copper gaps that remain are listed with their reasons in `kicad/README.md`. (Rev 3's "9 jogs" was an undercount by the audit tool; the corrected tool and the true numbers are in the same section.)
+- **Ordering**: JLCPCB **Standard** PCBA (the ESP32 module, the LIS3DH and the 220 µF capacitor are Standard-only parts), handling rails on the two 100 mm edges only (the antenna overhangs the left edge, the USB-C receptacle is flush with the right edge). Settings, the order remark and the placement-preview checklist: `kicad/out/jlcpcb/README.md`.
+- **Use**: supply 5 V from a source rated 2 A or more; a 500 mA PC port may sag when the servo moves. Plate wiring rules that protect the carrier (power the IR receiver, encoder, TM1637 and OLEDs from 3V3P, never 5 V; series resistors in the touch, probe, keypad and wire-post leads on the plates) belong in the plate build notes.
+
 ## Rev 1 changes (2026-10-22)
 
 - **Challenge packs on microSD**: a 3.3 V-only microSD breakout (no level shifter; e.g. Adafruit 4682 style: 3V, GND, CLK, SO, SI, CS, DET) on a 1×7 female socket on the carrier, on the existing VSPI bus (SCK 18, MOSI 23, MISO 19) with **SD_CS = GPIO2** and a 10 kΩ pull-down on GPIO2 (keeps the boot/download strapping valid). Card detect DET → MCP U2 GPB5 (was SPARE1). Avoid 5 V "catalex" modules: their level shifter does not release MISO and would fight the probe plate's W25Q32. The SD sits on the carrier, under the panel: only the game master reaches it.
@@ -74,9 +90,9 @@ THT-only, 2-layer, hand-solderable. Everything 3.3 V logic except the WS2812 cha
 
 | GPIO | Function | Notes |
 |------|----------|-------|
-| 21 / 22 | I2C SDA / SCL | Carrier bus to MCPs, MPU-6050 and every plate connector |
+| 21 / 22 | I2C SDA / SCL | Carrier bus to MCPs, the tilt sensor (LIS3DH since rev 2) and every plate connector |
 | 35 | MCP23017 INT (wired-OR, open-drain) | input-only, 10 k pull-up |
-| 39 | Encoder switch ENC_SW (rev 1b) | input-only, 10 k pull-up to 3V3P. MPU-6050 INT is not connected; the firmware polls the MPU over I2C |
+| 39 | Encoder switch ENC_SW (rev 1b) | input-only, 10 k pull-up to 3V3P. The tilt sensor's INT pins are not connected; the firmware polls it over I2C |
 | 34 | IR receiver out | input-only, 10 k pull-up |
 | 36 (VP) | LDR divider | ADC1_CH0 |
 | 32 / 33 | TM1637 CLK / DIO | timer plate |

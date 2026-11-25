@@ -17,9 +17,9 @@ DIRECT = ("AR_DTR_B", "AR_RTS_B", "BUZZ_B", "WS_5V", "LIS_SA0")
 # power symbol per net (the symbol's Value is the net name)
 PWR_SYM = {"VBUS": "VBUS", "5V": "+5V", "3V3": "+3V3", "3V3P": "+3.3VP", "GND": "GND"}
 
-TITLE = "Defuse32 carrier rev 2"
-DATE = "2026-10-23"
-REV = "2"
+TITLE = "Defuse32 carrier rev 2.1"
+DATE = "2026-11-25"
+REV = "2.1"      # rev 2.1: Q1 SS8050 + R7 330R, R21 WS_DATA pull-down, R22 SD CMD pull-up
 
 R0603 = "Resistor_SMD:R_0603_1608Metric"
 C0603 = "Capacitor_SMD:C_0603_1608Metric"
@@ -43,6 +43,7 @@ LCSC = {
     "C220u": ("C72494", "RVT1A221M0605", "ROQANG", "Extended"),
     "AMS1117": ("C6186", "AMS1117-3.3", "Advanced Monolithic Systems", "Basic"),
     "MMBT3904": ("C20526", "MMBT3904", "Changjiang (CJ)", "Basic"),
+    "SS8050": ("C2150", "SS8050(RANGE:200-350)", "JSCJ (Changjiang)", "Basic"),     # rev 2.1: buzzer driver
     "1N4148WS": ("C2128", "1N4148WS", "Changjiang (CJ)", "Basic"),
     "TS1187A": ("C318884", "TS-1187A-B-A-B", "XKB Connection", "Basic"),
     "PTC2A": ("C18198338", "1812L200/8GR", "LUTE", "Extended"),
@@ -208,11 +209,17 @@ part("U4", "74xGxx", "74AHCT1G125", "74AHCT1G125", "Package_TO_SOT_SMD:SOT-23-5"
      lcsc="AHCT1G125")
 R("R1", "330", "WS_5V", "LDI", "mcu", (330.2, 134.62), rot=90, note="WS2812 data series R")
 C("C5", "100nF", "5V", "GND", "mcu", (358.14, 134.62), note="U4")
+# rev 2.1 (review D19): WS_DATA (GPIO25) is high-Z during reset and U4's OE is tied low: a pull-down keeps
+# the buffer input defined (no random first-LED data at power-up)
+R("R21", "10k", "WS_DATA", "GND", "mcu", (243.84, 134.62), note="WS_DATA pull-down")
 
-# buzzer: Q1 low side, 1k base, 1N4148WS across the buzzer (BUZZ+ = 5V, BUZZ- = collector)
-R("R7", "1k", "BUZZ", "BUZZ_B", "mcu", (264.16, 210.82), rot=90, note="Q1 base")
-part("Q1", "Transistor_BJT", "MMBT3904", "MMBT3904", "Package_TO_SOT_SMD:SOT-23",
-     {"1": "BUZZ_B", "2": "GND", "3": "BUZZ-"}, "mcu", (287.02, 210.82), lcsc="MMBT3904")
+# buzzer: Q1 low side, 330R base, 1N4148WS across the buzzer (BUZZ+ = 5V, BUZZ- = collector).
+# Rev 2.1 (2026-11-25, owner-approved review item F04): Q1 MMBT3904 (200 mA) -> SS8050 (1.5 A, hFE 200-350,
+# same SOT-23 B-E-C pins: JSCJ datasheet p.1), R7 1k -> 330R (7.6 mA base drive): a 16-42 ohm magnetic
+# buzzer takes 120-310 mA at 5 V, which the MMBT3904 could not saturate.
+R("R7", "330", "BUZZ", "BUZZ_B", "mcu", (264.16, 210.82), rot=90, note="Q1 base")
+part("Q1", "Transistor_BJT", "SS8050", "SS8050", "Package_TO_SOT_SMD:SOT-23",
+     {"1": "BUZZ_B", "2": "GND", "3": "BUZZ-"}, "mcu", (287.02, 210.82), lcsc="SS8050")
 part("D1", "Diode", "1N4148WS", "1N4148WS", "Diode_SMD:D_SOD-323",
      {"1": "5V", "2": "BUZZ-"}, "mcu", (325.12, 210.82), rot=270, lcsc="1N4148WS")
 
@@ -258,6 +265,8 @@ R("R16", "10k", "3V3P", "MISO", "io", (269.24, 152.4), note="SD DAT0 pull-up")
 R("R17", "10k", "3V3P", "SD_DAT1", "io", (279.4, 152.4), note="SD DAT1 pull-up")
 R("R18", "10k", "3V3P", "SD_DAT2", "io", (289.56, 152.4), note="SD DAT2 pull-up")
 R("R19", "10k", "3V3P", "SD_DET", "io", (299.72, 152.4), note="card detect pull-up")
+# rev 2.1 (review D06; Espressif "SD pull-up requirements": 10k on CMD and DAT0-3, also in SPI mode)
+R("R22", "10k", "3V3P", "MOSI", "io", (309.88, 152.4), note="SD CMD pull-up")
 C("C17", "100nF", "3V3P", "GND", "io", (269.24, 215.9), note="SD VDD")
 C("C18", "10uF", "3V3P", "GND", "io", (279.4, 215.9), note="SD VDD")
 
@@ -325,7 +334,7 @@ BLOCKS = {
         (15.24, 139.7, 290.83, 281.94, "USB-UART (CH340C) AND AUTO-RESET", [
             ("CH340C at 3.3 V: V3 tied to VCC (local symbol CH340C_3V3: pin 4 typed power_in). No crystal.", 17.78, 147.32),
             ("UART0: CH340C TXD -> U0RXD (GPIO3), RXD <- U0TXD (GPIO1). CTS/DSR/RI/DCD, R232 unused.", 17.78, 151.13),
-            ("Auto-reset: DTR=0 RTS=1 -> Q2 pulls EN low; DTR=1 RTS=0 -> Q3 pulls IO0 low; both equal -> released.", 129.54, 251.46),
+            ("Auto-reset, esptool levels (CH340C pins inverted): DTR=0 RTS=1 -> Q2 pulls EN low; DTR=1 RTS=0 -> Q3 pulls IO0 low; equal: released.", 129.54, 251.46),
             ("EN RC (R10 10k + C11 1 uF) and the IO0 pull-up R11 are on the ESP32 sheet.", 129.54, 255.27),
         ]),
     ],
@@ -342,10 +351,10 @@ BLOCKS = {
             ("R6: LDR divider low side (LDR on M6 from 3V3P -> GPIO36). R8: GPIO2 (SD_CS) pull-down.", 233.68, 85.09),
         ]),
         (231.14, 100.33, 405.13, 165.1, "WS2812 BUFFER 3V3 -> 5V", [
-            ("U4 74AHCT1G125 at 5 V, OE low. R1 330R in series. Chain: LDI -> M1 ... M6 (connectors sheet).", 233.68, 158.75),
+            ("U4 74AHCT1G125 at 5 V, OE low. R1 330R in series, R21 10k pull-down on WS_DATA. Chain: LDI -> M1 ... M6.", 233.68, 158.75),
         ]),
         (231.14, 170.18, 405.13, 245.11, "BUZZER DRIVER", [
-            ("GPIO26 (BUZZ, LEDC PWM) -> R7 -> Q1. Buzzer on M2: BUZZ+ = 5V (J2 pin 11), BUZZ- on J2 pin 10.", 233.68, 237.49),
+            ("GPIO26 (BUZZ, LEDC PWM) -> R7 330R -> Q1 SS8050. Buzzer on M2: BUZZ+ = 5V (J2 pin 11), BUZZ- on J2 pin 10.", 233.68, 237.49),
         ]),
     ],
     "io": [
@@ -360,7 +369,7 @@ BLOCKS = {
         ]),
         (255.27, 121.92, 405.13, 245.11, "microSD (push-push, SPI mode)", [
             ("VSPI shared with the probe plate: SCK GPIO18, MOSI GPIO23, MISO GPIO19, SD_CS GPIO2.", 257.81, 229.87),
-            ("DAT0-2 10k pull-ups to 3V3P. Card detect: DET_A GND, DET_B -> SD_DET (U2 GPB5), R19 pull-up:", 257.81, 233.68),
+            ("DAT0-2 and CMD (R22) 10k pull-ups to 3V3P. Card detect: DET_A GND, DET_B -> SD_DET (U2 GPB5), R19:", 257.81, 233.68),
             ("low = card present: the DM3 detect switch is normally open and closes on insertion (Hirose DM3", 257.81, 237.49),
             ("catalog). Firmware: CONFIG_D32_SD_DET_ACTIVE_HIGH=n.", 257.81, 241.3),
         ]),
@@ -434,6 +443,10 @@ PCB = {
     # microSD supply and pull-ups
     "C17": (78.4, 51.3, 180), "C18": (75.0, 51.2, 180),
     "R16": (63.0, 57.15, 90), "R17": (64.9, 57.15, 90), "R18": (66.8, 57.15, 90), "R19": (68.7, 57.15, 90),
+    # rev 2.1 additions, placed on the routed board by gen/std_fixes.py (new_parts) in free spots found by
+    # search (courtyard clear, pads clear of other-net copper, nearest copper of both nets)
+    "R21": (44.3, 35.9, 270),             # WS_DATA pull-down, below the GPIO25 -> U4 pin 2 track, left of U4
+    "R22": (71.3, 64.5, 270),             # SD CMD (MOSI) pull-up, left of J11 on the MOSI / 3V3P tracks
 }
 for p in PARTS:
     p["pcb"] = PCB[p["spec"]]

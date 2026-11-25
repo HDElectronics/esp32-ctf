@@ -2,18 +2,18 @@
  "voids": [
   {
    "layer": "F.Cu",
-   "area_mm2": 8.17,
+   "area_mm2": 8.16,
    "width_mm": 2.64,
-   "via_fits": true,
-   "why": "via fits",
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
    "at": [
-    55.23,
+    55.29,
     96.09
    ],
    "bbox": [
-    53.22,
+    53.33,
     94.64,
-    57.23,
+    57.24,
     97.55
    ]
   },
@@ -36,36 +36,19 @@
   },
   {
    "layer": "F.Cu",
-   "area_mm2": 5.08,
-   "width_mm": 0.28,
+   "area_mm2": 5.28,
+   "width_mm": 1.81,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    71.83,
-    72.98
+    61.9,
+    100.51
    ],
    "bbox": [
-    62.96,
-    72.84,
-    80.7,
-    73.13
-   ]
-  },
-  {
-   "layer": "F.Cu",
-   "area_mm2": 4.78,
-   "width_mm": 0.39,
-   "via_fits": false,
-   "why": "too narrow / blocked for a via",
-   "at": [
-    80.32,
-    55.65
-   ],
-   "bbox": [
-    74.29,
-    55.45,
-    86.35,
-    55.85
+    60.2,
+    98.85,
+    63.61,
+    102.16
    ]
   },
   {
@@ -104,36 +87,665 @@
   },
   {
    "layer": "F.Cu",
-   "area_mm2": 3.9,
-   "width_mm": 0.32,
+   "area_mm2": 1.86,
+   "width_mm": 1.06,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    80.3,
-    54.19
+    82.72,
+    88.94
    ],
    "bbox": [
-    74.32,
-    54.02,
-    86.28,
-    54.35
+    81.7,
+    88.07,
+    83.75,
+    89.81
    ]
   },
   {
    "layer": "F.Cu",
-   "area_mm2": 3.69,
+   "area_mm2": 1.83,
+   "width_mm": 0.44,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    87.83,
+    77.16
+   ],
+   "bbox": [
+    87.59,
+    74.61,
+    88.06,
+    79.71
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.53,
+   "width_mm": 0.74,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    88.75,
+    79.37
+   ],
+   "bbox": [
+    87.89,
+    78.0,
+    89.62,
+    80.74
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.5,
+   "width_mm": 0.38,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    140.11,
+    79.32
+   ],
+   "bbox": [
+    138.68,
+    77.78,
+    141.54,
+    80.87
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.49,
+   "width_mm": 0.73,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    129.21,
+    96.04
+   ],
+   "bbox": [
+    128.15,
+    94.88,
+    130.27,
+    97.2
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.41,
+   "width_mm": 0.72,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    90.91,
+    57.4
+   ],
+   "bbox": [
+    90.28,
+    56.45,
+    91.54,
+    58.35
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.3,
+   "width_mm": 0.28,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    112.1,
+    63.5
+   ],
+   "bbox": [
+    110.41,
+    61.87,
+    113.78,
+    65.13
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.26,
+   "width_mm": 0.23,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    130.57,
+    108.35
+   ],
+   "bbox": [
+    127.94,
+    108.23,
+    133.2,
+    108.47
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.24,
+   "width_mm": 0.66,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    87.6,
+    67.07
+   ],
+   "bbox": [
+    87.14,
+    65.43,
+    88.06,
+    68.71
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.21,
+   "width_mm": 0.23,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    111.07,
+    63.3
+   ],
+   "bbox": [
+    109.22,
+    61.47,
+    112.93,
+    65.14
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.19,
+   "width_mm": 0.3,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    113.14,
+    63.73
+   ],
+   "bbox": [
+    111.67,
+    62.33,
+    114.6,
+    65.14
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.09,
+   "width_mm": 0.62,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    90.07,
+    66.88
+   ],
+   "bbox": [
+    89.57,
+    65.43,
+    90.58,
+    68.32
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.02,
+   "width_mm": 0.66,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    59.97,
+    91.97
+   ],
+   "bbox": [
+    59.22,
+    91.08,
+    60.71,
+    92.86
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.96,
    "width_mm": 0.27,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    124.47,
-    79.13
+    117.32,
+    63.06
    ],
    "bbox": [
-    117.85,
-    78.99,
-    131.09,
-    79.27
+    115.58,
+    62.92,
+    119.05,
+    63.2
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.93,
+   "width_mm": 0.27,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    107.91,
+    78.09
+   ],
+   "bbox": [
+    106.64,
+    76.87,
+    109.19,
+    79.32
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.91,
+   "width_mm": 0.65,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    70.55,
+    53.51
+   ],
+   "bbox": [
+    69.68,
+    53.11,
+    71.42,
+    53.91
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.84,
+   "width_mm": 0.5,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    82.38,
+    75.01
+   ],
+   "bbox": [
+    81.55,
+    74.16,
+    83.21,
+    75.85
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.81,
+   "width_mm": 0.21,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    63.63,
+    90.18
+   ],
+   "bbox": [
+    62.28,
+    88.83,
+    64.98,
+    91.54
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.77,
+   "width_mm": 0.42,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    117.4,
+    75.28
+   ],
+   "bbox": [
+    117.11,
+    73.98,
+    117.7,
+    76.57
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.73,
+   "width_mm": 0.55,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    116.2,
+    106.07
+   ],
+   "bbox": [
+    115.57,
+    105.42,
+    116.83,
+    106.73
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.72,
+   "width_mm": 0.5,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    82.7,
+    80.44
+   ],
+   "bbox": [
+    82.03,
+    79.75,
+    83.36,
+    81.13
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.71,
+   "width_mm": 0.29,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    110.2,
+    91.39
+   ],
+   "bbox": [
+    109.64,
+    90.34,
+    110.77,
+    92.44
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.69,
+   "width_mm": 0.53,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    120.14,
+    98.68
+   ],
+   "bbox": [
+    119.21,
+    98.41,
+    121.06,
+    98.95
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.66,
+   "width_mm": 0.59,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    129.26,
+    53.41
+   ],
+   "bbox": [
+    128.53,
+    53.11,
+    129.98,
+    53.72
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.62,
+   "width_mm": 0.43,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    68.68,
+    76.61
+   ],
+   "bbox": [
+    68.26,
+    75.8,
+    69.1,
+    77.42
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.57,
+   "width_mm": 0.38,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    136.23,
+    84.39
+   ],
+   "bbox": [
+    135.62,
+    83.77,
+    136.84,
+    85.0
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.57,
+   "width_mm": 0.28,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    68.38,
+    53.26
+   ],
+   "bbox": [
+    67.36,
+    53.11,
+    69.4,
+    53.4
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.55,
+   "width_mm": 0.24,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    130.56,
+    95.64
+   ],
+   "bbox": [
+    130.31,
+    94.45,
+    130.81,
+    96.83
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.54,
+   "width_mm": 0.36,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    69.51,
+    56.1
+   ],
+   "bbox": [
+    68.88,
+    55.46,
+    70.13,
+    56.74
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.53,
+   "width_mm": 0.29,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    133.27,
+    90.64
+   ],
+   "bbox": [
+    133.1,
+    89.65,
+    133.44,
+    91.63
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.53,
+   "width_mm": 0.29,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    132.0,
+    90.64
+   ],
+   "bbox": [
+    131.83,
+    89.65,
+    132.17,
+    91.63
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.52,
+   "width_mm": 0.33,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    104.91,
+    74.09
+   ],
+   "bbox": [
+    104.09,
+    73.73,
+    105.73,
+    74.45
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.51,
+   "width_mm": 0.26,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    82.65,
+    66.43
+   ],
+   "bbox": [
+    82.51,
+    65.46,
+    82.79,
+    67.4
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.5,
+   "width_mm": 0.26,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    105.92,
+    66.31
+   ],
+   "bbox": [
+    105.78,
+    65.35,
+    106.06,
+    67.27
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 7.45,
+   "width_mm": 2.52,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    55.29,
+    96.04
+   ],
+   "bbox": [
+    53.43,
+    94.64,
+    57.15,
+    97.45
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 6.14,
+   "width_mm": 0.64,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    93.08,
+    96.33
+   ],
+   "bbox": [
+    84.91,
+    94.85,
+    101.25,
+    97.81
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 5.28,
+   "width_mm": 1.81,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    61.9,
+    100.51
+   ],
+   "bbox": [
+    60.2,
+    98.85,
+    63.61,
+    102.16
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 4.28,
+   "width_mm": 0.35,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    69.92,
+    99.03
+   ],
+   "bbox": [
+    63.86,
+    98.85,
+    75.99,
+    99.21
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 4.27,
+   "width_mm": 0.47,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    71.54,
+    108.34
+   ],
+   "bbox": [
+    68.15,
+    105.11,
+    74.93,
+    111.57
    ]
   },
   {
@@ -155,19 +767,665 @@
   },
   {
    "layer": "F.Cu",
-   "area_mm2": 1.87,
+   "area_mm2": 1.83,
+   "width_mm": 0.44,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    87.83,
+    77.16
+   ],
+   "bbox": [
+    87.59,
+    74.61,
+    88.06,
+    79.71
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.5,
    "width_mm": 0.38,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    139.98,
-    79.94
+    140.11,
+    79.32
    ],
    "bbox": [
-    138.42,
+    138.68,
     77.78,
     141.54,
-    82.1
+    80.87
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.45,
+   "width_mm": 0.93,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    82.6,
+    88.94
+   ],
+   "bbox": [
+    81.7,
+    88.18,
+    83.5,
+    89.71
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.41,
+   "width_mm": 0.72,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    90.91,
+    57.4
+   ],
+   "bbox": [
+    90.28,
+    56.45,
+    91.54,
+    58.35
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.3,
+   "width_mm": 0.28,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    112.1,
+    63.5
+   ],
+   "bbox": [
+    110.41,
+    61.87,
+    113.78,
+    65.13
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.26,
+   "width_mm": 0.23,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    130.57,
+    108.35
+   ],
+   "bbox": [
+    127.94,
+    108.23,
+    133.2,
+    108.47
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.24,
+   "width_mm": 0.66,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    87.6,
+    67.07
+   ],
+   "bbox": [
+    87.14,
+    65.43,
+    88.06,
+    68.71
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.23,
+   "width_mm": 0.65,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    129.15,
+    95.99
+   ],
+   "bbox": [
+    128.25,
+    94.88,
+    130.05,
+    97.1
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.21,
+   "width_mm": 0.23,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    111.07,
+    63.3
+   ],
+   "bbox": [
+    109.22,
+    61.47,
+    112.93,
+    65.14
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.19,
+   "width_mm": 0.3,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    113.14,
+    63.73
+   ],
+   "bbox": [
+    111.67,
+    62.33,
+    114.6,
+    65.14
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.16,
+   "width_mm": 0.74,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    70.62,
+    53.62
+   ],
+   "bbox": [
+    69.68,
+    53.11,
+    71.57,
+    54.13
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.09,
+   "width_mm": 0.62,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    90.07,
+    66.88
+   ],
+   "bbox": [
+    89.57,
+    65.43,
+    90.58,
+    68.32
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.02,
+   "width_mm": 0.66,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    59.97,
+    91.97
+   ],
+   "bbox": [
+    59.22,
+    91.08,
+    60.71,
+    92.86
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.96,
+   "width_mm": 0.27,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    117.32,
+    63.06
+   ],
+   "bbox": [
+    115.58,
+    62.92,
+    119.05,
+    63.2
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.93,
+   "width_mm": 0.27,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    107.91,
+    78.09
+   ],
+   "bbox": [
+    106.64,
+    76.87,
+    109.19,
+    79.32
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.9,
+   "width_mm": 0.69,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    129.26,
+    53.47
+   ],
+   "bbox": [
+    128.39,
+    53.11,
+    130.13,
+    53.82
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.84,
+   "width_mm": 0.5,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    82.38,
+    75.01
+   ],
+   "bbox": [
+    81.55,
+    74.16,
+    83.21,
+    75.85
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.82,
+   "width_mm": 0.42,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    90.14,
+    76.25
+   ],
+   "bbox": [
+    89.94,
+    74.73,
+    90.36,
+    77.77
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.81,
+   "width_mm": 0.21,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    63.63,
+    90.18
+   ],
+   "bbox": [
+    62.28,
+    88.83,
+    64.98,
+    91.54
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.77,
+   "width_mm": 0.42,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    117.4,
+    75.28
+   ],
+   "bbox": [
+    117.11,
+    73.98,
+    117.7,
+    76.57
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.73,
+   "width_mm": 0.55,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    116.2,
+    106.07
+   ],
+   "bbox": [
+    115.57,
+    105.42,
+    116.83,
+    106.73
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.72,
+   "width_mm": 0.5,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    82.7,
+    80.44
+   ],
+   "bbox": [
+    82.03,
+    79.75,
+    83.36,
+    81.13
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.69,
+   "width_mm": 0.53,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    120.14,
+    98.68
+   ],
+   "bbox": [
+    119.21,
+    98.41,
+    121.06,
+    98.95
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.67,
+   "width_mm": 0.25,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    110.23,
+    91.32
+   ],
+   "bbox": [
+    109.69,
+    90.34,
+    110.77,
+    92.3
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.62,
+   "width_mm": 0.43,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    68.68,
+    76.61
+   ],
+   "bbox": [
+    68.26,
+    75.8,
+    69.1,
+    77.42
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.57,
+   "width_mm": 0.38,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    136.23,
+    84.39
+   ],
+   "bbox": [
+    135.62,
+    83.77,
+    136.84,
+    85.0
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.57,
+   "width_mm": 0.28,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    68.38,
+    53.26
+   ],
+   "bbox": [
+    67.36,
+    53.11,
+    69.4,
+    53.4
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.54,
+   "width_mm": 0.36,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    69.51,
+    56.1
+   ],
+   "bbox": [
+    68.88,
+    55.46,
+    70.13,
+    56.74
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.53,
+   "width_mm": 0.29,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    133.27,
+    90.64
+   ],
+   "bbox": [
+    133.1,
+    89.65,
+    133.44,
+    91.63
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.53,
+   "width_mm": 0.29,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    132.0,
+    90.64
+   ],
+   "bbox": [
+    131.83,
+    89.65,
+    132.17,
+    91.63
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.52,
+   "width_mm": 0.33,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    104.91,
+    74.09
+   ],
+   "bbox": [
+    104.09,
+    73.73,
+    105.73,
+    74.45
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.51,
+   "width_mm": 0.26,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    82.65,
+    66.43
+   ],
+   "bbox": [
+    82.51,
+    65.46,
+    82.79,
+    67.4
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.5,
+   "width_mm": 0.26,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    105.92,
+    66.31
+   ],
+   "bbox": [
+    105.78,
+    65.35,
+    106.06,
+    67.27
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 8.16,
+   "width_mm": 2.64,
+   "via_fits": true,
+   "why": "via fits",
+   "at": [
+    55.29,
+    96.09
+   ],
+   "bbox": [
+    53.33,
+    94.64,
+    57.24,
+    97.55
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 6.14,
+   "width_mm": 0.64,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    93.08,
+    96.33
+   ],
+   "bbox": [
+    84.91,
+    94.85,
+    101.25,
+    97.81
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 5.28,
+   "width_mm": 1.81,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    61.9,
+    100.51
+   ],
+   "bbox": [
+    60.2,
+    98.85,
+    63.61,
+    102.16
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 4.28,
+   "width_mm": 0.35,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    69.92,
+    99.03
+   ],
+   "bbox": [
+    63.86,
+    98.85,
+    75.99,
+    99.21
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 4.27,
+   "width_mm": 0.47,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    71.54,
+    108.34
+   ],
+   "bbox": [
+    68.15,
+    105.11,
+    74.93,
+    111.57
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 2.07,
+   "width_mm": 0.81,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    88.59,
+    79.78
+   ],
+   "bbox": [
+    87.42,
+    78.0,
+    89.76,
+    81.55
    ]
   },
   {
@@ -185,6 +1443,40 @@
     88.07,
     83.75,
     89.81
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.83,
+   "width_mm": 0.44,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    87.83,
+    77.16
+   ],
+   "bbox": [
+    87.59,
+    74.61,
+    88.06,
+    79.71
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 1.5,
+   "width_mm": 0.38,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    140.11,
+    79.32
+   ],
+   "bbox": [
+    138.68,
+    77.78,
+    141.54,
+    80.87
    ]
   },
   {
@@ -224,23 +1516,6 @@
   {
    "layer": "F.Cu",
    "area_mm2": 1.3,
-   "width_mm": 0.69,
-   "via_fits": false,
-   "why": "too narrow / blocked for a via",
-   "at": [
-    82.15,
-    115.07
-   ],
-   "bbox": [
-    81.56,
-    114.16,
-    82.73,
-    115.98
-   ]
-  },
-  {
-   "layer": "F.Cu",
-   "area_mm2": 1.3,
    "width_mm": 0.28,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
@@ -266,7 +1541,7 @@
     108.35
    ],
    "bbox": [
-    127.95,
+    127.94,
     108.23,
     133.2,
     108.47
@@ -274,7 +1549,7 @@
   },
   {
    "layer": "F.Cu",
-   "area_mm2": 1.23,
+   "area_mm2": 1.24,
    "width_mm": 0.66,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
@@ -284,7 +1559,7 @@
    ],
    "bbox": [
     87.14,
-    65.44,
+    65.43,
     88.06,
     68.71
    ]
@@ -352,7 +1627,7 @@
    ],
    "bbox": [
     89.57,
-    65.44,
+    65.43,
     90.58,
     68.32
    ]
@@ -364,12 +1639,12 @@
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    59.96,
-    91.98
+    59.97,
+    91.97
    ],
    "bbox": [
     59.22,
-    91.09,
+    91.08,
     60.71,
     92.86
    ]
@@ -377,23 +1652,6 @@
   {
    "layer": "F.Cu",
    "area_mm2": 0.96,
-   "width_mm": 0.32,
-   "via_fits": false,
-   "why": "too narrow / blocked for a via",
-   "at": [
-    87.9,
-    78.22
-   ],
-   "bbox": [
-    87.74,
-    76.68,
-    88.06,
-    79.75
-   ]
-  },
-  {
-   "layer": "F.Cu",
-   "area_mm2": 0.95,
    "width_mm": 0.27,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
@@ -402,9 +1660,9 @@
     63.06
    ],
    "bbox": [
-    115.59,
+    115.58,
     62.92,
-    119.04,
+    119.05,
     63.2
    ]
   },
@@ -471,7 +1729,7 @@
    ],
    "bbox": [
     89.94,
-    74.74,
+    74.73,
     90.36,
     77.77
    ]
@@ -501,30 +1759,13 @@
    "why": "too narrow / blocked for a via",
    "at": [
     117.4,
-    75.27
+    75.28
    ],
    "bbox": [
     117.11,
     73.98,
     117.7,
-    76.56
-   ]
-  },
-  {
-   "layer": "F.Cu",
-   "area_mm2": 0.76,
-   "width_mm": 0.48,
-   "via_fits": false,
-   "why": "too narrow / blocked for a via",
-   "at": [
-    128.53,
-    90.93
-   ],
-   "bbox": [
-    128.07,
-    89.66,
-    128.99,
-    92.19
+    76.57
    ]
   },
   {
@@ -563,6 +1804,40 @@
   },
   {
    "layer": "F.Cu",
+   "area_mm2": 0.69,
+   "width_mm": 0.53,
+   "via_fits": true,
+   "why": "via fits",
+   "at": [
+    120.14,
+    98.68
+   ],
+   "bbox": [
+    119.21,
+    98.41,
+    121.06,
+    98.95
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.69,
+   "width_mm": 0.29,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    110.15,
+    91.39
+   ],
+   "bbox": [
+    109.64,
+    90.34,
+    110.67,
+    92.44
+   ]
+  },
+  {
+   "layer": "F.Cu",
    "area_mm2": 0.62,
    "width_mm": 0.43,
    "via_fits": false,
@@ -581,15 +1856,32 @@
   {
    "layer": "F.Cu",
    "area_mm2": 0.57,
+   "width_mm": 0.38,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    136.23,
+    84.39
+   ],
+   "bbox": [
+    135.62,
+    83.77,
+    136.84,
+    85.0
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.57,
    "width_mm": 0.28,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    68.39,
+    68.38,
     53.26
    ],
    "bbox": [
-    67.37,
+    67.36,
     53.11,
     69.4,
     53.4
@@ -597,19 +1889,36 @@
   },
   {
    "layer": "F.Cu",
-   "area_mm2": 0.53,
-   "width_mm": 0.29,
+   "area_mm2": 0.55,
+   "width_mm": 0.24,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    132.0,
-    90.64
+    130.56,
+    95.64
    ],
    "bbox": [
-    131.83,
-    89.66,
-    132.17,
-    91.63
+    130.31,
+    94.45,
+    130.81,
+    96.83
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.54,
+   "width_mm": 0.36,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    69.51,
+    56.1
+   ],
+   "bbox": [
+    68.88,
+    55.46,
+    70.13,
+    56.74
    ]
   },
   {
@@ -624,8 +1933,25 @@
    ],
    "bbox": [
     133.1,
-    89.66,
+    89.65,
     133.44,
+    91.63
+   ]
+  },
+  {
+   "layer": "F.Cu",
+   "area_mm2": 0.53,
+   "width_mm": 0.29,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    132.0,
+    90.64
+   ],
+   "bbox": [
+    131.83,
+    89.65,
+    132.17,
     91.63
    ]
   },
@@ -677,7 +2003,7 @@
     105.78,
     65.35,
     106.06,
-    67.26
+    67.27
    ]
   },
   {
@@ -699,70 +2025,70 @@
   },
   {
    "layer": "B.Cu",
-   "area_mm2": 13.14,
-   "width_mm": 1.11,
-   "via_fits": false,
-   "why": "too narrow / blocked for a via",
-   "at": [
-    110.52,
-    53.24
-   ],
-   "bbox": [
-    88.51,
-    52.68,
-    132.52,
-    53.8
-   ]
-  },
-  {
-   "layer": "B.Cu",
-   "area_mm2": 7.24,
+   "area_mm2": 7.28,
    "width_mm": 0.37,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
     87.17,
-    90.01
+    89.96
    ],
    "bbox": [
     86.98,
-    80.37,
+    80.28,
     87.36,
     99.65
    ]
   },
   {
    "layer": "B.Cu",
-   "area_mm2": 3.76,
-   "width_mm": 0.28,
+   "area_mm2": 7.08,
+   "width_mm": 0.24,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    65.71,
-    80.26
+    115.8,
+    52.81
    ],
    "bbox": [
-    65.56,
-    73.59,
-    65.85,
-    86.93
+    101.76,
+    52.68,
+    129.84,
+    52.93
    ]
   },
   {
    "layer": "B.Cu",
-   "area_mm2": 2.56,
-   "width_mm": 0.22,
+   "area_mm2": 3.77,
+   "width_mm": 1.18,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    64.85,
-    68.42
+    127.62,
+    101.79
    ],
    "bbox": [
-    64.74,
-    62.72,
-    64.97,
-    74.12
+    126.38,
+    99.29,
+    128.85,
+    104.29
+   ]
+  },
+  {
+   "layer": "B.Cu",
+   "area_mm2": 3.43,
+   "width_mm": 0.3,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    100.54,
+    99.92
+   ],
+   "bbox": [
+    100.37,
+    92.22,
+    100.7,
+    107.61
    ]
   },
   {
@@ -801,19 +2127,36 @@
   },
   {
    "layer": "B.Cu",
-   "area_mm2": 2.0,
-   "width_mm": 0.28,
+   "area_mm2": 2.1,
+   "width_mm": 0.23,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    64.82,
-    83.52
+    93.45,
+    52.8
    ],
    "bbox": [
-    64.68,
-    79.97,
-    64.97,
-    87.08
+    89.08,
+    52.68,
+    97.82,
+    52.92
+   ]
+  },
+  {
+   "layer": "B.Cu",
+   "area_mm2": 2.08,
+   "width_mm": 0.3,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    102.04,
+    87.62
+   ],
+   "bbox": [
+    101.89,
+    84.13,
+    102.19,
+    91.11
    ]
   },
   {
@@ -852,19 +2195,19 @@
   },
   {
    "layer": "B.Cu",
-   "area_mm2": 1.48,
+   "area_mm2": 1.44,
    "width_mm": 0.75,
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    145.03,
-    71.49
+    80.81,
+    113.83
    ],
    "bbox": [
-    144.06,
-    70.79,
-    146.0,
-    72.19
+    79.84,
+    113.13,
+    81.78,
+    114.53
    ]
   },
   {
@@ -874,14 +2217,48 @@
    "via_fits": false,
    "why": "too narrow / blocked for a via",
    "at": [
-    83.33,
-    113.83
+    83.31,
+    113.81
    ],
    "bbox": [
-    82.38,
+    82.34,
     113.13,
     84.29,
-    114.53
+    114.5
+   ]
+  },
+  {
+   "layer": "B.Cu",
+   "area_mm2": 1.23,
+   "width_mm": 0.38,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    105.04,
+    81.09
+   ],
+   "bbox": [
+    103.86,
+    79.86,
+    106.22,
+    82.33
+   ]
+  },
+  {
+   "layer": "B.Cu",
+   "area_mm2": 1.01,
+   "width_mm": 0.84,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    99.8,
+    53.17
+   ],
+   "bbox": [
+    98.92,
+    52.68,
+    100.67,
+    53.66
    ]
   },
   {
@@ -916,6 +2293,23 @@
     74.42,
     146.55,
     76.34
+   ]
+  },
+  {
+   "layer": "B.Cu",
+   "area_mm2": 0.83,
+   "width_mm": 0.54,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    131.72,
+    53.24
+   ],
+   "bbox": [
+    130.92,
+    52.68,
+    132.52,
+    53.8
    ]
   },
   {
@@ -1019,38 +2413,120 @@
     77.82,
     73.01
    ]
+  },
+  {
+   "layer": "B.Cu",
+   "area_mm2": 0.53,
+   "width_mm": 0.28,
+   "via_fits": false,
+   "why": "too narrow / blocked for a via",
+   "at": [
+    81.53,
+    110.77
+   ],
+   "bbox": [
+    80.84,
+    110.03,
+    82.23,
+    111.52
+   ]
   }
  ],
  "routing_violations": [
   [
    "jog",
    "5V on B.Cu",
-   "sideways 0.20 mm double bend at (56.09, 82.27): keep the track straight"
+   "sideways 0.42 mm double bend at (61.15, 97.41): keep the track straight"
   ],
   [
    "jog",
    "5V on B.Cu",
-   "sideways 0.42 mm double bend at (61.57, 97.83): keep the track straight"
+   "sideways 0.20 mm double bend at (55.89, 82.47): keep the track straight"
+  ],
+  [
+   "tight-corner",
+   "3V3P on F.Cu",
+   "90 deg turn within 0.42 mm at (91.05, 82.40) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "3V3P on F.Cu",
+   "90 deg turn within 0.35 mm at (86.45, 83.50) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "SCL on F.Cu",
+   "90 deg turn within 0.10 mm at (82.06, 79.06) (looks square): use two 45 deg bends at least 0.45 mm apart"
   ],
   [
    "jog",
-   "SCL on B.Cu",
-   "sideways 1.21 mm double bend at (65.17, 113.80): keep the track straight"
+   "SCL on F.Cu",
+   "sideways 0.78 mm double bend at (69.51, 57.90): keep the track straight"
   ],
   [
    "jog",
-   "SCK on B.Cu",
-   "sideways 1.32 mm double bend at (100.88, 95.06): keep the track straight"
+   "MISO on F.Cu",
+   "sideways 0.65 mm double bend at (121.92, 103.17): keep the track straight"
   ],
   [
-   "jog",
-   "SCK on B.Cu",
-   "sideways 1.01 mm double bend at (89.88, 67.27): keep the track straight"
+   "tight-corner",
+   "SD_CS on F.Cu",
+   "90 deg turn within 0.21 mm at (133.28, 102.57) (looks square): use two 45 deg bends at least 0.45 mm apart"
   ],
   [
-   "jog",
+   "tight-corner",
+   "SD_DET on B.Cu",
+   "90 deg turn within 0.29 mm at (127.90, 99.34) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
    "3V3 on F.Cu",
-   "sideways 0.67 mm double bend at (129.36, 92.75): keep the track straight"
+   "90 deg turn within 0.10 mm at (131.29, 93.90) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "3V3 on F.Cu",
+   "90 deg turn within 0.31 mm at (79.92, 81.47) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "SDA on B.Cu",
+   "90 deg turn within 0.31 mm at (146.36, 84.09) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "SDA on B.Cu",
+   "90 deg turn within 0.31 mm at (146.26, 76.54) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "LDO1 on F.Cu",
+   "90 deg turn within 0.31 mm at (69.57, 53.70) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "ENC_B on F.Cu",
+   "90 deg turn within 0.31 mm at (66.78, 56.15) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "U3_GPA7 on B.Cu",
+   "90 deg turn within 0.42 mm at (79.53, 69.77) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "jog",
+   "T3 on F.Cu",
+   "sideways 0.50 mm double bend at (61.15, 83.10): keep the track straight"
+  ],
+  [
+   "tight-corner",
+   "IR on F.Cu",
+   "90 deg turn within 0.31 mm at (143.82, 76.46) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "SIM2 on F.Cu",
+   "90 deg turn within 0.28 mm at (105.92, 74.52) (looks square): use two 45 deg bends at least 0.45 mm apart"
   ],
   [
    "jog",
@@ -1058,17 +2534,118 @@
    "sideways 1.25 mm double bend at (117.33, 77.94): keep the track straight"
   ],
   [
-   "jog",
-   "U0RXD on F.Cu",
-   "sideways 0.32 mm double bend at (122.63, 96.74): keep the track straight"
+   "tight-corner",
+   "CS on F.Cu",
+   "90 deg turn within 0.33 mm at (52.79, 100.30) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "USB_DP on F.Cu",
+   "90 deg turn within 0.40 mm at (143.55, 99.05) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "USB_DM on F.Cu",
+   "90 deg turn within 0.42 mm at (141.10, 99.55) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "TM_CLK on B.Cu",
+   "90 deg turn within 0.31 mm at (88.42, 58.69) (looks square): use two 45 deg bends at least 0.45 mm apart"
   ],
   [
    "jog",
    "U0RXD on F.Cu",
    "sideways 0.60 mm double bend at (120.59, 94.25): keep the track straight"
+  ],
+  [
+   "tight-corner",
+   "WB3 on B.Cu",
+   "90 deg turn within 0.05 mm at (84.13, 97.80) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "WB4 on F.Cu",
+   "90 deg turn within 0.14 mm at (87.70, 101.66) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "WB5 on F.Cu",
+   "90 deg turn within 0.44 mm at (89.00, 74.62) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "hairpin",
+   "WA6 on B.Cu",
+   "the track turns back by 135 deg within 0.24 mm at (81.99, 75.83)"
+  ],
+  [
+   "tight-corner",
+   "WA5 on F.Cu",
+   "90 deg turn within 0.37 mm at (81.08, 65.02) (looks square): use two 45 deg bends at least 0.45 mm apart"
+  ],
+  [
+   "tight-corner",
+   "WA5 on F.Cu",
+   "90 deg turn within 0.41 mm at (81.35, 67.41) (looks square): use two 45 deg bends at least 0.45 mm apart"
   ]
  ],
- "routing_warnings": [],
+ "routing_warnings": [
+  [
+   "pad-corner",
+   "5V on F.Cu",
+   "track end at (122.38, 99.10) enters pad C6.1 through its corner or along its edge (0.45 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "5V on F.Cu",
+   "track end at (122.45, 99.75) enters pad C6.1 through its corner or along its edge (0.20 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "5V on F.Cu",
+   "track end at (122.47, 91.80) enters pad C7.1 through its corner or along its edge (0.30 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "5V on F.Cu",
+   "track end at (138.80, 110.60) enters pad F1.2 through its corner or along its edge (0.27 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "MISO on F.Cu",
+   "track end at (125.88, 102.88) enters pad J11.7 through its corner or along its edge (0.06 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "3V3 on F.Cu",
+   "track end at (110.00, 93.42) enters pad C8.1 through its corner or along its edge (0.16 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "3V3 on F.Cu",
+   "track end at (119.90, 94.70) enters pad U6.2 through its corner or along its edge (0.16 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "3V3 on F.Cu",
+   "track end at (81.83, 90.92) enters pad R10.1 through its corner or along its edge (0.16 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "3V3 on F.Cu",
+   "track end at (80.03, 80.12) enters pad R11.1 through its corner or along its edge (0.25 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "KEY on F.Cu",
+   "track end at (107.60, 74.65) enters pad U2.5 through its corner or along its edge (0.06 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ],
+  [
+   "pad-corner",
+   "SERVO_SIG on F.Cu",
+   "track end at (65.62, 93.01) enters pad U1.12 through its corner or along its edge (0.05 mm of the track's width misses the pad): enter through a side, on the pad's axis"
+  ]
+ ],
  "violations": [],
  "warnings": [],
  "model_violations": [],
@@ -1082,6 +2659,11 @@
    "over-track",
    "R3 ref",
    "printed over a track (legible, but text on flat mask reads better)"
+  ],
+  [
+   "callout",
+   "J11 ref",
+   "0.5 mm from its part, with a leader line"
   ],
   [
    "over-track",
@@ -1107,6 +2689,11 @@
    "callout",
    "R14 ref",
    "1.1 mm from its part, with a leader line"
+  ],
+  [
+   "over-track",
+   "C6 ref",
+   "printed over a track (legible, but text on flat mask reads better)"
   ],
   [
    "over-track",
@@ -1315,6 +2902,11 @@
   ],
   [
    "over-track",
+   "text 'BOOT'",
+   "printed over a track (legible, but text on flat mask reads better)"
+  ],
+  [
+   "over-track",
    "text 'M5 PROBE'",
    "printed over a track (legible, but text on flat mask reads better)"
   ],
@@ -1331,6 +2923,11 @@
   [
    "over-track",
    "text 'M3 KEYPAD'",
+   "printed over a track (legible, but text on flat mask reads better)"
+  ],
+  [
+   "over-track",
+   "text 'OUT'",
    "printed over a track (legible, but text on flat mask reads better)"
   ],
   [

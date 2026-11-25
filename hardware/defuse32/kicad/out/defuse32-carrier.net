@@ -2,17 +2,17 @@
 	(version "E")
 	(design
 		(source "/home/ibrahim/ESP32-CTF.defuse32-hw/hardware/defuse32/kicad/defuse32-carrier.kicad_sch")
-		(date "2026-10-24T11:29:55")
+		(date "2026-11-25T23:33:02")
 		(tool "Eeschema 10.0.7-10.0.7~ubuntu26.04.1")
 		(sheet
 			(number "1")
 			(name "/")
 			(tstamps "/")
 			(title_block
-				(title "Defuse32 carrier rev 2")
+				(title "Defuse32 carrier rev 2.1")
 				(company "ESP32 CTF / Defuse32")
-				(rev "2")
-				(date "2026-10-23")
+				(rev "2.1")
+				(date "2026-11-25")
 				(source "defuse32-carrier.kicad_sch")
 				(comment
 					(number "1")
@@ -24,7 +24,7 @@
 				)
 				(comment
 					(number "3")
-					(value "SMD, 2 layers, 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
+					(value "SMD, 4 layers (board rev 3.1), 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
 				)
 				(comment
 					(number "4")
@@ -57,10 +57,10 @@
 			(name "/Power, USB, UART/")
 			(tstamps "/f5c018ae-401a-54e1-8c6d-270bc5e6c986/")
 			(title_block
-				(title "Defuse32 carrier rev 2")
+				(title "Defuse32 carrier rev 2.1")
 				(company "ESP32 CTF / Defuse32")
-				(rev "2")
-				(date "2026-10-23")
+				(rev "2.1")
+				(date "2026-11-25")
 				(source "power_usb.kicad_sch")
 				(comment
 					(number "1")
@@ -72,7 +72,7 @@
 				)
 				(comment
 					(number "3")
-					(value "SMD, 2 layers, 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
+					(value "SMD, 4 layers (board rev 3.1), 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
 				)
 				(comment
 					(number "4")
@@ -105,10 +105,10 @@
 			(name "/ESP32 module/")
 			(tstamps "/3a4a36aa-3898-5067-86f7-21c778a2e3f0/")
 			(title_block
-				(title "Defuse32 carrier rev 2")
+				(title "Defuse32 carrier rev 2.1")
 				(company "ESP32 CTF / Defuse32")
-				(rev "2")
-				(date "2026-10-23")
+				(rev "2.1")
+				(date "2026-11-25")
 				(source "esp32.kicad_sch")
 				(comment
 					(number "1")
@@ -120,7 +120,7 @@
 				)
 				(comment
 					(number "3")
-					(value "SMD, 2 layers, 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
+					(value "SMD, 4 layers (board rev 3.1), 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
 				)
 				(comment
 					(number "4")
@@ -153,10 +153,10 @@
 			(name "/Expanders, tilt, microSD/")
 			(tstamps "/bf999377-5e8d-5505-917e-f43aa91cc6e7/")
 			(title_block
-				(title "Defuse32 carrier rev 2")
+				(title "Defuse32 carrier rev 2.1")
 				(company "ESP32 CTF / Defuse32")
-				(rev "2")
-				(date "2026-10-23")
+				(rev "2.1")
+				(date "2026-11-25")
 				(source "io.kicad_sch")
 				(comment
 					(number "1")
@@ -168,7 +168,7 @@
 				)
 				(comment
 					(number "3")
-					(value "SMD, 2 layers, 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
+					(value "SMD, 4 layers (board rev 3.1), 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
 				)
 				(comment
 					(number "4")
@@ -201,10 +201,10 @@
 			(name "/Plate connectors/")
 			(tstamps "/0834cdd5-28db-5367-b1d2-227d6cb57737/")
 			(title_block
-				(title "Defuse32 carrier rev 2")
+				(title "Defuse32 carrier rev 2.1")
 				(company "ESP32 CTF / Defuse32")
-				(rev "2")
-				(date "2026-10-23")
+				(rev "2.1")
+				(date "2026-11-25")
 				(source "connectors.kicad_sch")
 				(comment
 					(number "1")
@@ -216,7 +216,7 @@
 				)
 				(comment
 					(number "3")
-					(value "SMD, 2 layers, 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
+					(value "SMD, 4 layers (board rev 3.1), 100 x 70 mm; JLCPCB fields LCSC / MPN / JLC on every part")
 				)
 				(comment
 					(number "4")
@@ -2309,42 +2309,42 @@
 		)
 		(comp
 			(ref "Q1")
-			(value "MMBT3904")
+			(value "SS8050")
 			(footprint "Package_TO_SOT_SMD:SOT-23")
-			(datasheet "https://www.onsemi.com/pdf/datasheet/pzt3904-d.pdf")
-			(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
+			(datasheet "http://www.secosgmbh.com/datasheet/products/SSMPTransistor/SOT-23/SS8050.pdf")
+			(description "General Purpose NPN Transistor, 1.5A Ic, 25V Vce, SOT-23")
 			(fields
 				(field
-					(name "LCSC") "C20526")
+					(name "LCSC") "C2150")
 				(field
-					(name "MPN") "MMBT3904")
+					(name "MPN") "SS8050(RANGE:200-350)")
 				(field
-					(name "Manufacturer") "Changjiang (CJ)")
+					(name "Manufacturer") "JSCJ (Changjiang)")
 				(field
 					(name "JLC") "Basic")
 				(field
 					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
 				(field
-					(name "Datasheet") "https://www.onsemi.com/pdf/datasheet/pzt3904-d.pdf")
+					(name "Datasheet") "http://www.secosgmbh.com/datasheet/products/SSMPTransistor/SOT-23/SS8050.pdf")
 				(field
-					(name "Description") "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
+					(name "Description") "General Purpose NPN Transistor, 1.5A Ic, 25V Vce, SOT-23")
 			)
 			(libsource
 				(lib "Transistor_BJT")
-				(part "MMBT3904")
-				(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
+				(part "SS8050")
+				(description "General Purpose NPN Transistor, 1.5A Ic, 25V Vce, SOT-23")
 			)
 			(property
 				(name "LCSC")
-				(value "C20526")
+				(value "C2150")
 			)
 			(property
 				(name "MPN")
-				(value "MMBT3904")
+				(value "SS8050(RANGE:200-350)")
 			)
 			(property
 				(name "Manufacturer")
-				(value "Changjiang (CJ)")
+				(value "JSCJ (Changjiang)")
 			)
 			(property
 				(name "JLC")
@@ -2360,7 +2360,7 @@
 			)
 			(property
 				(name "ki_keywords")
-				(value "NPN Transistor")
+				(value "SS8050 NPN Transistor")
 			)
 			(property
 				(name "ki_fp_filters")
@@ -2858,14 +2858,14 @@
 		)
 		(comp
 			(ref "R7")
-			(value "1k")
+			(value "330")
 			(footprint "Resistor_SMD:R_0603_1608Metric")
 			(description "Resistor")
 			(fields
 				(field
-					(name "LCSC") "C21190")
+					(name "LCSC") "C23138")
 				(field
-					(name "MPN") "0603WAF1001T5E")
+					(name "MPN") "0603WAF3300T5E")
 				(field
 					(name "Manufacturer") "UNI-ROYAL")
 				(field
@@ -2885,11 +2885,11 @@
 			)
 			(property
 				(name "LCSC")
-				(value "C21190")
+				(value "C23138")
 			)
 			(property
 				(name "MPN")
-				(value "0603WAF1001T5E")
+				(value "0603WAF3300T5E")
 			)
 			(property
 				(name "Manufacturer")
@@ -3232,6 +3232,84 @@
 				(tstamps "/3a4a36aa-3898-5067-86f7-21c778a2e3f0/")
 			)
 			(tstamps "2560fa5e-ba06-5a69-9d6f-9fc418b424d2")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R21")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Resistor")
+			(fields
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "Manufacturer") "UNI-ROYAL")
+				(field
+					(name "JLC") "Basic")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Resistor")
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "Manufacturer")
+				(value "UNI-ROYAL")
+			)
+			(property
+				(name "JLC")
+				(value "Basic")
+			)
+			(property
+				(name "Sheetname")
+				(value "ESP32 module")
+			)
+			(property
+				(name "Sheetfile")
+				(value "esp32.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/ESP32 module/")
+				(tstamps "/3a4a36aa-3898-5067-86f7-21c778a2e3f0/")
+			)
+			(tstamps "fd684b4d-8489-58bb-b2e8-bd11b7d2d7f1")
 			(units
 				(unit
 					(name "A")
@@ -4697,6 +4775,84 @@
 				(tstamps "/bf999377-5e8d-5505-917e-f43aa91cc6e7/")
 			)
 			(tstamps "0f2e5dee-b89c-5818-a2be-69dd912df9dc")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R22")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Resistor")
+			(fields
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "Manufacturer") "UNI-ROYAL")
+				(field
+					(name "JLC") "Basic")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Resistor")
+			)
+			(libsource
+				(lib "Device")
+				(part "R")
+				(description "Resistor")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "Manufacturer")
+				(value "UNI-ROYAL")
+			)
+			(property
+				(name "JLC")
+				(value "Basic")
+			)
+			(property
+				(name "Sheetname")
+				(value "Expanders, tilt, microSD")
+			)
+			(property
+				(name "Sheetfile")
+				(value "io.kicad_sch")
+			)
+			(property
+				(name "ki_keywords")
+				(value "R res resistor")
+			)
+			(property
+				(name "ki_fp_filters")
+				(value "R_*")
+			)
+			(sheetpath
+				(names "/Expanders, tilt, microSD/")
+				(tstamps "/bf999377-5e8d-5505-917e-f43aa91cc6e7/")
+			)
+			(tstamps "e594dce2-b67d-585a-9727-2f43079d6ca1")
 			(units
 				(unit
 					(name "A")
@@ -7986,6 +8142,48 @@
 			)
 		)
 		(libpart
+			(lib "Transistor_BJT")
+			(part "SS8050")
+			(description "General Purpose NPN Transistor, 1.5A Ic, 25V Vce, SOT-23")
+			(docs "http://www.secosgmbh.com/datasheet/products/SSMPTransistor/SOT-23/SS8050.pdf")
+			(footprints
+				(fp "SOT?23*")
+			)
+			(fields
+				(field
+					(name "Reference") "Q")
+				(field
+					(name "Value") "SS8050")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
+				(field
+					(name "Datasheet") "http://www.secosgmbh.com/datasheet/products/SSMPTransistor/SOT-23/SS8050.pdf")
+				(field
+					(name "Description") "General Purpose NPN Transistor, 1.5A Ic, 25V Vce, SOT-23")
+				(field
+					(name "Sim.Device") "NPN")
+				(field
+					(name "Sim.Pins") "1=B 2=E 3=C")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "B")
+					(type "input")
+				)
+				(pin
+					(num "2")
+					(name "E")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "C")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
 			(lib "defuse32")
 			(part "CH340C_3V3")
 			(description "USB serial converter, UART, SOIC-16, internal oscillator, run from 3.3 V: V3 (pin 4) tied to VCC, typed power_in (copy of Interface_USB:CH340C)")
@@ -8330,6 +8528,11 @@
 			)
 			(node
 				(ref "R20")
+				(pin "1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R22")
 				(pin "1")
 				(pintype "passive")
 			)
@@ -9079,6 +9282,11 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "R21")
+				(pin "2")
+				(pintype "passive")
+			)
+			(node
 				(ref "R6")
 				(pin "2")
 				(pintype "passive")
@@ -9508,6 +9716,11 @@
 				(ref "J5")
 				(pin "11")
 				(pinfunction "Pin_11_11")
+				(pintype "passive")
+			)
+			(node
+				(ref "R22")
+				(pin "2")
 				(pintype "passive")
 			)
 			(node
@@ -10508,6 +10721,11 @@
 			(code "83")
 			(name "WS_DATA")
 			(class "Default")
+			(node
+				(ref "R21")
+				(pin "1")
+				(pintype "passive")
+			)
 			(node
 				(ref "U1")
 				(pin "10")

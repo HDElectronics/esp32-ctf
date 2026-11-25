@@ -11,7 +11,7 @@ hardware/defuse32/firmware/
   main/                   app_main: init board, load pack, start game task + console
   components/
     d32_engine/           portable C game engine (no IDF/FreeRTOS headers; builds on the host)
-    d32_board/            pins, I2C bus, drivers (MCP23017, TM1637, OLED, WS2812, buzzer, servo, touch, IR, MPU-6050, SD), presence scan
+    d32_board/            pins, I2C bus, drivers (MCP23017, TM1637, OLED, WS2812, buzzer, servo, touch, IR, LIS3DH, SD), presence scan
     d32_pack/             pack loader (JSON on /sd/packs or built-in default)
     d32_modules/          module adapters: glue between engine and drivers, one file per plate
   test/host/              CMake + ctest for d32_engine and d32_pack parsing (links ctf_core)

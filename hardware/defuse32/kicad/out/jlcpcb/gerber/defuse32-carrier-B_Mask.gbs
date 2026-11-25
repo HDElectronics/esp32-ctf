@@ -1,12 +1,12 @@
 %TF.GenerationSoftware,KiCad,Pcbnew,10.0.7-10.0.7~ubuntu26.04.1*%
-%TF.CreationDate,2026-10-24T16:56:31+04:00*%
-%TF.ProjectId,defuse32-carrier,64656675-7365-4333-922d-636172726965,3*%
+%TF.CreationDate,2026-11-25T23:33:14+04:00*%
+%TF.ProjectId,defuse32-carrier,64656675-7365-4333-922d-636172726965,3.1*%
 %TF.SameCoordinates,Original*%
 %TF.FileFunction,Soldermask,Bot*%
 %TF.FilePolarity,Negative*%
 %FSLAX46Y46*%
 G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
-G04 Created by KiCad (PCBNEW 10.0.7-10.0.7~ubuntu26.04.1) date 2026-10-24 16:56:31*
+G04 Created by KiCad (PCBNEW 10.0.7-10.0.7~ubuntu26.04.1) date 2026-11-25 23:33:14*
 %MOMM*%
 %LPD*%
 G01*

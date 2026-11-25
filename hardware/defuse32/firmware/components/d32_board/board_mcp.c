@@ -128,9 +128,15 @@ esp_err_t board_mcp_init(void)
         s_lock = xSemaphoreCreateRecursiveMutex();
     }
     int found = 0;
+    bool fresh[BOARD_MCP_COUNT] = {false};
+
+    /* Pass 1: put the INT outputs of every expander that answers into
+     * open-drain mode before any interrupt is enabled. The INT pins of U2 and
+     * U3 are wired together; out of reset they are push-pull, so one expander
+     * pulling the line low while the other still drives it high would be a
+     * short between two outputs. */
     for (int m = 0; m < BOARD_MCP_COUNT; m++) {
         if (s_dev[m]) {
-            found++;
             continue;
         }
         if (!board_i2c_ready() || board_i2c_probe(s_cfg[m].addr) != ESP_OK) {
@@ -139,6 +145,26 @@ esp_err_t board_mcp_init(void)
         }
         if (board_i2c_add(s_cfg[m].addr, &s_dev[m]) != ESP_OK) {
             s_dev[m] = NULL;
+            continue;
+        }
+        uint8_t iocon = MCP_IOCON_VALUE;
+        esp_err_t err = board_i2c_write_reg(s_dev[m], MCP_REG_IOCON, &iocon, 1);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "%s config failed: %s", s_cfg[m].name, esp_err_to_name(err));
+            board_i2c_remove(s_dev[m]);
+            s_dev[m] = NULL;
+            continue;
+        }
+        fresh[m] = true;
+    }
+
+    /* Pass 2: ports, pull-ups and interrupt enables. */
+    for (int m = 0; m < BOARD_MCP_COUNT; m++) {
+        if (!s_dev[m]) {
+            continue;
+        }
+        if (!fresh[m]) {
+            found++;
             continue;
         }
         esp_err_t err = mcp_configure((board_mcp_t)m);

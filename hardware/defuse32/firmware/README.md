@@ -50,7 +50,7 @@ test/host/              host tests: engine, d32_mod_logic, tilt math, pack parse
 | Driver | File | Notes |
 |---|---|---|
 | I2C bus | `board_i2c.c` | New `i2c_master` driver, I2C0 on 21/22, 20 ms timeout per transaction, `board_i2c_scan()`. Before creating the bus it checks that SDA and SCL idle high. The pull-ups are on 3V3P, so with only DevKit USB power the bus is reported down instead of timing out on every call. The internal pull-ups stay off so they do not back-feed 3V3P. |
-| MCP23017 ×2 | `board_mcp.c` | U2 0x20 and U3 0x21 set up per SPEC rev 1b. IOCON MIRROR + ODR drive the INT line on GPIO35 (negative edge, semaphore); interrupt-on-change is enabled on every input. GPA7 and GPB7 are output-only spares: never inputs, never strobes (`board_mcp_port()` masks them). Register access is shadowed and protected by a lock. |
+| MCP23017 ×2 | `board_mcp.c` | U2 0x20 and U3 0x21 set up per SPEC rev 1b. IOCON MIRROR + ODR drive the INT line on GPIO35 (negative edge, semaphore); init runs in two passes, IOCON on both expanders first and everything else after, so the wired-together INT pins are open-drain before either expander can signal; interrupt-on-change is enabled on every input. GPA7 and GPB7 are output-only spares: never inputs, never strobes (`board_mcp_port()` masks them). Register access is shadowed and protected by a lock. |
 | Keypad | `board_input.c` | Columns COL1-3 = U2 GPA4-6 and COL4 = U2 GPB6 strobe, rows GPA0-3 are read. During a scan one column is driven low and the other three are inputs (high impedance); between scans all four are driven low together. The 0-F overlay map is `1 2 3 A / 4 5 6 B / 7 8 9 C / 0 F E D`. |
 | Wire matrix | `board_input.c` | Strobes WA1-5 = U3 GPA0-4 and WA6 = U3 GPB6 the same way (one driven, the rest inputs), reads WB1-6 = GPB0-5, and reports a bitmask of B posts for each A post. |
 | Encoder, Simon, key switch, SD DET | `board_input.c` | Polled over I2C. The encoder A/B are U3 GPA6/GPA5 (quadrature table, 4 steps per detent on a KY-040); its switch is GPIO39 (rev 1b, 10 k pull-up on 3V3P, read as "not pressed" while the I2C bus / 3V3P rail is down). |
@@ -62,7 +62,7 @@ test/host/              host tests: engine, d32_mod_logic, tilt math, pack parse
 | IR | `board_ir.c` | RMT RX on GPIO34 at 1 µs resolution. A background task decodes NEC frames (8-bit or extended 16-bit address, repeat codes) into a queue. |
 | LDR | `board_ldr.c` | `adc_oneshot` on ADC1_CH0 (GPIO36), 12 dB attenuation, line-fitting calibration when the eFuse has it. |
 | LIS3DH (rev 2) | `board_lis3dh.c`, `board_tilt.c` | Replaces the rev 1b GY-521 / MPU-6050 (driver removed, no Kconfig choice). 0x19 (SA0 high), I2C mode (CS high), WHO_AM_I must read 0x33 or the device counts as missing. Normal mode, 50 Hz, ±2 g (4 mg per digit), BDU on, polled over I2C (INT1/INT2 not connected). Tilt is the angle between gravity now and a reference captured at init and again at each round start (`board_lis3dh_set_reference()`), plus pitch and roll. The math (raw to g, reference, angle) is portable in `board_tilt.c` and host-tested. |
-| microSD | `board_sd.c` | SDSPI on SPI3 (VSPI, 18/23/19), CS GPIO2, 10 MHz, FATFS at `/sd`. It never formats the card. While unmounted, CS is driven high (the carrier's pull-down would otherwise leave the card selected on the shared bus). |
+| microSD | `board_sd.c` | SDSPI on SPI3 (VSPI, 18/23/19), CS GPIO2, 4 MHz (long unterminated bus shared with the probe plate; packs are small files), FATFS at `/sd`. It never formats the card. After a failed mount the bus is freed and CS parked, as after an unmount. While unmounted, CS is driven high (the carrier's pull-down would otherwise leave the card selected on the shared bus). |
 | UART2 | `board_uart2.c` | TX17/RX16, 8N1, init/read/write helpers for the probe plate. |
 | PN532 | `board_nfc.c` | **Stub**: presence probe at 0x24 only (see the TODO in `board_nfc.h`). |
 
@@ -198,5 +198,5 @@ Verified: the project builds with no warnings from our code (`idf.py build`, ESP
 - Touch thresholds (15 %) with the real pads and wire lengths.
 - NEC timing tolerance (±25 % + 100 µs) with the receiver in the case.
 - LIS3DH (rev 2): never run on a device. Check WHO_AM_I 0x33 at 0x19, the register setup (CTRL_REG1 0x47, CTRL_REG4 0x80), the auto-increment burst read of OUT_X_L..OUT_Z_H (0x28 | 0x80), the axis orientation on the carrier (pitch/roll signs) and that the 4 mg / 50 Hz noise stays well below the tilt threshold.
-- LDR range, and microSD at 10 MHz on the shared bus.
+- LDR range, and microSD at 4 MHz on the shared bus (scope SCK at the card slot; raise the speed only if the edges are clean).
 - PN532: presence only; the driver comes later.

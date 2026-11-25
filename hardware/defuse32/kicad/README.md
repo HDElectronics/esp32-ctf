@@ -1,15 +1,16 @@
-# Defuse32 carrier PCB, rev 3 (KiCad 10, 4 layers)
+# Defuse32 carrier PCB, rev 3.1 (KiCad 10, 4 layers; schematic rev 2.1)
 
 The carrier board sits on the case floor and connects to the six plates by ribbon cables. Rev 2 is an SMD board assembled by JLCPCB: ESP32-WROOM-32E module, USB-C programming port with a CH340C, two MCP23017 expanders, LIS3DH tilt sensor, push-push microSD, WS2812 buffer, buzzer driver and one keyed IDC box header per plate. The source of truth is [`../SPEC.md`](../SPEC.md), section "Rev 2 carrier (2026-10-23)", plus the sections it keeps: ESP32 pin map, MCP23017 allocation (rev 1b), WS2812 chain, I2C addresses and the plate signal sets (rev 1 Jn_B table).
 
-**Status (2026-10-24): rev 3, re-routed on 4 layers (JLCPCB JLC04161H-7628) and finished: GND pours on both outer layers stitched into two solid GND planes, 9 jogs and no 90° corner left, 1.0 mm silkscreen beside every part (nothing on the bottom), 3D models for every part; DRC clean against JLCPCB's 4-layer rules; JLCPCB fabrication and assembly files in `out/jlcpcb/`.** Rev 3 changes copper and silkscreen only: same placement, schematic, netlist and pin map as rev 2 (section "Rev 3" below). Hand edits in KiCad are welcome from here on.
+**Status (2026-11-25): rev 3.1, the standards pass of rev 3 (section "Standards pass (2026-11-25)"), with schematic rev 2.1 (Q1 SS8050, R7 330 Ω, new R21 WS_DATA pull-down and R22 SD CMD pull-up, owner-approved). Not ordered yet. Rev 3 (2026-10-24, commit 2b482c1): re-routed on 4 layers (JLCPCB JLC04161H-7628) and finished: GND pours on both outer layers stitched into two solid GND planes, 1.0 mm silkscreen beside every part (nothing on the bottom), 3D models for every part; JLCPCB fabrication and assembly files in `out/jlcpcb/`.** Rev 3 changed copper and silkscreen only (section "Rev 3"); rev 3.1 also adds R21 / R22 to the routed board (no regeneration).
 
 | Check | Result |
 |---|---|
 | `kicad-cli sch erc --severity-all` | 0 errors, 0 warnings |
-| `kicad-cli pcb drc --severity-all --schematic-parity --refill-zones` | 0 violations, 0 unconnected items, 0 schematic parity issues (JLCPCB 4-layer minimums and custom rules; silk_over_copper, silk_overlap, silk_edge_clearance are errors; silk clearance 0.15 mm, text >= 1.0 mm / 0.15 mm) |
+| `kicad-cli pcb drc --severity-all --schematic-parity --refill-zones --all-track-errors` | 0 violations, 0 unconnected items, 0 schematic parity issues (JLCPCB 4-layer minimums and custom rules; silk_over_copper, silk_overlap, silk_edge_clearance are errors; silk clearance 0.15 mm, text >= 1.0 mm / 0.15 mm) |
 | `gen/check_netlist.py` | OK: netlist and board pads match `design.py`, plus the SPEC pin map, MCP23017 allocation, IDC pinout rule, rails, AMS1117 capacitors, outline, holes, U1 antenna beyond the edge and net classes |
-| `gen/pcb_audit.py` (finish audit, `out/audit.json`) | silkscreen: 0 violations, 0 warnings, no hidden reference; 3D: every part has a model; routing: 0 right angles, 9 jogs (110 out of the router; each with its reason under "Rev 3"); copper: 60 narrow voids (137.8 mm2), none can take a usable stitching via |
+| `gen/pcb_audit.py` (finish audit, `out/audit.json`; routing checks tightened 2026-11-25) | silkscreen: 0 violations, 0 warnings, no hidden part reference (R16-R19 share the label "R16-19"; the fiducials FID1-FID3 are board-only and print no reference); 3D: every part has a model; routing: 0 right angles, **7 jogs**, 23 tight corners, 1 hairpin, 0 cap-only joins, 0 stray segments (rev 3 by the same count: 23 / 30 / 3 / 7 / 10; every one left has its measured reason under "Standards pass"); copper: 66 narrow voids (129.3 mm2), none can take a usable stitching via |
+| `gen/std_audit.py` (standards measurements, `out/std_audit.json`) | 0 off-angle segments, 0 acute junctions, 0 vias in SMD pads, every fast-net layer change within 2 mm of a GND via, LCSC on all 68 fitted parts; copper 0.5 mm or more from the two long edges (J11's shell pads 0.475 mm); 5V F1 -> U5 / U6 34 / 48 mΩ (network solve) |
 
 Rev 1b (THT, DevKitC socket, 190 x 140 mm, routed) is in git, tag `carrier-rev1b`.
 
@@ -72,6 +73,131 @@ The owner reviewed rev 2.1 and asked for: no gaps left between tracks (grounded 
 
 Each was tried with the local moves, the jog-free maze (12 mm window, two layers) and the rip-up of up to eight neighbouring runs; removing them needs a hand re-route of the crossing runs. The copper voids are the narrow strips above; the one fast-net layer change without a GND via beside it is SCK at (78.95, 55.84) (the return current changes plane, GND1 to GND2, at the nearest stitching via instead).
 
+## Standards pass (2026-11-25): board rev 3.1, schematic rev 2.1
+
+The owner asked to check the board and correct every error "with the skills and the standard used on the AirQuality project" (its `docs/hw/layout.md` §15 / §15.1: an audit against IPC-2221B class 2, IPC-2152, JLCPCB's capabilities, USB 2.0 / Type-C and the vendor guides, then scripted fixes with no part moved). Checked: IPC-2221B spacing / edge / annular ring, IPC-2152 track current, JLCPCB 4-layer and PCBA rules (fiducials, rails, component-to-edge, overhang, Economic vs Standard, CPL rotations), a power budget against F1, both AMS1117 and the USB source, USB 2.0 / Type-C (CC, VBUS capacitance, D+/D-, ESD, shield), the ESP32-WROOM-32E datasheet and Espressif's hardware design guidelines, every IC against its datasheet, protection of the plate signals, return paths, routing quality, copper voids, silkscreen and markings, schematic hygiene, the kicad-happy analyzers, Codex's independent audit (D01-D22) and a second review (Fable, F01-F09). Measurements: `gen/std_audit.py` (new, read-only, port of AirQuality's `std_audit.py`) and `gen/pcb_audit.py`. Fixes: `gen/std_fixes.py` (new; runs after `gen/polish.py all`). No existing footprint moved, rotated or swapped. The spec side is in [`../SPEC.md`](../SPEC.md), section "Rev 3.1 carrier, schematic rev 2.1". A read-only final check of that pass (N01-N12) found errors in it; round 2, the same day, applies its fixes, counts jogs and corners honestly and removes what can be removed ("Round 2" below). The numbers in this section are the final ones.
+
+**Schematic rev 2.1 (owner-approved, 2026-11-25; not the 2-layer *board* rev 2.1 of October).** Two changes, both from the review, everything else in the schematic unchanged:
+- Buzzer driver: **Q1 MMBT3904 -> SS8050** (C2150, JSCJ, SOT-23, Basic; same pins 1 B / 2 E / 3 C, JSCJ datasheet p.1; 1.5 A, hFE 200-350) and **R7 1 k -> 330 Ω** (C23138, as R1): 7.6 mA base current saturates Q1 at the 120-310 mA a 16-42 Ω magnetic buzzer takes at 5 V (the MMBT3904 is rated 200 mA). Same footprints, positions and copper.
+- **R21 10 k WS_DATA -> GND** (C25804) at (44.30, 35.90), below the GPIO25 -> U4 pin 2 track: GPIO25 is high-Z during reset and U4's OE is tied low, so the buffer input was undefined at power-up. **R22 10 k MOSI -> 3V3P** (C25804) at (71.30, 64.50), left of J11: Espressif's "SD pull-up requirements" ask for 10 k on CMD (MOSI) as on DAT0-2, also in SPI mode. Both spots come from a search (courtyard clear, pads clear of other-net copper, nearest copper of both nets); the review's spots were not usable after the 5V feed (R22) or took C15's label place (R21). Coordinates are board mm from the top-left corner. `gen/std_fixes.py` (`new_parts`) adds them to the routed board (no board regeneration): R21 pad 1 joins the WS_DATA track with one 45° segment that meets it at 90° (0.9 mm), pad 2 the GND track below it; R22 pad 1 drops to the B.Cu 3V3P track through a via beside the pad, pad 2 runs on F.Cu to the MOSI via at (67.81, 66.81) (4.1 mm). Both carry LCSC / MPN fields from `design.py`, KiCad 3D models and a 1.0 mm label placed by the silkscreen rules.
+
+| Check | rev 3 (commit 2b482c1) | rev 3.1 before round 2 | rev 3.1 (final) |
+|---|---|---|---|
+| KiCad DRC (all severities, `--schematic-parity --refill-zones --all-track-errors`) | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 |
+| ERC / `check_netlist.py` | 0 / OK | 0 / OK | 0 / OK (section 8 checks the schematic rev 2.1 parts; fiducials are board-only, no net) |
+| Jogs (`pcb_audit.py`, pieces under 0.1 mm merged first) | **23** (the old audit showed 9: a step behind a router ring was not seen) | 15 (the old audit showed 14) | **7** (table below) |
+| Tight corners (a turn of 90° or more within 0.45 mm) / hairpins (135° or more) | 30 / 3 | 32 / 3 | **23 / 1** (below) |
+| Track ends joined by their round cap only / stray segments inside a pad or via / overlapping segments | 7 / 10 / 1 | 9 / 11 / 0 | **0 / 0 / 0** |
+| Tracks entering a pad through its corner or at its rim (warning) | 28 | 35 | 11 (SMD pads; the 21 track ends that stopped on the rim of a header pad now end 0.15 mm or more inside it) |
+| Right angles / off-angle segments (> 1° off 0/45/90) / acute junctions (`std_audit.py`) | 0 / 32 / 6 (3 inside a pad) | 0 / 0 / 0 | **0 / 0 / 0** |
+| Segments < 0.1 mm | 155 on 29 nets | 93 on 24 nets (13 hooks of 4-6 pieces left: 12 corner arcs and a ring on IR) | 65 on 19 nets |
+| Vias in or touching SMD pads | 7 | 0 | **0** |
+| Fast-net layer changes with no GND via within 2.0 mm | 6 | 0 | **0** (largest left: SCK 1.92 mm, LDO4 1.80 mm, CS 1.76 mm) |
+| 5V copper from F1 pad 2, network solve (1 oz, 25 °C) | U5 224 mΩ, U6 268, C1 207, J9 165, J4 188, J5 219 | U5 35, U6 48, C1 45, J9 56, J4 66, J5 69 | **U5 34 mΩ, U6 48, C1 41, J9 54, J4 66, J5 69** |
+| 5V tracks | 0.6 mm | 29 segments (119 mm) at 0.8-1.2 mm | the same, and the C1 - U5 run 1.0 mm (was 0.6) |
+| Regulator tab copper (SOT-223 pin 4) | pad only | F.Cu areas on U6 (3V3, 27.8 mm²) and U5 (3V3P, 36.4 mm²) | U6's area reaches down to the IO0 track (28.4 mm²); U5's is 34.2 mm² now that C19 / C2 pad 1 (and C8 pad 1 at U6) join through thermal reliefs; the tab pads stay solid |
+| Under U8 LIS3DH (TN0018 §2.3, secondary source) | GND pour and vias | rule area: no pour, no vias inside the land ring | the same |
+| Copper to the two long (100 mm) edges | pours 0.30 mm | pours 0.30 mm | **0.50 mm** on all four layers (V-cut rails possible); J11's shell pads 0.475 mm |
+| Silkscreen violations / warnings / hidden part references (`pcb_audit.py`) | 0 / 0 / none | 0 / 0 / none | **0 / 0 / none** |
+| Markings | references only | + EN, BOOT, OUT, G / + / S at J9, "rev 3.1  2026-11" | "S" on the same side of J9 as "G" and "+"; R21's label 0.25 mm further from R1; a leader from J11's label to the socket |
+| Global fiducials | 0 | 3, centres 3.5-4.8 mm from the edges | 3, centres 3.9 mm or more from every edge (JLCPCB: 3.85 mm) |
+| Edge stitching (points 1.5 mm inside the edge > 3 mm from a GND via) | 111 | 94 | 91 (left edge under U1 and bottom edge under J11: no via fits) |
+| Copper voids >= 0.5 mm², each counted once (the audit lists a void once per zone that could fill it) | 60, 137.8 mm² | 72, 150.8 mm² | **66, 129.3 mm²** (3 pass the audit's via-fit test, none usable: below) |
+| Vias / track length | 524 / 6116 mm | 538 / 6173 mm | 536 / 6168 mm |
+| BOM / CPL | | schematic rev 2.1 lines; C1 turned by 180° (wrong) | schematic rev 2.1 lines; rotations checked against each part's LCSC footprint: C1 0, J7 90, Q1-Q3 and U4 180 (`out/jlcpcb/README.md`) |
+
+**What changed (copper, silkscreen and board-only items, `gen/std_fixes.py`; each step is checked with the exact clearance model and KiCad's DRC).**
+
+- *5V feed (Codex D03).* F1 reached the regulators only round the board (267 mΩ to U6). A new 0.6 mm feed runs F1 pad 2 -> C6 / U5 (38 mm, 8 vias, through the gaps the relaxed maze found) and C6 -> C7 / U6 (16 mm, 4 vias, jog-free); the 5V tracks are then widened to 1.2 / 1.0 / 0.8 mm wherever clearances allow (never wider than the smallest SMD pad they meet). In the review's 1.5 A case the drop on the board path falls from ~0.4 V to ~0.08 V (U6 input ~4.6 V instead of ~4.3 V, above the AMS1117's 1.3 V maximum dropout).
+- *Regulator tabs (D04).* Solid F.Cu areas on U6's (3V3) and U5's (3V3P) tab pads, priority over the GND pour, for heat spreading.
+- *LIS3DH (D12).* A rule area under U8: no GND pour and no vias inside its land ring (ST's TN0018 §2.3 as cited by ST; TN0018 itself could not be fetched). Paste apertures unchanged (unverified guidance).
+- *Routing.* The router's micro-loops (≥ 3 segments shorter than 0.3 mm folding back) collapse to the corner they stand for; that exposed 14 jogs the old audit had not counted. The polish jog tools then run with the pours lifted: 6 fixed for good; 7 maze re-routes only moved their step behind a new ring (collapsed again, see below). Two hand edits (SCL near J4, SCK bus near U2) replace runs the tools could not straighten. 32 off-angle segments (router remnants, 22.5° fan-out stubs) become 0/45/90; 6 acute junctions are rebuilt as 45° or square T's; the vias in or touching an SMD pad (GND fan-outs at C1, C2, C8, U2 pins 15 / 16, U3 pin 16; the MCP_INT via in R4 pad 2) move clear of the pad, with axial stubs; IR is re-routed round the moved R4 via.
+- *Return vias (D17).* A GND via within 0.8-1.8 mm of each fast-net layer change that had none within 2 mm (CS x2, LDO2, LDO3, LDO4; LDI after the edits); the stitching vias in the way move.
+- *Edge stitching.* 4 GND vias where the outer pours reach the edge more than 3 mm from a via.
+- *Silkscreen (D21, D22).* EN beside SW1, BOOT beside SW2, OUT beside J10, G / + / S beside J9 pins 1-3, legend "rev 3.1  2026-11" (title block rev 3.1, 2026-11-25), JLCJLCJLCJLC kept. R21 / R22 labelled by the same rules (J11's label moves to the right of J11 to make room for R22's). Footprint silk widths unchanged (D20: widening them would make the DRC library-parity check report every footprint).
+- *Fiducials (second review F02).* FID1 (3.9, 21.3), FID2 (90.3, 4.8), FID3 (94.8, 61.4) board mm from the top-left: KiCad `Fiducial_1mm_Mask2mm`, board-only (excluded from BOM and position files, no reference printed: a fiducial is not a part), centres 3.9 mm or more from every edge (JLCPCB asks for 3.85 mm from the panel edge), triangle across the board.
+- *Order files.* Board-only footprints are skipped in the BOM / CPL. The CPL rotations were checked against the LCSC footprint of every polarised or multi-pin part (final check N01 / N02, table in `out/jlcpcb/README.md`): C1 (C72494) keeps KiCad's angle, 0, as in rev 3 (its LCSC footprint has "+" on the same side as KiCad's; the first rev 3.1 file had turned it by 180°, which would have reversed it); Q1-Q3 and U4 go out at 180 and J7 at 90 (rev 3 had 270 for all five).
+- *Schematic rev 2.1* (above): Q1 / R7 values, R21 / R22 added and joined.
+
+**Round 2 (final check N01-N12, 2026-11-25; `gen/std_fixes.py`, function `round2` and the list `R2`).** The first pass of this section was checked read-only by a second reviewer; round 2 applies that check and goes on from it.
+
+- *The count (N04, N08).* `gen/pcb_audit.py` missed sideways steps behind pieces shorter than 0.1 mm (router rings, hooks, arcs of 0.05 mm steps). It now merges every connected group of such pieces into one point before it looks for jogs, and also reports tight corners (a turn of 90° or more made within 0.45 mm of track: a chamfer too short to see), hairpins (135° or more), track ends that reach a pad or a track only with their round cap, stray, duplicate and overlapping segments, and, as a warning, tracks that enter a pad through its corner or at its rim. Command line and JSON format are unchanged (new kinds in `routing_violations` / `routing_warnings`). By this count rev 3 had 23 jogs, 30 tight corners and 3 hairpins, not 9 / 0 / 0.
+- *Jogs: 15 -> 7.* Eight went, each with the runs and vias round it, by hand-designed paths (`R2`): DTR's two and LDR's at Q3 (the IO0 via 0.30 mm right, the IR via 0.36 mm right, T6's 13 mm vertical 0.05 mm right, so DTR and LDR run straight between R13, the two vias and T6); U0RXD's second and 3V3's between U6 and U7 (the U0TXD via 0.47 mm right along its B.Cu track); KEY's at U3 (MCP_INT leaves its via straight, KEY runs on one line to a single 1.52 mm lane change, and U0RXD loses the two vias and the 1.1 mm of B.Cu that hid a 0.29 mm step); SDA's on B.Cu (SCL and SDA re-laid through their vias, the doubled SCL track and the half-joined SDA pieces gone); IR's hidden one between C1's pads (N04: no 45° track fits between the two pad corners, 0.56 mm free against 0.65 needed, so IR crosses the gap square for 2.15 mm). No footprint moved; five signal vias moved by 0.10-0.47 mm, two U0RXD vias were deleted.
+- *Corners: 32 tight + 3 hairpins -> 23 + 1.* A rule widens a tight corner to one 45° chamfer of at least 0.45 mm where that keeps every clearance and makes no jog (7 corners); hand edits remove SCK's 0.07 mm piece on B.Cu (N05), the tip of WA6's detour (N05), and the two hairpins where a track left a header pin the wrong way (WB2 at J4 pin 15, SIM2 at J6 pin 15). The rest are listed below with what is in the way.
+- *Joins (N07).* The 3V3 track between U7 pins 16 and 4 ended 0.2 mm outside pin 16 and met pin 4 at its corner: it now starts and ends on the pins' centre lines inside the pads. Looking for the same defect over the whole board found 9 cap-only joins (3V3 at R10 and SW1, 3V3P at the LIS3DH, SDA on B.Cu), 11 stray segments lying inside one pad or via and joining nothing, and 21 track ends that stopped on the rim of a header pad: all fixed (the last by letting each track run on 0.2-0.5 mm along its own line, so that it ends 0.15 mm or more inside the pad).
+- *Gaps (N06).* The C1 - U5 5V run is 1.0 mm wide (was 0.6), its centre 0.2 mm higher, so the 15 x 0.8 mm bare strip above it is gone and its lower edge stays 0.25 mm above the IR via; the B.Cu 5V trunk moved 0.08 mm right (x 49.52), which closes the 15.6 x 0.75 mm strip beside SCK (x 49.94, as the check proposed, would touch the BUZZ via); U6's tab copper reaches down to the IO0 track; two B.Cu pour pieces that had one GND via have two again. The moved runs also closed the strips between KEY and U0RXD (5.1 mm²) and between SCL and SDA on B.Cu (2.6 mm²).
+- *Edge copper (N03).* The four GND zones stop 0.5 mm inside the two long edges (0.3 mm before), so JLCPCB may join its rails there by V-cut (0.4 mm from the cut line asked); nothing else lies within 1.2 mm of those edges except J11's shell pads (0.475 mm). The fiducials' centres are 3.9 mm or more from every edge (FID1 was 3.80, FID3 3.50).
+- *Reflow (N11).* C19, C2 and C8 pad 1 sit in the regulator tab copper: they now join it through thermal reliefs (0.3 mm gap, 0.5 mm spokes), like their GND pads, so both ends of each capacitor heat alike; the tab pads stay solid.
+- *Silkscreen (N10).* "S" stands left of J9 pin 3, in line with "G" and "+" (the stitching via that held the spot moved 0.65 mm down); R21's label moved 0.25 mm down, away from R1's pads, still beside R21's lower pad; a 45° leader joins J11's label to the socket's outline (a level one read as a minus sign). FID1-FID3 print no reference (board-only fiducials).
+- *Repeatable (N09).* `std_fixes.py` on rev 3's board gives this board exactly; a second run changes nothing and leaves the file untouched: stage 1 (the tool steps: maze re-routes, widening, stitching) is skipped on a board that already says rev 3.1, and round 2 checks its own geometry.
+
+**Stays open, and why.**
+
+- *7 jogs*, each a single 45° pair that something physical holds (measured on the board; coordinates in board mm):
+
+| Net, layer | At | Step | What is in the way |
+|---|---|---|---|
+| 5V, B.Cu | (5.89, 32.47) | 0.20 | The lane between the U2RX track (x 5.24) and the ENC_SW track (x 6.54) is 1.30 mm wide: exactly the 0.6 mm 5V track with 0.25 mm on each side, at x 5.89. The U2RX via just above needs the track at x 6.09 or more. ENC_SW cannot move right (the IR via at (7.14, 42.44) is 0.20 mm from it). 0.20 mm missing |
+| 5V, B.Cu | (11.15, 47.41) | 0.42 | The run loops over the SERVO_SIG via (12.00, 47.08), which needs it at x 11.15 or less, and 2.8 mm further down passes the IR via (10.72, 49.85), which needs x 11.57 or more. The loop's two legs are 1.30 mm apart, centre to centre, below the via (the MCP_INT track bounds the right leg); legs on both sides of a via need 1.70 |
+| SCL, F.Cu | (19.51, 7.90) | 0.78 | Between J1 pins 4 and 6 (1.7 mm pads on a 2.54 mm pitch) only a vertical track fits: a 45° one would overlap both pads by 0.05 mm. The LDI track below limits that vertical to 1.99 mm, a 1.41 mm step where 1.50 would count as a lane change |
+| MISO, F.Cu | (71.92, 53.17) | 0.65 | U5 pad 2 (lower edge y 52.75) needs MISO at y 53.10 or more; J11 pad 9 (upper edge y 52.87), 3.6 mm to the right, needs y 52.57 or less: a step of 0.53 mm at least, and it has to sit between the C6 GND via and the 5V feed via |
+| T3, F.Cu | (10.65, 32.60) | 0.50 | U2RX track (y 31.857), SD_CS via (32.459), T3, U0TXD via (33.605), EN track (34.207): 2.35 mm for four 0.60 mm spacings: 0.05 mm missing, so T3 passes the SD_CS via at y 33.10 and the U0TXD via at y 32.60. U2RX cannot go up (its via would come within 0.17 mm of the 5V trunk), EN cannot go down (the CS via is 0.21 mm below it) |
+| SIM4, F.Cu | (67.33, 27.94) | 1.25 | The left lane is held at y 29.03-29.22 (C3 pad 1 above, SIM2 below), the right lane at y 27.90-28.08 (SCL via above, SERVO_SIG via below): a step of 0.95 mm at least. SERVO_SIG runs on to the right on F.Cu, so SIM4 cannot stay below it |
+| U0RXD, F.Cu | (70.59, 44.25) | 0.60 | The corners of U6 pad 2 and C7 pad 2 are 0.085 mm apart across a 45° line, so the track crosses between the pads (0.92 mm apart) square; the 3V3 track from U6 pad 2 ends that vertical after 1.07 mm |
+
+- *23 tight corners and 1 hairpin.* A wider chamfer does not fit, or would turn the corner into the audit's jog (45° - short straight - 45°); most sit where a track threads the 2.54 mm pin grid of a header or leaves a pad:
+
+| Net, layer | At | What is in the way |
+|---|---|---|
+| 3V3P, F.Cu | (41.05, 32.40), 90° in 0.42 mm | 0.25 mm supply fan-out inside the LIS3DH pad field: C15 pad 2 is in the way of a wider chamfer |
+| 3V3P, F.Cu | (36.45, 33.50), 90° in 0.35 mm | the same fan-out: the two arms are 0.30 and 0.32 mm long, between LIS3DH pads |
+| SCL, F.Cu | (32.06, 29.06), 90° in 0.10 mm | 0.1 mm tip of a 1.6 mm detour; a 0.5 mm tip moves the lower leg to 0.09 mm from R8 pad 1 |
+| SD_CS, F.Cu | (83.28, 52.57), 90° in 0.21 mm | 0.21 mm chamfer; a 0.7 mm one would touch J11 pad 1 |
+| SD_DET, B.Cu | (77.90, 49.34), 90° in 0.29 mm | tip of a V-shaped detour round a 3V3P via; a flat tip would make it shallower than 1.5 mm, a jog |
+| 3V3, F.Cu | (81.29, 43.90), 90° in 0.10 mm | the 90° turn into U7 pin 4: pins 15 and 3 leave a 0.80 mm throat, the 0.6 mm track with its clearances needs 1.10, so no 45° run reaches pin 4; a 45° chamfer would pair with the 45° run before it into a 0.4 mm jog |
+| 3V3, F.Cu | (29.92, 31.47), 90° in 0.31 mm | arc of router pieces below R11 pad 1; a 45° run in its place comes within 0.25 mm of the U0TXD vias at (31.00, 32.37) and (31.77, 30.73) |
+| SDA, B.Cu | (96.36, 34.09), 90° in 0.31 mm | the run goes round J6 pins 5 / 7 / 9 between the pin rows; pad J6.5 is inside the corner |
+| SDA, B.Cu | (96.26, 26.54), 90° in 0.31 mm | the same run; pad J6.9 is inside the corner |
+| LDO1, F.Cu | (19.57, 3.70), 90° in 0.31 mm | the turn into the 0.84 mm gap between J1 pins 3 and 5 (pad J1.5 inside the corner); a chamfer would pair with the 45° exit 1.7 mm below into a jog |
+| ENC_B, F.Cu | (16.78, 6.15), 90° in 0.31 mm | the turn out of the gap between J1 pins 7 and 9 (pad J1.8 inside the corner); a chamfer would make a jog with the 45° piece before the gap |
+| U3_GPA7, B.Cu | (29.53, 19.77), 90° in 0.42 mm | the track leaves its via horizontally for 0.30 mm, then 45°: leaving at 45° would shorten the 2.2 mm straight beside the MCP_INT via to 1.9 mm, a jog |
+| IR, F.Cu | (93.82, 26.46), 90° in 0.31 mm | the turn between J6 pins 11 and 12 into the channel between the pin rows (pad J6.12 inside the corner); a chamfer makes two jogs with the 45° pieces on either side |
+| SIM2, F.Cu | (55.92, 24.52), 90° in 0.28 mm | 0.28 mm chamfer; a 0.7 mm one comes within 0.06 mm of U2 pad 3 |
+| CS, F.Cu | (2.79, 50.30), 90° in 0.33 mm | 0.33 mm chamfer; J9 pad 1 is inside the corner |
+| USB_DP, F.Cu | (93.55, 49.05), 90° in 0.40 mm | hand-drawn link between J7's two D+ pads, 1.0 mm apart: three bends 0.40-0.42 mm apart, kept as drawn (USB pair) |
+| USB_DM, F.Cu | (91.10, 49.55), 90° in 0.42 mm | hand-drawn D- entry at U9, bends 0.42 mm apart, kept as drawn (USB pair) |
+| TM_CLK, B.Cu | (38.42, 8.69), 90° in 0.31 mm | the turn into the gap between J2 pins (pad J2.12 inside the corner); a chamfer would pair with the 45° piece 1.7 mm above into a jog |
+| WB3, B.Cu | (34.13, 47.80), 90° in 0.05 mm | 0.05 mm tip of a 1.6 mm detour; the U0TXD track runs 0.2 mm outside the tip, and a flat cut into the tip would leave it 1.35 mm deep, a jog |
+| WB4, F.Cu | (37.70, 51.66), 90° in 0.14 mm | 0.14 mm chamfer; a 0.45 mm one would pair with the 45° piece 2.2 mm above into a jog |
+| WB5, F.Cu | (39.00, 24.62), 90° in 0.44 mm | 0.44 mm chamfer, 0.01 mm short of the rule: U3 pad 7 is 0.2 mm from it |
+| WA6, B.Cu | (31.99, 25.83), 135° in 0.24 mm | hairpin: the track wraps round the WB3 via (32.66, 27.60) with the U3 GND fan-out via (31.40, 27.25) 1.26 mm from it; a 45° pass between the two needs 1.18 mm between the centres across the line and has 1.14 |
+| WA5, F.Cu | (31.08, 15.02), 90° in 0.37 mm | zig-zag between U3 pads 27 and 28, 0.2 mm from the pads |
+| WA5, F.Cu | (31.35, 17.41), 90° in 0.41 mm | the same zig-zag (U3 pad 27) |
+
+- *Fast-net vias:* SCK at (78.95, 55.84) 1.92 mm, LDO4 at (45.14, 64.62) 1.80 mm and CS at (10.28, 46.77) 1.76 mm from the nearest GND via (all within 2 mm): every closer spot is taken by pads, tracks or labels.
+- *Copper voids:* 66 voids, 129.3 mm², each counted once (rev 3: 60, 137.8 mm²; before round 2: 72, 150.8 mm²). Round 2 closed 21.0 mm² (the strip above the C1 - U5 run, the strip beside the B.Cu 5V trunk, the strips between KEY / U0RXD and between SCL / SDA) and opened two small ones: 0.57 mm² between the DTR and IO0 runs into Q3 (a 0.38 mm pocket the straightened DTR lengthened past the 0.5 mm² threshold) and 0.55 mm² between U7 pins 3 and 4 (the 0.67 mm pin gap, bare now that the 3V3 track no longer runs along pin 4's edge). What is left are strips between tracks too narrow for a via with its clearances. The audit's via-fit test passes 3, none usable: (5.29, 46.09) lies under C10's label, (79.21, 46.04) is the 0.73 mm gap between U7 pins 1 and 2 (the only centre is in the GND pad), and (70.12, 48.68) is a 0.53 mm strip between U5 pin 3, the 5V feed and U0TXD, where the stitching pass (vias 0.15 mm clear of SMD pads, none under labels) finds no spot.
+- *J5 label* stays "M5 PROBE  J5": "J5" on the left needs the space of the SCK / MOSI vias and C1's courtyard (searched: 163 spots blocked by signal vias, 394 by other items).
+- *Edge stitching* along the left edge (U1's module body) and the bottom edge at J11 (card slot): no via fits under those parts.
+- *Neck-downs:* 3V3P keeps 18 segments at 0.25-0.4 mm (LIS3DH pad field and between header pins, 18 mm in all, ≤ 0.45 A) and VBUS one 0.4 mm segment (1.2 mm) at J7's pins; IPC-2221B gives ~0.9 A at 10 °C rise for 0.25 mm on an outer layer (every track is on one), twice the 0.45 A design current.
+- *Silk line width:* KiCad's footprints draw 0.12 mm silk (JLCPCB's minimum line is 0.15 mm; JLCPCB prints them, possibly thinner): left as is (D20).
+- *Pad entries:* 11 tracks enter an SMD pad through its corner or along its edge (audit warning): the 5V feed stubs at F1 pad 2, C6 pad 1 and C7 pad 1 (placed that way on purpose, clear of the SD_CS track and the labels), 3V3 at U6 pin 2, C8, R10 and R11, MISO at J11 pin 7, KEY at U2 pin 5, SERVO_SIG at U1 pin 12. Off-axis pad entries (`std_audit.py`, informational) and tracks between adjacent pads of one part (all ≥ 0.2 mm clear): left.
+
+**Needs a part move or a schematic / BOM change (proposals for a decision, not done).** IDs are Codex's (D) and the second review's (F); LCSC numbers as read 2026-11-25.
+
+- D01 USB-C current: the board presents 5.1 kΩ Rd and never reads CC (Type-C R2.0 p.219), so it can draw up to 2.4 A from a source that offers 500 mA. Fix: CC1 / CC2 to two ADC inputs (no free ADC1 pin: needs a pin swap) or TUSB320LIRWBR (C2836598, Extended, Standard PCBA only) on I2C; until then the bring-up note "5 V source of 2 A or more" is the rule.
+- D02 inrush: 240 µF sits on 5V behind F1, against USB 2.0's 10 µF attach limit (§7.2.4.1). Fix: AP22802AW5-7 (C211404, Extended, SOT-25, 2 A, soft start) between F1 pad 2 and the 5V bulk, with C1 behind it.
+- D05 AMS1117 stability: the AMS datasheet (p.4 "Stability") specifies a 22 µF solid tantalum output capacitor and says nothing about ceramics; C2 / C8 are 22 µF X5R 0805 MLCC (a few mΩ ESR). Many boards run it; minimum: a load-step test on the first boards. Fix: TAJA226K010RNJ (22 µF 10 V tantalum, C11366, Extended; A case 3216, a footprint change at the same spot) or an LDO stable with ceramics in the same SOT-223 pinout (AP7361C-33ER, C3743528, Extended, low stock).
+- D09 / D16 plate signal protection: 510 Ω (C23193, Basic) in series on the touch lines T0 / T3 / T4 / T6 near U1, SRV05-4 (C2985619, Extended, SOT-23-6) at J4 / J5 / J6, 100 Ω (C22775, Basic) on the J5 UART / SPI lines, 33 Ω (C23140, Basic) on SCK at U1: needs room at every header (part moves). Not approved.
+- D10 fault isolation: a PTC per branch (JK-nSMD050-30, C720075, 0.5 A, 1206, Extended) on each header pin 1, J9 pin 2 and J5 pin 3: needs room at each header.
+- D11 I2C pull-ups: 4.7 kΩ allows 251 pF at 100 kHz (UM10204 §7.1); the six ribbons and modules are estimated at 150-250 pF, so the firmware's 100 kHz is inside and 400 kHz is not. Fix if the measured rise time is long: R2 / R3 -> 2.2 kΩ (C4190, Basic, same spots).
+- D18 U0TXD series resistor (Espressif checklist: 499 Ω): 499 Ω (C23065, Extended) or 470 Ω (C23179, Basic) near U1 pin 35; no free spot without moving parts.
+- F03 ribbon pin order: not approved.
+- F05 R8 (GPIO2 / SD_CS pull-down): 10 kΩ -> 2.2 kΩ (C4190, Basic) keeps GPIO2 below VIL with a card that pulls DAT3 up; until then the bring-up note (remove the card to flash) stays.
+
+**Order (out/jlcpcb/README.md):** Standard PCBA (U1 ESP32-WROOM-32E C701341, U8 LIS3DHTR C15134 and C1 C72494 are "Standard Only" at JLCPCB; U8 needs X-ray), 5 mm edge rails on the top and bottom edges only (U1 overhangs the left edge by 6.2 mm, J7 is flush with the right edge; confirm with JLCPCB), fiducials FID1-FID3 on the board, U1's open thermal holes noted, C1 first in the placement preview ("+" toward the board's left).
+
+**Bring-up access (no test points on this board).** 5V: any box-header pin 1, J9 pin 2. GND: box-header pin 2, J9 pin 1, J10 pin 5. 3V3P: box-header pin 3. 3V3: C9 / C10 / C12 / C13 pin 1 or U6's tab. EN: SW1 (label EN) pin 1 or C11 pin 1. IO0: SW2 (label BOOT) pin 1 or R11. TXD0 / RXD0: U7 pins 3 / 2 (SOIC clip) or U1 pins 35 / 34.
+
 ## Rev 2 overview
 
 - **Board**: 100 x 70 mm, 4 layers (rev 3; rev 2/2.1 had 2), 1.6 mm, 4 x M3 (Ø3.2) non-plated holes 4 mm from the corners. SMD on the top side (JLCPCB assembly); the IDC box headers and the 2.54 mm pin headers are through-hole.
@@ -82,9 +208,9 @@ Each was tried with the local moves, the jog-free maze (12 mm window, two layers
 - **Expanders**: U2/U3 MCP23017-E/SO at 0x20/0x21, rev 1b allocation unchanged, 100 nF each (C3/C4). INTA/INTB mirrored, open-drain, wired-OR to GPIO35.
 - **Tilt sensor**: U8 LIS3DH (LGA-16) in I2C mode (CS high) at 0x19: SA0 high through R20 (10 kΩ, keeps ERC clean: SDO is an output pin in the symbol). INT1/INT2 not connected (polled). C14/C16 100 nF on VDD/VDD_IO, C15 10 µF.
 - **microSD**: J11 Hirose DM3AT-SF-PEJM5 push-push socket, SPI mode on SCK 18 / MOSI 23 / MISO 19, `SD_CS` = GPIO2 (R8 10 kΩ pull-down kept). DAT0/DAT1/DAT2 10 kΩ pull-ups (R16-R18). C17 100 nF + C18 10 µF.
-- **Card detect** (checked 2026-10-23 against Hirose's DM3 catalog: "The card detection switch is Normally Open"; distributors list the DM3AT-SF-PEJM5 with an N/O detect switch): the switch between DET_A (pad 10) and DET_B (pad 9) is open without a card and closes when a card is inserted. DET_A goes to GND, DET_B -> `SD_DET` (U2 GPB5) with R19 10 kΩ pull-up to 3V3P. **`SD_DET` low = card present, high = no card.** Firmware: `CONFIG_D32_SD_DET_ACTIVE_HIGH` must be **n** for this board (the Kconfig default `y` was written for the rev 1 Adafruit-style breakout, whose DET is high with a card).
+- **Card detect** (checked 2026-10-23 against Hirose's DM3 catalog: "The card detection switch is Normally Open"; distributors list the DM3AT-SF-PEJM5 with an N/O detect switch): the switch between DET_A (pad 10) and DET_B (pad 9) is open without a card and closes when a card is inserted. DET_A goes to GND, DET_B -> `SD_DET` (U2 GPB5) with R19 10 kΩ pull-up to 3V3P. **`SD_DET` low = card present, high = no card.** Firmware: `CONFIG_D32_SD_DET_ACTIVE_HIGH` must be **n** for this board, which is the Kconfig default (`y` is for the rev 1 Adafruit-style breakout, whose DET is high with a card).
 - **WS2812 buffer**: U4 74AHCT1G125 (SOT-23-5) at 5 V, OE low, R1 330 Ω in series -> `LDI`. Chain: LDI -> M1 -> LDO1 -> M2 -> LDO2 -> M3 -> LDO3 -> M4 -> LDO4 -> M5 -> LDO5 -> M6 (end).
-- **Buzzer**: Q1 MMBT3904 low side, R7 1 kΩ base from GPIO26, D1 1N4148WS across the buzzer (BUZZ+ = 5V on J2 pin 11, BUZZ- on J2 pin 10).
+- **Buzzer**: Q1 low side, R7 base resistor from GPIO26, D1 1N4148WS across the buzzer (BUZZ+ = 5V on J2 pin 11, BUZZ- on J2 pin 10). Schematic rev 2.1: Q1 SS8050 (was MMBT3904), R7 330 Ω (was 1 kΩ).
 - **Pull-ups / pull-downs** (unchanged): R2/R3 4.7 kΩ I2C, R4 GPIO35, R5 GPIO34, R9 GPIO39 10 kΩ to 3V3P; R6 GPIO36 (LDR divider) and R8 GPIO2 10 kΩ to GND.
 
 ### ESP32 pin map (unchanged from SPEC)
@@ -189,7 +315,7 @@ Rule (SPEC rev 2): pin 1 `5V`, pin 2 `GND`, pin 3 `3V3P`, pin 4 `SDA`, pin 5 `SC
 
 ## Parts (JLCPCB / LCSC)
 
-Checked 2026-10-23 on the JLCPCB parts API: every part in stock, package matches the footprint. 66 placed parts (57 SMD, 9 THT) plus 4 mounting holes; `out/bom.csv` has the grouped BOM with the same fields.
+Checked 2026-10-23 on the JLCPCB parts API: every part in stock, package matches the footprint. 68 placed parts (59 SMD, 9 THT) plus 4 mounting holes and 3 board-only fiducials (schematic rev 2.1: + R21, R22); `out/bom.csv` has the grouped BOM with the same fields.
 
 | Refs | Qty | Value | Footprint | LCSC | MPN | JLC |
 |---|---|---|---|---|---|---|
@@ -198,12 +324,12 @@ Checked 2026-10-23 on the JLCPCB parts API: every part in stock, package matches
 | C6, C7, C9, C15, C18 | 5 | 10 µF | C_0805 | C15850 | CL21A106KAYNNNE | Basic |
 | C2, C8 | 2 | 22 µF | C_0805 | C45783 | CL21A226MAQNNNE | Basic |
 | C1 | 1 | 220 µF 10 V | CP_Elec_6.3x5.4 | C72494 | RVT1A221M0605 | Extended |
-| R4-R6, R8-R13, R16-R20 | 14 | 10 kΩ | R_0603 | C25804 | 0603WAF1002T5E | Basic |
+| R4-R6, R8-R13, R16-R22 | 16 | 10 kΩ | R_0603 | C25804 | 0603WAF1002T5E | Basic |
 | R14, R15 | 2 | 5.1 kΩ | R_0603 | C23186 | 0603WAF5101T5E | Basic |
 | R2, R3 | 2 | 4.7 kΩ | R_0603 | C23162 | 0603WAF4701T5E | Basic |
-| R7 | 1 | 1 kΩ | R_0603 | C21190 | 0603WAF1001T5E | Basic |
-| R1 | 1 | 330 Ω | R_0603 | C23138 | 0603WAF3300T5E | Basic |
-| Q1-Q3 | 3 | MMBT3904 | SOT-23 | C20526 | MMBT3904 | Basic |
+| R1, R7 | 2 | 330 Ω | R_0603 | C23138 | 0603WAF3300T5E | Basic |
+| Q2, Q3 | 2 | MMBT3904 | SOT-23 | C20526 | MMBT3904 | Basic |
+| Q1 | 1 | SS8050 | SOT-23 | C2150 | SS8050(RANGE:200-350) | Basic |
 | D1 | 1 | 1N4148WS | SOD-323 | C2128 | 1N4148WS | Basic |
 | SW1, SW2 | 2 | EN, BOOT | SW_Push_1P1T_XKB_TS-1187A | C318884 | TS-1187A-B-A-B | Basic |
 | U5, U6 | 2 | AMS1117-3.3 | SOT-223-3_TabPin2 | C6186 | AMS1117-3.3 | Basic |
@@ -328,10 +454,10 @@ What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are t
 
 ## Assembly (JLCPCB)
 
-`out/jlcpcb/` holds the 4-layer Gerbers + drill (zip), the JLCPCB BOM (Comment, Designator, Footprint, LCSC, Quantity; 23 lines, 57 SMD parts) and the CPL (Designator, Val, Package, Mid X, Mid Y, Rotation, Layer; 57 top-side parts), written by `gen/gen_jlcpcb.py` with the conventions of the JLCPCB Tools plugin (Bouni/kicad-jlcpcb-tools 2026.04.03); [`out/jlcpcb/README.md`](out/jlcpcb/README.md) has the order settings.
+`out/jlcpcb/` holds the 4-layer Gerbers + drill (zip), the JLCPCB BOM (Comment, Designator, Footprint, LCSC, Quantity; 23 lines, 59 SMD parts) and the CPL (Designator, Val, Package, Mid X, Mid Y, Rotation, Layer; 59 top-side parts), written by `gen/gen_jlcpcb.py` with the conventions of the JLCPCB Tools plugin (Bouni/kicad-jlcpcb-tools 2026.04.03); [`out/jlcpcb/README.md`](out/jlcpcb/README.md) has the order settings.
 
 - Single-sided SMD assembly, all on top. Coordinates: drill/place origin at the board's bottom-left corner (Gerbers, drill and CPL agree).
-- **Rotations**: the CPL position is the centre of each footprint's pads and the rotation is KiCad's plus the JLCPCB Tools plugin's correction for the package (U1 +270, U2/U3/U7 SOIC +270, U5/U6 SOT-223 +180, Q1-Q3/U4/U9 SOT-23 -90, J7 +180). Still check JLCPCB's placement preview: pin 1 of every IC, D1 (cathode to 5V), C1 (+), U8 (LGA-16, no rule) and the J7/J11 openings at the board edges.
+- **Rotations**: the CPL position is the centre of each footprint's pads and the rotation is KiCad's plus a correction per part: rules on the reference where the part's own LCSC footprint decides (Q1-Q3 and U4 +180, J7 +0), then the JLCPCB Tools plugin's package rows (U1 +270, U2 / U3 / U7 SOIC +270, U5 / U6 SOT-223 +180, U9 SOT-23-6 -90); C1 and every other part go with KiCad's angle. Every polarised or multi-pin part was compared with its LCSC footprint (table and method in `out/jlcpcb/README.md`). JLCPCB's placement preview remains the authority: check it in the order given there, C1 first ("+", pad 1, 5V, toward the board's left edge), then J7, Q1-Q3, U4, U9, U8, D1.
 - **Through-hole, not assembled by default**: J1-J6 IDC box headers (2x5, 2x6, 2x8, 2x10, 2x7, 2x10), J8 1x2, J9 1x3, J10 1x5 pin headers. Solder by hand (keys toward the board edges, as on the silkscreen) or add them as JLCPCB THT assembly.
 - Extended parts after the regulator swap: 10 line items (see "Parts").
 
@@ -359,7 +485,9 @@ What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are t
 | `gen/polish.py` | Finish of the routed board (rev 2.1, extended for rev 3): jogs, 90 deg corners, GND pours + planes, stitching and return vias, narrow strips, silkscreen (references, callouts, legend, plate names), DRC, report |
 | `gen/fetch_3d.py`, `gen/models3d.json` | Missing 3D models via easyeda2kicad, matched onto our footprints (offsets / rotations in the JSON, applied by `gen_pcb.py` or `fetch_3d.py apply`) |
 | `gen/renders.py` | The `../renders/carrier-*.png` renders and 2D plots |
-| `gen/pcb_audit.py` | Finish audit (copy of the pcb-layout-pro skill's script): copper voids, jogs, silkscreen problems DRC does not flag |
+| `gen/pcb_audit.py` | Finish audit (the pcb-layout-pro skill's script, with the routing checks of 2026-11-25: pieces under 0.1 mm merged before jogs are counted; tight corners, hairpins, cap-only joins, stray, duplicate and overlapping segments, pad-corner entries): copper voids, jogs, corners, silkscreen problems DRC does not flag |
+| `gen/std_fixes.py` | Rev 3.1 standards pass, run after `polish.py all` (section "Standards pass (2026-11-25)"): stage 1 (tool steps, once, on the rev 3 board) and round 2 (explicit edits; a second run changes nothing) |
+| `gen/std_audit.py` | Standards measurements, read-only: IPC-2221B / IPC-2152 current, spacing, edge, USB pair, return vias, edge stitching, mask webs, rings, vias in pads, LCSC fields, silk strokes, off-angle segments, acute junctions, tracks between pads, pad entries, slivers (`out/std_audit.json`) |
 | `gen/gen_jlcpcb.py` | JLCPCB Gerbers, drill, zip, BOM and CPL into `out/jlcpcb/` |
 | `gen/check_netlist.py` | Rev 2 checks (see Status) |
 | `gen/sexp.py`, `gen/symlib.py` | S-expression reader/writer; symbol flattening (`extends`) |
@@ -367,8 +495,8 @@ What to look at in KiCad: the 7 bottom-side references and the 3 callouts (are t
 | `out/bom.csv` | BOM grouped by value, footprint and LCSC number, with MPN, manufacturer and Basic/Extended |
 | `out/defuse32-carrier.net` | Schematic netlist, input of `check_netlist.py` |
 | `out/defuse32-carrier.ses` | The Freerouting session the board was built from |
-| `out/erc.rpt`, `out/drc.rpt`, `out/audit.json` | Latest check reports (DRC, ERC, finish audit) |
-| `out/jlcpcb/` | JLCPCB fabrication and assembly files (rev 3, 4 layers) |
+| `out/erc.rpt`, `out/drc.rpt`, `out/audit.json`, `out/std_audit.json` | Latest check reports (DRC, ERC, finish audit, standards measurements) |
+| `out/jlcpcb/` | JLCPCB fabrication and assembly files (rev 3.1, 4 layers) |
 | `../renders/carrier-top.png`, `carrier-iso.png`, `carrier-bottom.png` | 3D renders (kicad-cli) |
 | `../renders/carrier-f-cu.png`, `carrier-in1-cu.png`, `carrier-in2-cu.png`, `carrier-b-cu.png`, `carrier-silk.png` | 2D plots, 300 dpi: F.Cu + F.Silkscreen, In1.Cu, In2.Cu, B.Cu, F.Silkscreen + F.Mask + F.Fab (each with Edge.Cuts) |
 
@@ -393,14 +521,16 @@ java -jar ~/tools/freerouting-2.4.1/freerouting-2.4.1.jar -de /tmp/d32/r3.dsn -d
 /usr/bin/python3 gen/route_prep.py maze     # A* for the connections Freerouting left open
 /usr/bin/python3 gen/route_prep.py finish   # zones, provisional references, report
 /usr/bin/python3 gen/polish.py all          # finish: jogs, corners, pours + planes, stitching, silkscreen, DRC (~45 min)
+/usr/bin/python3 gen/std_fixes.py           # rev 3.1 standards pass + schematic rev 2.1 parts (after polish.py all; ~17 min, mostly the jog tools; a second run changes nothing)
 # (D32_BOARD=/path/copy.kicad_pcb runs any of it on a copy with its own .kicad_pro/.kicad_dru)
 
 # checks
 kicad-cli sch export netlist -o out/defuse32-carrier.net defuse32-carrier.kicad_sch
 kicad-cli sch erc --severity-all -o out/erc.rpt defuse32-carrier.kicad_sch
-kicad-cli pcb drc --severity-all --schematic-parity --refill-zones -o out/drc.rpt defuse32-carrier.kicad_pcb
+kicad-cli pcb drc --severity-all --schematic-parity --refill-zones --all-track-errors -o out/drc.rpt defuse32-carrier.kicad_pcb
 /usr/bin/python3 gen/check_netlist.py out/defuse32-carrier.net defuse32-carrier.kicad_pcb
 /usr/bin/python3 gen/pcb_audit.py defuse32-carrier.kicad_pcb --json out/audit.json   # exit 1 while violations remain
+/usr/bin/python3 gen/std_audit.py defuse32-carrier.kicad_pcb --json out/std_audit.json   # standards measurements (read-only)
 
 # exports
 kicad-cli sch export pdf -o out/defuse32-carrier.pdf defuse32-carrier.kicad_sch

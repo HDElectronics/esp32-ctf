@@ -27,7 +27,15 @@ Checks what KiCad's DRC does not (or not by default):
   routing  jogs: a track that steps sideways by < 1.5 mm with two bends and carries on in the same
            direction (ugly, and every bend is a small discontinuity on a fast line: keep it
            straight); a straight run split into collinear pieces counts as one segment, so a split
-           does not hide a jog; turns sharper than 90 deg (acid traps); 90 deg corners (warning)
+           does not hide a jog, and every connected group of pieces shorter than 0.1 mm (a router
+           ring, a hook, an arc of 0.05 mm steps) is merged into one point first, so a step or a
+           corner made of such pieces is counted too; turns sharper than 90 deg (acid traps) and
+           90 deg corners; tight corners (a turn of 90 deg or more made within 0.45 mm of track:
+           a chamfer too short to see) and hairpins (135 deg or more); track ends that reach a pad
+           or another track only with their round cap, or lie in a track off its centre line; ends
+           that touch nothing; stray segments inside one pad or via (orphans), zero-length,
+           duplicate and overlapping segments; as a warning, a track that enters an SMD pad through
+           its corner (part of its width misses the pad)
 
 --fill refills the zones first (in memory; the file is never written).
 Exit code 1 when there are violations (warnings and info do not count).
@@ -461,97 +469,373 @@ def silk_checks(board):
 # ------------------------------------------------------------------------------------ routing
 JOG_MAX_OFFSET = 1.5        # mm: a sideways shift smaller than this that comes back to the same heading is a jog
 JOG_MAX_RUN = 3.0           # mm: ... when the slanted middle part is shorter than this
+TINY = 0.1                  # mm: pieces shorter than this are merged into the corner or step they stand for
+CORNER_SPAN = 0.45          # mm: a turn of 90 deg or more made within this length of track is a tight corner
 
 
-def _chains(board):
-    """Polylines of tracks per (net, layer, width): segments joined end to end at points that are not
-    pads, vias or branch points. Returns lists of points (mm)."""
-    key = lambda p: (round(TOMM(p.x), 3), round(TOMM(p.y), 3))
-    stops = set()
-    for v in board.GetTracks():
-        if v.GetClass() == "PCB_VIA":
-            stops.add(key(v.GetPosition()))
-    pads = [p for fp in board.GetFootprints() for p in fp.Pads()]
-    vias = [v for v in board.GetTracks() if v.GetClass() == "PCB_VIA"]
+def _key(p):
+    return (round(TOMM(p.x), 3), round(TOMM(p.y), 3))
+
+
+def _net_groups(board):
     groups = {}
     for t in board.GetTracks():
         if t.GetClass() == "PCB_TRACK" and t.GetLength() > 0:
             groups.setdefault((t.GetNetname(), t.GetLayer()), []).append(t)
+    return groups
+
+
+def _chains(board):
+    """Runs of track per (net, layer): segments joined end to end at points that are not pads, vias or
+    branch points. Pieces shorter than TINY are merged first: every connected group of them (a router
+    ring, a hook, an arc of 0.05 mm steps, a single sliver) counts as one point, so the run carries on
+    through it and the corner or sideways step it stands for is seen. Returns (net, layer name, segs,
+    gaps): segs = [(a, b)] the end points (mm) of the pieces >= TINY in walking order, each as drawn;
+    gaps[i] = (length, count) of the merged pieces between segs[i - 1] and segs[i] (gaps[0] = (0, 0))."""
+    pads = [p for fp in board.GetFootprints() for p in fp.Pads()]
+    vias = [v for v in board.GetTracks() if v.GetClass() == "PCB_VIA"]
     out = []
-    for (net, layer), segs in groups.items():
-        adj = {}
-        for t in segs:
-            a, b = key(t.GetStart()), key(t.GetEnd())
-            adj.setdefault(a, []).append((b, t))
-            adj.setdefault(b, []).append((a, t))
-        def is_stop(pt):
-            if pt in stops or len(adj[pt]) != 2:
-                return True
-            v = pcbnew.VECTOR2I(MM(pt[0]), MM(pt[1]))
-            # a track end inside a pad or a via of the net (not only at a via's centre) ends the
-            # run there: a bend hidden in the via's copper is no corner
-            return any(p.IsOnLayer(layer) and p.HitTest(v) for p in pads if p.GetNetname() == net) or \
-                any(x.HitTest(v, 0) for x in vias if x.GetNetname() == net)
+    for (net, layer), tracks in _net_groups(board).items():
+        npads = [p for p in pads if p.GetNetname() == net and p.IsOnLayer(layer)]
+        nvias = [v for v in vias if v.GetNetname() == net]
+        parent = {}
+
+        def find(k):
+            parent.setdefault(k, k)
+            while parent[k] != k:
+                parent[k] = parent[parent[k]]
+                k = parent[k]
+            return k
+        edges = []
+        for t in tracks:
+            a, b = _key(t.GetStart()), _key(t.GetEnd())
+            if a == b:
+                continue
+            L = math.hypot(b[0] - a[0], b[1] - a[1])
+            find(a), find(b)
+            edges.append((a, b, L))
+        for a, b, L in edges:
+            if L < TINY:
+                parent[find(a)] = find(b)
+        members, tiny, ext = {}, {}, {}
+        for k in list(parent):
+            members.setdefault(find(k), []).append(k)
+        for i, (a, b, L) in enumerate(edges):
+            if L < TINY:
+                d = tiny.setdefault(find(a), [0.0, 0])
+                d[0] += L
+                d[1] += 1
+            else:
+                ext.setdefault(find(a), []).append((i, a))
+                ext.setdefault(find(b), []).append((i, b))
+        stop = {}
+
+        def is_stop(c):
+            if c not in stop:
+                r = len(ext.get(c, ())) != 2
+                if not r:
+                    for k in members[c]:
+                        v = pcbnew.VECTOR2I(MM(k[0]), MM(k[1]))
+                        # a track end inside a pad or a via of the net ends the run there: a bend hidden
+                        # in that copper is no corner
+                        if any(p.HitTest(v) for p in npads) or any(x.HitTest(v, 0) for x in nvias):
+                            r = True
+                            break
+                stop[c] = r
+            return stop[c]
         seen = set()
-        for start in adj:
+        for start in list(ext):
             if not is_stop(start):
                 continue
-            for nxt, t in adj[start]:
-                if id(t) in seen:
+            for i, k in ext[start]:
+                if i in seen:
                     continue
-                pts, cur, seg = [start], nxt, t
-                seen.add(id(t))
-                pts.append(cur)
-                while not is_stop(cur):
-                    cand = [(n2, t2) for n2, t2 in adj[cur] if id(t2) not in seen]
-                    if not cand:
+                segs, gaps = [], [(0.0, 0)]
+                cur = start
+                while True:
+                    seen.add(i)
+                    a, b, L = edges[i]
+                    if a != k:
+                        a, b = b, a
+                    segs.append((a, b))
+                    cur = find(b)
+                    if is_stop(cur):
                         break
-                    cur, seg = cand[0]
-                    seen.add(id(seg))
-                    pts.append(cur)
-                out.append((net, board.GetLayerName(layer), pts))
+                    nxt = [(i2, k2) for i2, k2 in ext[cur] if i2 not in seen]
+                    if not nxt:
+                        break
+                    i, k = nxt[0]
+                    gaps.append(tuple(tiny.get(cur, (0.0, 0))))
+                out.append((net, board.GetLayerName(layer), segs, gaps))
     return out
+
+
+def _unit(a, b):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    L = math.hypot(dx, dy)
+    return (dx / L, dy / L, L) if L else (0.0, 0.0, 0.0)
 
 
 def routing_checks(board):
     viol, warn = [], []
-    for net, layer, pts in _chains(board):
-        # a straight run split into collinear pieces counts as one segment (else a split slanted
-        # part would hide the jog)
-        q = [pts[0]]
-        for k in range(1, len(pts)):
-            if len(q) >= 2 and k < len(pts):
-                ax, ay = q[-1][0] - q[-2][0], q[-1][1] - q[-2][1]
-                bx, by = pts[k][0] - q[-1][0], pts[k][1] - q[-1][1]
-                la, lb = math.hypot(ax, ay), math.hypot(bx, by)
-                if la and lb and (ax * bx + ay * by) / (la * lb) > 0.99999:
-                    q[-1] = pts[k]
-                    continue
-            if pts[k] != q[-1]:
-                q.append(pts[k])
-        pts = q
-        segs = [(pts[i], pts[i + 1]) for i in range(len(pts) - 1)]
-        dirs = []
-        for a, b in segs:
-            dx, dy = b[0] - a[0], b[1] - a[1]
-            L = math.hypot(dx, dy)
-            dirs.append((dx / L, dy / L, L) if L else (0, 0, 0))
+    for net, layer, segs, gaps in _chains(board):
+        name = "%s on %s" % (net, layer)
+        # a straight run split into collinear pieces counts as one segment (else a split slanted part
+        # would hide the jog); merged pieces lying on a straight run are a loop on that run
+        q, g = [segs[0]], [gaps[0]]
+        for k in range(1, len(segs)):
+            ua, ub = _unit(*q[-1]), _unit(*segs[k])
+            off = abs((segs[k][0][0] - q[-1][1][0]) * -ua[1] + (segs[k][0][1] - q[-1][1][1]) * ua[0])
+            if ua[2] and ub[2] and ua[0] * ub[0] + ua[1] * ub[1] > 0.99999 and off <= 0.005:
+                if gaps[k][1] >= 2:
+                    viol.append(("loop", name, "%d pieces shorter than %.1f mm fold back on a straight run at (%.2f, %.2f): delete them"
+                                 % (gaps[k][1], TINY, q[-1][1][0], q[-1][1][1])))
+                q[-1] = (q[-1][0], segs[k][1])
+                continue
+            q.append(segs[k])
+            g.append(gaps[k])
+        segs, gaps = q, g
+        dirs = [_unit(a, b) for a, b in segs]
+
+        def step(i, j):
+            """Sideways offset between the lines of segs[i] and segs[j] (same heading)."""
+            ax, ay = dirs[i][0], dirs[i][1]
+            return abs((segs[j][0][0] - segs[i][1][0]) * -ay + (segs[j][0][1] - segs[i][1][1]) * ax)
+        for i in range(len(segs) - 1):
+            # a step made only of merged pieces: A and C run on with the same heading, shifted sideways
+            (ax, ay, la), (cx, cy, lc) = dirs[i], dirs[i + 1]
+            if gaps[i + 1][1] and ax * cx + ay * cy > 0.999:
+                off = step(i, i + 1)
+                if 0.005 < off < JOG_MAX_OFFSET:
+                    m = segs[i][1]
+                    viol.append(("jog", name, "sideways %.2f mm double bend at (%.2f, %.2f), made of %d pieces shorter than %.1f mm: "
+                                 "keep the track straight" % (off, m[0], m[1], gaps[i + 1][1], TINY)))
         for i in range(len(segs) - 2):
             (ax, ay, la), (bx, by, lb), (cx, cy, lc) = dirs[i], dirs[i + 1], dirs[i + 2]
-            if ax * cx + ay * cy > 0.999 and abs(ax * bx + ay * by) < 0.999 and lb < JOG_MAX_RUN:
+            mid = lb + gaps[i + 1][0] + gaps[i + 2][0]
+            if ax * cx + ay * cy > 0.999 and abs(ax * bx + ay * by) < 0.999 and mid < JOG_MAX_RUN:
                 # A and C same heading, B slanted: sideways offset between the lines of A and C
-                off = abs((segs[i + 2][0][0] - segs[i][1][0]) * -ay + (segs[i + 2][0][1] - segs[i][1][1]) * ax)
+                off = step(i, i + 2)
                 if 0.005 < off < JOG_MAX_OFFSET:
                     m = segs[i + 1][0]
-                    viol.append(("jog", "%s on %s" % (net, layer),
-                                 "sideways %.2f mm double bend at (%.2f, %.2f): keep the track straight" % (off, m[0], m[1])))
+                    hidden = gaps[i + 1][1] + gaps[i + 2][1]
+                    viol.append(("jog", name, "sideways %.2f mm double bend at (%.2f, %.2f)%s: keep the track straight"
+                                 % (off, m[0], m[1], " (behind %d pieces shorter than %.1f mm)" % (hidden, TINY) if hidden else "")))
+        # corners: direct joins as before; then every turn of 90 deg or more made within CORNER_SPAN of
+        # track (a chamfer too short to see, an arc of merged pieces, a hairpin)
+        tight = []
         for i in range(len(segs) - 1):
             (ax, ay, la), (bx, by, lb) = dirs[i], dirs[i + 1]
             dot = ax * bx + ay * by
-            if dot < -1e-3:
-                viol.append(("acute", "%s on %s" % (net, layer), "turn sharper than 90 deg at (%.2f, %.2f)" % segs[i][1]))
-            elif abs(dot) < 1e-3 and min(la, lb) > 0.05:
-                viol.append(("right-angle", "%s on %s" % (net, layer), "90 deg corner at (%.2f, %.2f): use two 45 deg bends" % segs[i][1]))
+            if gaps[i + 1][1] == 0:
+                if dot < -1e-3:
+                    viol.append(("acute", name, "turn sharper than 90 deg at (%.2f, %.2f)" % segs[i][1]))
+                    continue
+                if abs(dot) < 1e-3 and min(la, lb) > 0.05:
+                    viol.append(("right-angle", name, "90 deg corner at (%.2f, %.2f): use two 45 deg bends" % segs[i][1]))
+                    continue
+            span = 0.0
+            best = None
+            for j in range(i + 1, len(segs)):
+                span += gaps[j][0]
+                if span >= CORNER_SPAN:
+                    break
+                if j > i + 1 or gaps[j][1]:
+                    d = max(-1.0, min(1.0, ax * dirs[j][0] + ay * dirs[j][1]))
+                    turn = math.degrees(math.acos(d))
+                    if turn > 89.0 and (best is None or turn > best[0] + 1.0):
+                        best = (turn, span, j)
+                span += dirs[j][2]
+            if best:
+                tight.append((best[0], best[1], i, best[2]))
+        used = set()
+        for turn, span, i, j in sorted(tight, key=lambda r: (-r[0], r[1])):
+            if any(k in used for k in range(i, j)):
+                continue                            # one report per corner
+            used.update(range(i, j))
+            m = segs[i][1]
+            if turn > 134.0:
+                viol.append(("hairpin", name, "the track turns back by %.0f deg within %.2f mm at (%.2f, %.2f)" % (turn, span, m[0], m[1])))
+            else:
+                viol.append(("tight-corner", name, "%.0f deg turn within %.2f mm at (%.2f, %.2f) (looks square): use two 45 deg bends "
+                             "at least %.2f mm apart" % (turn, span, m[0], m[1], CORNER_SPAN)))
+    v2, w2 = joint_checks(board)
+    return viol + v2, warn + w2
+
+
+def _pad_poly(pad, layer):
+    s = pcbnew.SHAPE_POLY_SET()
+    pad.TransformShapeToPolygon(s, layer, 0, ERR, pcbnew.ERROR_INSIDE)
+    return s
+
+
+def joint_checks(board):
+    """Track ends and stray segments: an end that reaches a pad only with its round cap (the end point lies
+    outside the pad: a neck narrower than the track), an end that touches nothing, a segment that lies in
+    one pad and joins nothing (orphan), zero-length, duplicate and overlapping segments; as a warning, an
+    end that enters a pad through its corner (part of the track's width misses the pad)."""
+    viol, warn = [], []
+    pads = [p for fp in board.GetFootprints() for p in fp.Pads()]
+    vias = [v for v in board.GetTracks() if v.GetClass() == "PCB_VIA"]
+    for t in board.GetTracks():
+        if t.GetClass() == "PCB_TRACK" and t.GetLength() == 0:
+            viol.append(("zero-length", "%s on %s" % (t.GetNetname(), board.GetLayerName(t.GetLayer())),
+                         "zero-length segment at (%.2f, %.2f): delete it" % _key(t.GetStart())))
+    polys = {}
+    for (net, layer), tracks in _net_groups(board).items():
+        name = "%s on %s" % (net, board.GetLayerName(layer))
+        npads = [p for p in pads if p.GetNetname() == net and p.IsOnLayer(layer)]
+        nvias = [v for v in vias if v.GetNetname() == net]
+        ends = {}
+        segs = []
+        for t in tracks:
+            a, b = _key(t.GetStart()), _key(t.GetEnd())
+            segs.append((a, b, t))
+            ends.setdefault(a, []).append(t)
+            ends.setdefault(b, []).append(t)
+        # duplicates and overlaps
+        seen = {}
+        for a, b, t in segs:
+            k = (min(a, b), max(a, b))
+            if k in seen:
+                viol.append(("duplicate", name, "two segments from (%.2f, %.2f) to (%.2f, %.2f): delete one" % (a + b)))
+            seen[k] = t
+        uniq = [(k[0], k[1]) for k in seen]
+        for i in range(len(uniq)):
+            a1, b1 = uniq[i]
+            ux, uy, L1 = _unit(a1, b1)
+            for j in range(i + 1, len(uniq)):
+                a2, b2 = uniq[j]
+                if max(a2[0], b2[0]) < min(a1[0], b1[0]) - 0.01 or min(a2[0], b2[0]) > max(a1[0], b1[0]) + 0.01 or \
+                        max(a2[1], b2[1]) < min(a1[1], b1[1]) - 0.01 or min(a2[1], b2[1]) > max(a1[1], b1[1]) + 0.01:
+                    continue
+                vx, vy, L2 = _unit(a2, b2)
+                if abs(ux * vy - uy * vx) > 1e-3:
+                    continue
+                if abs((a2[0] - a1[0]) * uy - (a2[1] - a1[1]) * ux) > 0.003:
+                    continue
+                s = sorted([(a2[0] - a1[0]) * ux + (a2[1] - a1[1]) * uy, (b2[0] - a1[0]) * ux + (b2[1] - a1[1]) * uy])
+                ov = min(L1, s[1]) - max(0.0, s[0])
+                if ov > 0.01:
+                    viol.append(("overlap", name, "segments (%.2f, %.2f)-(%.2f, %.2f) and (%.2f, %.2f)-(%.2f, %.2f) lie on each other for "
+                                 "%.2f mm: keep one" % (a1 + b1 + a2 + b2 + (ov,))))
+
+        def host(k):
+            """The pad or via of the net that holds point k (None: the point lies in no pad or via)."""
+            v = pcbnew.VECTOR2I(MM(k[0]), MM(k[1]))
+            for p in npads:
+                if p.HitTest(v):
+                    return p
+                bb = p.GetBoundingBox()
+                if bb.GetLeft() - MM(0.02) <= v.x <= bb.GetRight() + MM(0.02) and bb.GetTop() - MM(0.02) <= v.y <= bb.GetBottom() + MM(0.02):
+                    sp = polys.setdefault((p.m_Uuid.AsString(), layer), _pad_poly(p, layer))
+                    if sp.SquaredDistance(v) <= MM(0.01) ** 2:
+                        return p                    # on the pad's outline
+            for x in nvias:
+                if x.HitTest(v, 0):
+                    return x
+            return None
+
+        # a stray piece: both ends alone, in one pad or via (it is no support for another track's end)
+        stray = set()
+        for a, b, t in segs:
+            if len(ends[a]) == 1 and len(ends[b]) == 1:
+                ha, hb = host(a), host(b)
+                if ha is not None and hb is not None and ha.m_Uuid.AsString() == hb.m_Uuid.AsString():
+                    stray.add(id(t))
+
+        def to_track(k, t):
+            """Distance (mm) from point k to the centre line of the nearest other segment of the net that is
+            no stray piece and does not end at k, with that segment's width; None if there is none."""
+            v = pcbnew.VECTOR2I(MM(k[0]), MM(k[1]))
+            best = None
+            for a, b, t2 in segs:
+                if t2 is t or k in (a, b) or id(t2) in stray:
+                    continue
+                d = TOMM(int(pcbnew.SEG(t2.GetStart(), t2.GetEnd()).Distance(v)))
+                if best is None or d < best[0]:
+                    best = (d, TOMM(t2.GetWidth()))
+            return best
+        for a, b, t in segs:
+            w = TOMM(t.GetWidth())
+            near = [to_track(k, t) if len(ends[k]) == 1 else None for k in (a, b)]
+            # an end is alone when no other segment ends there and it does not sit on another one's centre line
+            lone = [len(ends[k]) == 1 and (near[n] is None or near[n][0] > 0.01) for n, k in enumerate((a, b))]
+            hosts = [host(k) if lone[n] else None for n, k in enumerate((a, b))]
+            if id(t) in stray and lone[0] and lone[1]:
+                viol.append(("orphan", name, "segment (%.2f, %.2f)-(%.2f, %.2f) lies inside one %s and joins nothing: delete it"
+                             % (a + b + ("via" if hosts[0].GetClass() == "PCB_VIA" else "pad",))))
+                continue
+            for n, (k, o) in enumerate(((a, b), (b, a))):
+                if not lone[n]:
+                    continue
+                v = pcbnew.VECTOR2I(MM(k[0]), MM(k[1]))
+                h = hosts[n]
+                if h is None:
+                    # no pad or via holds the end: does it lie in another track's copper off its centre
+                    # line, or does only its round cap reach a track or a pad?
+                    best = None
+                    for p in npads:
+                        bb = p.GetBoundingBox()
+                        if bb.GetLeft() - t.GetWidth() > v.x or bb.GetRight() + t.GetWidth() < v.x or \
+                                bb.GetTop() - t.GetWidth() > v.y or bb.GetBottom() + t.GetWidth() < v.y:
+                            continue
+                        sp = polys.setdefault((p.m_Uuid.AsString(), layer), _pad_poly(p, layer))
+                        d = TOMM(int(math.sqrt(sp.SquaredDistance(v))))
+                        if best is None or d < best[0]:
+                            best = (d, p)
+                    if near[n] is not None and near[n][0] <= near[n][1] / 2 + 0.001:
+                        viol.append(("cap-only", name, "track end at (%.2f, %.2f) lies in another segment of the net, %.2f mm off its "
+                                     "centre line: end it on that line" % (k[0], k[1], near[n][0])))
+                    elif best is not None and best[0] < w / 2:
+                        p = best[1]
+                        viol.append(("cap-only", name, "track end at (%.2f, %.2f) stops %.2f mm outside pad %s.%s and joins it only "
+                                     "by its round cap: end the track inside the pad"
+                                     % (k[0], k[1], best[0], p.GetParentFootprint().GetReference(), p.GetNumber())))
+                    elif near[n] is not None and near[n][0] < near[n][1] / 2 + w / 2:
+                        viol.append(("cap-only", name, "track end at (%.2f, %.2f) stops %.2f mm from the centre line of another segment "
+                                     "of the net and joins it only by its round cap: end it on that line" % (k[0], k[1], near[n][0])))
+                    else:
+                        viol.append(("dangling", name, "track end at (%.2f, %.2f) touches nothing" % k))
+                    continue
+                if h.GetClass() != "PAD":
+                    continue
+                if h.HasHole():
+                    # a round through-hole pad: the end must lie well inside it, not on its rim
+                    sz = h.GetSize(layer)
+                    c = h.GetPosition()
+                    if sz.x == sz.y:
+                        depth = TOMM(sz.x) / 2 - math.hypot(TOMM(v.x - c.x), TOMM(v.y - c.y))
+                        if depth < w / 2 - 0.01:
+                            warn.append(("pad-corner", name, "track end at (%.2f, %.2f) meets through-hole pad %s.%s at its rim (%.2f mm inside): "
+                                         "run it to the pad's centre" % (k[0], k[1], h.GetParentFootprint().GetReference(), h.GetNumber(), max(depth, 0.0))))
+                    continue
+                # corner entry: where the centre line crosses the pad outline, both edges of the track
+                # (or of the pad's width, if the track is wider) must run into the pad
+                s = polys.setdefault((h.m_Uuid.AsString(), layer), _pad_poly(h, layer))
+                ov = pcbnew.VECTOR2I(MM(o[0]), MM(o[1]))
+                if s.Contains(ov):
+                    continue                        # the whole segment is inside the pad
+                lo, hi = 0.0, 1.0                   # k (inside) -> o (outside)
+                for _ in range(24):
+                    m = (lo + hi) / 2
+                    q = pcbnew.VECTOR2I(MM(k[0] + (o[0] - k[0]) * m), MM(k[1] + (o[1] - k[1]) * m))
+                    lo, hi = (m, hi) if s.Contains(q) else (lo, m)
+                ux, uy, L = _unit(o, k)             # heading into the pad
+                depth = lo * L
+                sz = h.GetSize(layer)
+                half = min(w, TOMM(min(sz.x, sz.y))) / 2 - 0.01
+                tin = min(half + 0.06, depth)
+                X = (k[0] - ux * depth, k[1] - uy * depth)
+                miss = 0.0
+                for sgn in (1, -1):
+                    q = pcbnew.VECTOR2I(MM(X[0] + ux * tin - sgn * uy * half), MM(X[1] + uy * tin + sgn * ux * half))
+                    if not s.Contains(q):
+                        miss = max(miss, TOMM(int(math.sqrt(s.SquaredDistance(q)))))
+                if miss > max(0.05, 0.25 * w):
+                    warn.append(("pad-corner", name, "track end at (%.2f, %.2f) enters pad %s.%s through its corner or along its edge "
+                                 "(%.2f mm of the track's width misses the pad): enter through a side, on the pad's axis"
+                                 % (k[0], k[1], h.GetParentFootprint().GetReference(), h.GetNumber(), miss)))
     return viol, warn
 
 
@@ -620,7 +904,7 @@ def main():
         for k, *_ in rows:
             kinds[k] = kinds.get(k, 0) + 1
         print("%s: %d %s" % (title, len(rows), kinds))
-        for k, n, msg in rows[:60]:
+        for k, n, msg in (rows if title.startswith("ROUTING") else rows[:60]):
             print("  [%s] %s: %s" % (k, n, msg))
     if out_json:
         json.dump({"voids": voids, "routing_violations": rviol, "routing_warnings": rwarn,

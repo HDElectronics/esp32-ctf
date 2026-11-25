@@ -219,6 +219,20 @@ def check_schematic(got, names, comps):
     expect(got, "R8", "1", "SD_CS", "GPIO2 pull-down")
     expect(got, "R8", "2", "GND", "GPIO2 pull-down")
 
+    # 8. schematic rev 2.1 (2026-11-25, owner-approved): buzzer driver, WS_DATA pull-down, SD CMD pull-up
+    for pin, net in (("1", "BUZZ_B"), ("2", "GND"), ("3", "BUZZ-")):
+        expect(got, "Q1", pin, net, "buzzer driver (SS8050 SOT-23: 1 B, 2 E, 3 C)")
+    expect(got, "R7", "1", "BUZZ", "buzzer base resistor")
+    expect(got, "R7", "2", "BUZZ_B", "buzzer base resistor")
+    expect(got, "R21", "1", "WS_DATA", "WS_DATA pull-down")
+    expect(got, "R21", "2", "GND", "WS_DATA pull-down")
+    expect(got, "R22", "1", "3V3P", "SD CMD pull-up")
+    expect(got, "R22", "2", "MOSI", "SD CMD pull-up")
+    for ref, val, lcsc in (("Q1", "SS8050", "C2150"), ("R7", "330", "C23138"), ("R21", "10k", "C25804"), ("R22", "10k", "C25804")):
+        p = [x for x in D.PARTS if x["ref"] == ref][0]
+        if p["value"] != val or p["lcsc"][0] != lcsc:
+            bad("%s: %s / %s, expected %s / %s (rev 2.1)" % (ref, p["value"], p["lcsc"][0], val, lcsc))
+
     for gone in ("DK_5V", "MPU_INT", "SPARE2", "SPARE3"):
         if gone in names:
             bad("old net %s still exists" % gone)
@@ -231,7 +245,14 @@ def check_schematic(got, names, comps):
 def check_board(path, got, named):
     import pcbnew  # noqa: E402  (only with /usr/bin/python3)
     b = pcbnew.LoadBoard(path)
-    fps = {f.GetReference(): f for f in b.GetFootprints()}
+    # board-only footprints (rev 3.1: fiducials FID1-FID3) have no schematic symbol and no net
+    board_only = sorted(f.GetReference() for f in b.GetFootprints() if f.IsBoardOnly())
+    for f in b.GetFootprints():
+        if f.IsBoardOnly() and any(p.GetNetname() for p in f.Pads()):
+            bad("board-only footprint %s has a pad on a net" % f.GetReference())
+    if board_only:
+        print("board-only footprints (not in the schematic): %s" % " ".join(board_only))
+    fps = {f.GetReference(): f for f in b.GetFootprints() if not f.IsBoardOnly()}
     refs = sorted(p["ref"] for p in D.PARTS)
     if sorted(fps) != refs:
         bad("PCB footprint set differs: %s" % (set(fps) ^ set(refs)))
