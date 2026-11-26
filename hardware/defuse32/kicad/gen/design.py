@@ -410,7 +410,8 @@ PCB = {
     "J1": (23.24, 4.9, 270), "J2": (49.8, 4.9, 270), "J3": (81.8, 4.9, 270),
     "J4": (13.1, 65.1, 90), "J5": (49.1, 65.1, 90),
     "J6": (95.1, 38.0, 180),
-    "J_USB": (96.35, 49.5, 90),           # receptacle front face on the right edge (x = 100)
+    "J_USB": (96.35, 49.5, 90),           # receptacle front face on the right edge (x = 100) as placed and
+                                          # routed; gen/std_fixes.py (usbc_out) then moves it USBC_OUT outward
     "J_SD": (80.0, 61.2, 0),              # card slot on the bottom edge
     "J_KEY": (3.8, 13.3, 0), "J_SERVO": (3.8, 51.5, 0), "J_SPARE": (31.3, 50.3, 90),
     # module: decoupling at pin 2 (3V3), BOOT/EN buttons, EN RC, IO0 pull-up
@@ -448,6 +449,10 @@ PCB = {
     "R21": (44.3, 35.9, 270),             # WS_DATA pull-down, below the GPIO25 -> U4 pin 2 track, left of U4
     "R22": (71.3, 64.5, 270),             # SD CMD (MOSI) pull-up, left of J11 on the MOSI / 3V3P tracks
 }
+# J7 stands USBC_OUT past the right edge (2026-11-26): flush with the edge, the body of a seated plug ends only
+# about 0.45 mm outside the board and reaches below its top surface, so a thick plug body can foul the edge before
+# the plug is home. 0.6 mm is what fits: SD_CS and MISO run between J7's front shell legs and the edge.
+USBC_OUT = 0.6
 for p in PARTS:
     p["pcb"] = PCB[p["spec"]]
 _extra = set(PCB) - {p["spec"] for p in PARTS}

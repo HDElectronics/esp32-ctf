@@ -2541,7 +2541,7 @@
   [
    "tight-corner",
    "USB_DP on F.Cu",
-   "90 deg turn within 0.40 mm at (143.55, 99.05) (looks square): use two 45 deg bends at least 0.45 mm apart"
+   "90 deg turn within 0.40 mm at (144.15, 99.05) (looks square): use two 45 deg bends at least 0.45 mm apart"
   ],
   [
    "tight-corner",

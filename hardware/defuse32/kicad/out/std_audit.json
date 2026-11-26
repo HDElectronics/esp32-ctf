@@ -14,7 +14,7 @@
    "layer": "F.Cu",
    "widths": {
     "0.4": 1.16,
-    "0.6": 13.3
+    "0.6": 14.5
    },
    "rise_ext": 30.1,
    "rise_int": 145.7,
@@ -35,7 +35,7 @@
    "widths": {
     "0.6": 348.77,
     "0.8": 2.99,
-    "1.0": 56.92,
+    "1.0": 57.42,
     "1.2": 75.42
    },
    "rise_ext": 15.5,
@@ -227,6 +227,8 @@
    "I": 0.3,
    "basis": "M6: 5 WS2812 (Simon 4 + status)",
    "tracks_at_pad": [
+    1.0,
+    1.0,
     1.0,
     1.2
    ],
@@ -559,56 +561,56 @@
   }
  ],
  "edge_clearance": {
-  "item": 0.475,
-  "what": "via  GND",
+  "item": 0.32,
+  "what": "track  MISO",
   "at": [
-   99.075,
-   14.475
+   91.839,
+   54.751
   ],
   "zone_fill": 0.3,
   "zone_layer": "F.Cu"
  },
  "usb": {
   "USB_DP": {
-   "length": 15.405,
+   "length": 16.005,
    "vias": 2,
    "width": [
     0.2
    ]
   },
   "USB_DM": {
-   "length": 14.765,
+   "length": 15.965,
    "vias": 0,
    "width": [
     0.2
    ]
   },
   "coupled_mm_gap_le_0.25": 0.0,
-  "edge_gap_median": 1.267,
+  "edge_gap_median": 1.158,
   "esd_distance": [
    {
     "j7": "A6",
     "u9": "6",
     "net": "USB_DP",
-    "straight": 3.57
+    "straight": 4.15
    },
    {
     "j7": "A7",
     "u9": "4",
     "net": "USB_DM",
-    "straight": 3.57
+    "straight": 4.15
    },
    {
     "j7": "B6",
     "u9": "6",
     "net": "USB_DP",
-    "straight": 3.37
+    "straight": 3.97
    },
    {
     "j7": "B7",
     "u9": "4",
     "net": "USB_DM",
-    "straight": 3.37
+    "straight": 3.97
    }
   ]
  },
@@ -1090,6 +1092,20 @@
    "power": false
   },
   {
+   "net": "VBUS",
+   "at": [
+    91.0,
+    52.25
+   ],
+   "layers": [
+    "B.Cu",
+    "F.Cu"
+   ],
+   "gnd_via": 3.59,
+   "fast": false,
+   "power": true
+  },
+  {
    "net": "SCL",
    "at": [
     14.174,
@@ -1200,20 +1216,6 @@
    "gnd_via": 3.21,
    "fast": false,
    "power": false
-  },
-  {
-   "net": "VBUS",
-   "at": [
-    91.0,
-    52.25
-   ],
-   "layers": [
-    "B.Cu",
-    "F.Cu"
-   ],
-   "gnd_via": 3.18,
-   "fast": false,
-   "power": true
   },
   {
    "net": "T3",
@@ -3306,7 +3308,7 @@
     ]
    ]
   ],
-  "over_3mm": 91
+  "over_3mm": 65
  },
  "mask_webs": [
   {
@@ -3416,10 +3418,10 @@
   ]
  ],
  "via_sizes": {
-  "0.45/0.20 (ring 0.125)": 350,
+  "0.45/0.20 (ring 0.125)": 355,
   "0.60/0.30 (ring 0.150)": 186
  },
- "via_count": 536,
+ "via_count": 541,
  "vias_per_net": {
   "3V3": 2,
   "3V3P": 6,
@@ -3431,7 +3433,7 @@
   "CS": 4,
   "EN": 4,
   "ENC_SW": 2,
-  "GND": 350,
+  "GND": 355,
   "IO0": 4,
   "IR": 4,
   "LDI": 2,
@@ -4218,7 +4220,7 @@
    "net": "GND",
    "layer": "F.Cu",
    "at": [
-    92.15,
+    92.75,
     52.75
    ],
    "off_deg": 45.0
@@ -4228,7 +4230,7 @@
    "net": "GND",
    "layer": "F.Cu",
    "at": [
-    92.15,
+    92.75,
     46.25
    ],
    "off_deg": 45.0
@@ -4238,7 +4240,7 @@
    "net": "GND",
    "layer": "F.Cu",
    "at": [
-    92.15,
+    92.75,
     46.25
    ],
    "off_deg": 45.0
@@ -4248,7 +4250,7 @@
    "net": "GND",
    "layer": "F.Cu",
    "at": [
-    92.15,
+    92.75,
     52.75
    ],
    "off_deg": 45.0

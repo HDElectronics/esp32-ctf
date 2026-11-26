@@ -2,7 +2,8 @@
 """Standards pass (kicad/README.md "Standards pass (2026-11-25)"): the fixes the standards audit
 (gen/std_audit.py, gen/pcb_audit.py, the AirQuality-style review) asked for, on the finished board.
 Board rev 3 -> rev 3.1, schematic rev 2 -> 2.1. Runs after `gen/polish.py all`; no existing footprint
-is moved, rotated or swapped; the only connection changes are the schematic rev 2.1 parts R21 / R22
+is moved, rotated or swapped, except the USB-C receptacle J7, which the owner asked to stand 0.6 mm past
+the edge (usbc_out, 2026-11-26); the only connection changes are the schematic rev 2.1 parts R21 / R22
 (DRC parity against the regenerated schematic). Run from hardware/defuse32/kicad/ with KiCad's Python:
 
   /usr/bin/python3 gen/std_fixes.py            # all steps, refill, save, KiCad DRC (~15 min)
@@ -53,7 +54,8 @@ Steps (in this order, see main()):
             chamfer of at least 0.45 mm where that fits and makes no jog (corners); the explicit edits R2
             (hand-designed runs: jogs removed with their neighbours and vias, hairpins, cap-only joins, the
             bare strips of N06, second GND vias); track ends on the rim of a through-hole pad run on along
-            their own line into the pad (pad_joins); the four GND zones 0.5 mm inside the two long edges, TAB_U6 down to IO0,
+            their own line into the pad (pad_joins); J7 moved design.USBC_OUT out of the right edge with its tracks, the
+            5V track to J6 and SD_CS / MISO beside it (usbc_out); the four GND zones 0.5 mm inside the two long edges, TAB_U6 down to IO0,
             thermal reliefs for C19 / C2 / C8 pad 1 in the tab copper (zone_edits); R21's label, "S" at J9,
             J11's leader (silk_edits); return vias, edge and island stitching again, refill, save, DRC.
 """
@@ -205,10 +207,11 @@ def pure_stitch(board, v):
                    for t in board.GetTracks())
 
 
-def resolve(ctx, txn, mark, label):
-    """Delete stitching vias the changes since mark run into; True if no other conflict is left."""
+def resolve(ctx, txn, mark, label, ignore=None):
+    """Delete stitching vias the changes since mark run into; True if no other conflict is left.
+    ignore(item, entry) names conflicts the caller accepts (geometry KiCad's own rules allow)."""
     for _ in range(8):
-        bad = txn.conflicts(mark)
+        bad = [(it, e) for it, e in txn.conflicts(mark) if ignore is None or not ignore(it, e)]
         if not bad:
             return True
         byuid = {uid(t): t for t in ctx.board.GetTracks() if t.GetClass() == "PCB_VIA"}
@@ -232,7 +235,9 @@ def resolve(ctx, txn, mark, label):
                 others.append((it, e))
         if others:
             it, e = others[0]
-            log("  %s: conflict with %s" % (label, PL.describe(e) if e is not None else "edge"))
+            what = "%s via at %s" % (it.GetNetname(), bm(pt(it.GetPosition()))) if it.GetClass() == "PCB_VIA" else \
+                "%s %s-%s" % (it.GetNetname(), bm(pt(it.GetStart())), bm(pt(it.GetEnd())))
+            log("  %s: %s: conflict with %s" % (label, what, PL.describe(e) if e is not None else "edge"))
             return False
         for v in vias.values():
             txn.apply([("del", v)])
@@ -2261,6 +2266,140 @@ def zone_edits(board):
 
 
 # ------------------------------------------------------------------------------ main
+# ------------------------------------------------------------------------------ USB-C receptacle out of the edge
+# Owner request, 2026-11-26. With J7's face flush with the board edge the body of a seated plug ends only about
+# 0.45 mm outside the board (Type-C plug shell 6.65 mm against a receptacle depth of 6.20 mm) and reaches below
+# the board's top surface, so a thick or uneven plug body can foul the edge before the plug is home. J7 moves
+# D.USBC_OUT out of the right edge (the only footprint this script moves). With it go:
+#   - the ends of its own tracks (CC1, CC2, D+, D-, VBUS, the two GND links to the rear shell legs), the D+ link
+#     between pads B6 and A6 and the GND via under the shell: same shape as before, 0.6 mm further out;
+#   - the 5V trunk, which ran between the rear and front shell legs at x 95.1 (0.33 mm from the rear legs): it
+#     leaves J6 pin 1 at 45 deg and runs at x 95.7, the same 0.33 mm from the moved legs;
+#   - SD_CS and MISO, which ran between the front shell legs and the edge: both verticals move out, to 0.26 mm
+#     from the legs and 0.32 mm from the edge (rule 0.3), their 45 deg ends sliding along the diagonals.
+# J7's label stays where it was; its two side silkscreen lines still end 0.35 mm inside the edge.
+USBC_X0 = D.PCB["J_USB"][0]                 # where gen_pcb.py places J7 (face on the edge)
+USBC_ZONE = (92.0, 94.0)                    # board x of the track ends that sit on J7's pads / under its shell
+USBC_STUBS = [                              # (net, a, b) on F.Cu: every end inside USBC_ZONE moves with J7
+    ("CC1", (92.31, 50.75), (91.45, 50.75)), ("CC2", (92.31, 47.75), (90.5, 47.75)),
+    ("USB_DM", (88.94, 50.25), (92.31, 50.25)), ("USB_DM", (92.31, 49.25), (91.4, 49.25)),
+    ("USB_DP", (88.94, 48.75), (92.31, 48.75)), ("USB_DP", (92.31, 48.75), (93.25, 48.75)),
+    ("USB_DP", (93.25, 48.75), (93.55, 49.05)), ("USB_DP", (93.55, 49.05), (93.55, 49.45)),
+    ("USB_DP", (93.55, 49.45), (93.25, 49.75)), ("USB_DP", (93.25, 49.75), (92.31, 49.75)),
+    ("VBUS", (92.31, 47.05), (90.8, 47.05)), ("VBUS", (92.31, 51.95), (91.3, 51.95)),
+    ("GND", (92.15, 46.25), (93.22, 45.18)), ("GND", (92.15, 52.75), (93.22, 53.82)),
+]
+USBC_VIA = ("GND", (93.84, 50.823))         # stitching via under the shell, between the pad row and the 5V trunk
+USBC_RUNS = [                               # (net, x now, x new): F.Cu verticals past J7's shell legs
+    ("5V", 95.1, 95.7), ("SD_CS", 98.573, 99.16), ("MISO", 98.997, 99.58),
+]
+USBC_SILK_IN = 0.35                         # mm, J7's side silkscreen lines end this far inside the edge
+
+
+def _usbc_run(board, net, x):
+    for t in net_tracks(board, net, "F.Cu"):
+        s, e = _pm(t.GetStart()), _pm(t.GetEnd())
+        if abs(s[0] - x) < TOL and abs(e[0] - x) < TOL and min(s[1], e[1]) < 44.0 and max(s[1], e[1]) > 55.0:
+            return t
+    return None
+
+
+def usbc_out(board):
+    j = board.FindFootprintByReference("J7")
+    x, y = _pm(j.GetPosition())
+    x1 = USBC_X0 + D.USBC_OUT
+    if abs(x - x1) < TOL:
+        log("  usbc: J7 already %.2f mm out of the edge" % D.USBC_OUT)
+        return 0
+    if abs(x - USBC_X0) > TOL:
+        raise SystemExit("usbc: J7 at x %.3f, expected %.3f or %.3f" % (x, USBC_X0, x1))
+    d = MM(D.USBC_OUT)
+    ch, missing = [], []
+    for net, a, b in USBC_STUBS:
+        t = find_track(board, net, "F.Cu", a, b)
+        if t is None:
+            missing.append("%s %s-%s" % (net, a, b))
+            continue
+        s, e = pt(t.GetStart()), pt(t.GetEnd())
+        mv = [USBC_ZONE[0] <= _pm(q)[0] <= USBC_ZONE[1] for q in (t.GetStart(), t.GetEnd())]
+        if not any(mv):
+            missing.append("%s %s-%s (no end on J7)" % (net, a, b))
+        ch.append(("seg", t, (s[0] + d, s[1]) if mv[0] else s, (e[0] + d, e[1]) if mv[1] else e))
+    via = find_via(board, USBC_VIA[0], USBC_VIA[1])
+    if via is not None and pure_stitch(board, via):
+        ch.append(("via", via, (via.GetPosition().x + d, via.GetPosition().y)))
+    adds = []
+    for net, xa, xb in USBC_RUNS:
+        t = _usbc_run(board, net, xa)
+        if t is None:
+            missing.append("%s vertical at x %.3f" % (net, xa))
+            continue
+        ends = [pt(t.GetStart()), pt(t.GetEnd())]
+        dx = float(MM(PL.OX + xb)) - ends[0][0]
+        for i in (0, 1):
+            E = ends[i]
+            nb = [(u, k) for u in net_tracks(board, net, "F.Cu") if uid(u) != uid(t) and u.GetWidth() == t.GetWidth()
+                  for k, q in enumerate((u.GetStart(), u.GetEnd())) if abs(q.x - E[0]) < 2000 and abs(q.y - E[1]) < 2000]
+            if len(nb) == 1:                # a 45 deg neighbour: the corner slides along its line
+                u, k = nb[0]
+                O = pt(u.GetEnd() if k == 0 else u.GetStart())
+                if abs(abs(E[0] - O[0]) - abs(E[1] - O[1])) > 2000:
+                    missing.append("%s: neighbour of the vertical at %s is not at 45 deg" % (net, _pm(V(E))))
+                    continue
+                sl = 1.0 if (E[0] - O[0]) * (E[1] - O[1]) > 0 else -1.0
+                N = (E[0] + dx, E[1] + sl * dx)
+                ch.append(("seg", u, N, O) if k == 0 else ("seg", u, O, N))
+            elif not nb:                    # the end on a pad (5V on J6 pin 1): a 45 deg link from the pad centre
+                other = ends[1 - i]
+                N = (E[0] + dx, E[1] + (dx if other[1] > E[1] else -dx))
+                adds.append(("add", t.GetNetCode(), t.GetLayer(), t.GetWidth(), E, N))
+            else:
+                missing.append("%s: %d tracks on the end %s of the vertical" % (net, len(nb), _pm(V(E))))
+                continue
+            ends[i] = N
+        ch.append(("seg", t, ends[0], ends[1]))
+    if missing:
+        log("  usbc: NOT applied, not on the board: %s" % "; ".join(missing))
+        return 0
+    ref_at = j.Reference().GetPosition()
+    ref_at = pcbnew.VECTOR2I(ref_at.x, ref_at.y)
+    j.SetPosition(R.P(x1, y))
+    ctx = Ctx(board)
+    txn = Txn(ctx)
+    txn.apply(ch + adds)
+    # The stubs keep their place against J7's own pads (they moved together). The clearance model knows the
+    # net-class clearances only: between J7's pads KiCad applies the 0.15 mm rule "USB-C 16P 0.5 mm pitch"
+    # (gen_pcb.py), which the 0.6 mm VBUS stubs beside the GND pads need. KiCad's DRC checks them below.
+    stubs = {uid(c[1]) for c in ch[:len(USBC_STUBS)]}
+
+    def own_pad(it, e):
+        return uid(it) in stubs and e is not None and len(e) > 2 and e[6] == "pad" and e[7].GetParentFootprint().GetReference() == "J7"
+    if not resolve(ctx, txn, 0, "usbc", own_pad):
+        txn.rollback()
+        j.SetPosition(R.P(USBC_X0, y))
+        log("  usbc: NOT applied (clearance); J7 left on the edge")
+        return 0
+    txn.commit()
+    j.Reference().SetPosition(ref_at)
+    j.SetLibDescription(j.GetLibDescription().replace("front face on the board edge",          # as gen_lib.py writes it
+                                                      "front face %.1f mm outside the board edge" % D.USBC_OUT))
+    lim = MM(PL.OX + D.BOARD_W - USBC_SILK_IN)
+    ns = 0
+    for g in j.GraphicalItems():
+        if g.GetClass() == "PCB_SHAPE" and g.GetLayer() == pcbnew.F_SilkS:
+            s, e = g.GetStart(), g.GetEnd()
+            if s.x > lim:
+                g.SetStart(pcbnew.VECTOR2I(lim, s.y))
+                ns += 1
+            if e.x > lim:
+                g.SetEnd(pcbnew.VECTOR2I(lim, e.y))
+                ns += 1
+    log("  usbc: J7 %.3f -> %.3f (%.2f mm out of the right edge); its %d track segments and %s moved with it, 5V / SD_CS / MISO "
+        "past its shell legs; %d silkscreen line ends pulled back inside the edge"
+        % (USBC_X0, x1, D.USBC_OUT, len(USBC_STUBS), "the GND via under the shell" if via is not None else "no via", ns))
+    return 1
+
+
 def gnd_zones(board):
     out = {}
     for z in board.Zones():
@@ -2380,6 +2519,8 @@ def round2(board):
     if done:
         n += strays(board)
         n += corners(board)[0]
+    log("USB-C receptacle:")
+    n += usbc_out(board)
     n += pad_joins(board)
     log("round 2 zones, silkscreen:")
     n += zone_edits(board)

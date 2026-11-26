@@ -3,7 +3,7 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12, front face on the board edge: front silkscreen line removed, side lines shortened (no silkscreen clipped by the edge). USB Type-C receptacle for USB 2.0 and PD, http://www.krhro.com/uploads/soft/180320/1-1P320120243.pdf")
+	(descr "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12, front face 0.6 mm outside the board edge: front silkscreen line removed, side lines shortened (no silkscreen clipped by the edge). USB Type-C receptacle for USB 2.0 and PD, http://www.krhro.com/uploads/soft/180320/1-1P320120243.pdf")
 	(tags "usb usb-c 2.0 pd")
 	(property "Reference" "REF**"
 		(at 0 -5.645 0)
@@ -67,7 +67,7 @@
 	)
 	(fp_line
 		(start -4.7 2)
-		(end -4.7 3.3)
+		(end -4.7 2.7)
 		(stroke
 			(width 0.12)
 			(type solid)
@@ -87,7 +87,7 @@
 	)
 	(fp_line
 		(start 4.7 2)
-		(end 4.7 3.3)
+		(end 4.7 2.7)
 		(stroke
 			(width 0.12)
 			(type solid)

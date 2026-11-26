@@ -15,10 +15,11 @@ Footprints:
               so it clears the board edge (the antenna overhangs it) and pad 1 by 0.15 mm (rev 2.1).
               Pads, antenna keep-out zone, outline and 3D model are unchanged.
   USB_C_Receptacle_HRO_TYPE-C-31-M-12_Edge  copy of Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12
-              for a receptacle whose front face sits on the board edge: the silkscreen line across the
-              front (0.25 mm in front of the face) is removed and the two side lines end 0.35 mm behind
-              the face, so no silkscreen is clipped by the edge (DRC silk_edge_clearance). Pads,
-              courtyard, fab outline and 3D model are unchanged.
+              for a receptacle at the board edge, its front face design.USBC_OUT (0.6 mm) outside it:
+              the silkscreen line across the front (0.25 mm in front of the face) is removed and the
+              two side lines end 0.35 mm inside the edge (0.95 mm behind the face), so no silkscreen
+              is clipped by the edge (DRC silk_edge_clearance). Pads, courtyard, fab outline and 3D
+              model are unchanged.
 
 (The rev 1b DevKitC/GY-521/microSD-breakout symbols and footprints are in git, tag carrier-rev1b.)
 
@@ -26,6 +27,7 @@ Run from anywhere:  python3 kicad/gen/gen_lib.py
 """
 import os
 
+import design as D
 from sexp import Sym as S, dump, find, find1, parse
 from symlib import flat
 
@@ -94,8 +96,8 @@ def write_usbc():
                 cut += 1
                 continue
             for pt in (st, en):
-                if float(pt[2]) == 3.9:                  # side lines: stop 0.35 mm behind the face (3.65)
-                    pt[2] = 3.3
+                if float(pt[2]) == 3.9:                  # side lines: stop 0.35 mm inside the board edge; the
+                    pt[2] = round(3.65 - 0.35 - D.USBC_OUT, 3)   # face (3.65) stands USBC_OUT outside it
                     short += 1
         keep.append(it)
     if (cut, short) != (1, 2):
@@ -103,8 +105,8 @@ def write_usbc():
     keep[1] = USBC + "_Edge"
     for it in keep:
         if isinstance(it, list) and it and it[0] == S("descr"):
-            it[1] = ("Connector_USB:%s, front face on the board edge: front silkscreen line removed, side lines "
-                     "shortened (no silkscreen clipped by the edge). " % USBC) + it[1]
+            it[1] = ("Connector_USB:%s, front face %.1f mm outside the board edge: front silkscreen line removed, "
+                     "side lines shortened (no silkscreen clipped by the edge). " % (USBC, D.USBC_OUT)) + it[1]
         if isinstance(it, list) and it and it[0] == S("property") and it[1] == "Value":
             it[2] = USBC + "_Edge"
     with open(os.path.join(KDIR, "defuse32.pretty", USBC + "_Edge.kicad_mod"), "w") as f:

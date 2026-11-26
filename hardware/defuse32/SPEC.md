@@ -50,7 +50,7 @@ Same schematic, netlist, pin map and placement as rev 2 (the schematic stays rev
 
 ## Rev 3.1 carrier, schematic rev 2.1 (2026-11-25, standards pass) — supersedes rev 3 where they differ
 
-A standards pass (independent audit, review, fix, final check; record in `kicad/README.md`, section "Standards pass (2026-11-25)") on the rev 3 board. Same placement, pin map, MCP23017 allocation, connector pinouts and stack-up as rev 3. No part moved.
+A standards pass (independent audit, review, fix, final check; record in `kicad/README.md`, section "Standards pass (2026-11-25)") on the rev 3 board. Same placement, pin map, MCP23017 allocation, connector pinouts and stack-up as rev 3. No part moved, except the USB-C receptacle (below).
 
 - **Schematic rev 2.1** (four changes, approved by the owner):
   - **Buzzer driver**: Q1 is an SS8050 (LCSC C2150, SOT-23, same pads) instead of the MMBT3904, base resistor R7 330 Ω instead of 1 kΩ, so a 16-42 Ω magnetic buzzer is driven saturated. 1N4148WS stays across the buzzer pins; with a 16 Ω buzzer check that diode's temperature at bring-up (a 32 Ω or higher buzzer is preferred).
@@ -60,8 +60,9 @@ A standards pass (independent audit, review, fix, final check; record in `kicad/
   - **5 V feed**: a wide track from the fuse F1 straight to both regulators (U5, U6) and the bulk capacitor; the loop round the board now only feeds the plate headers. Each AMS1117 tab sits in a copper area on its own output net (3V3 at U6, 3V3P at U5).
   - No copper and no via under the LIS3DH body. A GND via within 2 mm of each layer change of USB, SPI and WS2812 data.
   - Silkscreen: `EN` at SW1, `BOOT` at SW2, `G + S` at the servo header J9 (pin 1 GND, pin 2 5V, pin 3 signal), `OUT` at J10, `rev 3.1 2026-11`. Three board-only fiducials (FID1-FID3) for JLCPCB's Standard assembly.
+  - **USB-C receptacle J7 stands 0.6 mm past the right board edge** (2026-11-26, owner request): flush with the edge, the body of a seated plug ended about 0.45 mm from the board and a thick plug could foul it; now about 1.05 mm. The 5V track to J6 and the SD_CS / MISO tracks beside the receptacle moved with it; 0.6 mm is what those two tracks allow. Record in `kicad/README.md`.
   - Track finish: the jogs, tight corners and copper gaps that remain are listed with their reasons in `kicad/README.md`. (Rev 3's "9 jogs" was an undercount by the audit tool; the corrected tool and the true numbers are in the same section.)
-- **Ordering**: JLCPCB **Standard** PCBA (the ESP32 module, the LIS3DH and the 220 µF capacitor are Standard-only parts), handling rails on the two 100 mm edges only (the antenna overhangs the left edge, the USB-C receptacle is flush with the right edge). Settings, the order remark and the placement-preview checklist: `kicad/out/jlcpcb/README.md`.
+- **Ordering**: JLCPCB **Standard** PCBA (the ESP32 module, the LIS3DH and the 220 µF capacitor are Standard-only parts), handling rails on the two 100 mm edges only (the antenna overhangs the left edge by 6.2 mm, the USB-C receptacle the right edge by 0.6 mm). Settings, the order remark and the placement-preview checklist: `kicad/out/jlcpcb/README.md`.
 - **Use**: supply 5 V from a source rated 2 A or more; a 500 mA PC port may sag when the servo moves. Plate wiring rules that protect the carrier (power the IR receiver, encoder, TM1637 and OLEDs from 3V3P, never 5 V; series resistors in the touch, probe, keypad and wire-post leads on the plates) belong in the plate build notes.
 
 ## Rev 1 changes (2026-10-22)
